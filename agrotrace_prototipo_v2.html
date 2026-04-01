@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AgroTrace — Prototipo v2</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --soil:#2C1F0E;--bark:#4A3520;--sage:#6B7F5E;--leaf:#8EAA7B;--mist:#C8D9BC;
+  --dew:#EDF2E8;--cream:#F7F4EF;--white:#FFFFFF;--accent:#4E7C3F;
+  --amber:#854F0B;--amber-bg:#FAEEDA;--amber-light:#FAC775;
+  --purple:#534AB7;--purple-bg:#EEEDFE;
+  --error:#B94A3A;--error-bg:#FAECE7;
+  --radius:6px;--radius-lg:10px;--trans:0.2s ease;
+  --sidebar:240px;
+}
+html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--soil);font-size:14px;}
+.app{display:flex;min-height:100vh;}
+.sidebar{width:var(--sidebar);flex-shrink:0;background:var(--soil);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto;}
+.sidebar-brand{padding:24px 20px 16px;border-bottom:1px solid rgba(255,255,255,0.08);}
+.brand-mark{display:flex;align-items:center;gap:10px;}
+.brand-icon{width:34px;height:34px;border:1.5px solid var(--leaf);border-radius:50%;display:flex;align-items:center;justify-content:center;}
+.brand-icon svg{width:18px;height:18px;fill:var(--leaf);}
+.brand-name{font-family:'DM Serif Display',serif;font-size:1.3rem;color:var(--dew);}
+.brand-tag{font-size:0.62rem;font-weight:300;color:var(--mist);letter-spacing:0.12em;text-transform:uppercase;margin-top:2px;}
+.sidebar-user{padding:12px 20px;border-bottom:1px solid rgba(255,255,255,0.08);}
+.user-row{display:flex;align-items:center;gap:8px;}
+.user-avatar{width:28px;height:28px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;color:white;}
+.user-name{font-size:0.78rem;color:var(--mist);font-weight:300;}
+.sidebar-nav{padding:12px 0;flex:1;}
+.nav-section{font-size:0.6rem;font-weight:500;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.3);padding:8px 20px 4px;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 20px;cursor:pointer;color:rgba(255,255,255,0.55);font-size:0.82rem;transition:all var(--trans);border-left:2px solid transparent;}
+.nav-item svg{width:15px;height:15px;fill:currentColor;flex-shrink:0;}
+.nav-item:hover{color:var(--dew);background:rgba(255,255,255,0.05);}
+.nav-item.active{color:var(--leaf);border-left-color:var(--leaf);background:rgba(142,170,123,0.1);}
+.nav-badge{margin-left:auto;background:var(--amber-light);color:var(--amber);font-size:0.6rem;font-weight:700;padding:1px 6px;border-radius:10px;}
+.sidebar-footer{padding:16px 20px;border-top:1px solid rgba(255,255,255,0.08);}
+.sidebar-footer p{font-size:0.65rem;color:rgba(255,255,255,0.25);line-height:1.6;}
+.main{flex:1;display:flex;flex-direction:column;min-width:0;}
+.topbar{background:var(--white);border-bottom:1px solid rgba(0,0,0,0.06);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.topbar-title{font-size:1rem;font-weight:500;color:var(--soil);}
+.topbar-sub{font-size:0.75rem;color:var(--sage);margin-top:1px;}
+.topbar-actions{display:flex;gap:8px;align-items:center;}
+.btn{padding:7px 14px;border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:0.78rem;font-weight:500;cursor:pointer;transition:all var(--trans);border:none;}
+.btn-primary{background:var(--accent);color:white;}
+.btn-primary:hover{background:#3d6230;}
+.btn-secondary{background:transparent;border:1px solid rgba(0,0,0,0.15);color:var(--bark);}
+.btn-secondary:hover{background:var(--cream);}
+.btn-dark{background:var(--soil);color:var(--dew);}
+.btn-dark:hover{background:var(--bark);}
+.content{padding:24px 28px;flex:1;}
+.view{display:none;}
+.view.active{display:block;}
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px;}
+.metric{background:var(--white);border:1px solid rgba(0,0,0,0.07);border-radius:var(--radius-lg);padding:14px 16px;}
+.metric-label{font-size:0.68rem;font-weight:500;text-transform:uppercase;letter-spacing:0.08em;color:var(--sage);margin-bottom:6px;}
+.metric-val{font-size:1.6rem;font-weight:500;color:var(--soil);}
+.metric-val.green{color:var(--accent);}
+.metric-val.amber{color:var(--amber);}
+.metric-val.purple{color:var(--purple);}
+.filters{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;}
+.pill{padding:5px 12px;border-radius:100px;font-size:0.75rem;border:1px solid rgba(0,0,0,0.12);cursor:pointer;color:var(--bark);background:var(--white);transition:all var(--trans);}
+.pill:hover{border-color:var(--accent);color:var(--accent);}
+.pill.active{background:var(--soil);color:var(--dew);border-color:var(--soil);}
+.lotes-grid{display:flex;flex-direction:column;gap:10px;}
+.lote-card{background:var(--white);border:1px solid rgba(0,0,0,0.07);border-radius:var(--radius-lg);padding:14px 16px;cursor:pointer;transition:all var(--trans);}
+.lote-card:hover{border-color:var(--accent);}
+.lote-card.original{border-color:#1D9E75;}
+.lote-card.sub-a{border-left:3px solid #639922;}
+.lote-card.sub-b{border-left:3px solid #BA7517;}
+.lote-card.padre-c{border-color:#1D9E75;opacity:0.85;}
+.lote-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;gap:8px;}
+.lote-hl{display:flex;align-items:flex-start;gap:8px;flex:1;min-width:0;}
+.lote-name{font-size:0.9rem;font-weight:500;color:var(--soil);}
+.lote-origin{font-size:0.72rem;color:var(--sage);margin-top:2px;}
+.eb{font-size:0.68rem;font-weight:500;padding:3px 10px;border-radius:100px;white-space:nowrap;}
+.b-nur{background:#EAF3DE;color:#27500A;}
+.b-veg{background:#E1F5EE;color:#085041;}
+.b-flo{background:var(--amber-bg);color:var(--amber);}
+.b-cos{background:var(--error-bg);color:var(--error);}
+.b-flo2{background:var(--purple-bg);color:var(--purple);}
+.b-cer{background:#f1efe8;color:#5F5E5A;}
+.b-sub{background:#f1efe8;color:#5F5E5A;font-size:0.62rem;padding:2px 7px;border-radius:100px;margin-left:6px;}
+.b-pad{background:#E1F5EE;color:#085041;font-size:0.62rem;padding:2px 7px;border-radius:100px;margin-left:6px;}
+.pb{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+.steps{display:flex;gap:3px;flex:1;}
+.step{height:4px;flex:1;border-radius:2px;}
+.step.done{background:var(--accent);}
+.step.act{background:var(--leaf);}
+.step.act2{background:var(--amber-light);}
+.step.spl{background:var(--purple);}
+.step.fut{background:rgba(0,0,0,0.1);}
+.sc{font-size:0.68rem;color:var(--sage);white-space:nowrap;}
+.lm{display:flex;gap:16px;flex-wrap:wrap;padding-top:10px;border-top:1px solid rgba(0,0,0,0.05);}
+.mi{font-size:0.72rem;color:var(--sage);}
+.mi b{color:var(--soil);font-weight:500;}
+.xbtn{width:22px;height:22px;border-radius:50%;border:1.5px solid rgba(0,0,0,0.15);background:rgba(0,0,0,0.04);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--sage);flex-shrink:0;margin-top:1px;transition:all var(--trans);user-select:none;}
+.xbtn:hover{border-color:var(--accent);color:var(--accent);}
+.xbtn.open{background:var(--soil);color:var(--dew);border-color:var(--soil);}
+.ch{overflow:hidden;transition:max-height 0.3s ease,opacity 0.3s ease;max-height:0;opacity:0;}
+.ch.open{max-height:800px;opacity:1;}
+.chi{margin-top:6px;margin-left:30px;position:relative;display:flex;flex-direction:column;gap:6px;padding-bottom:4px;}
+.chi::before{content:'';position:absolute;left:-18px;top:0;bottom:20px;width:1.5px;background:rgba(0,0,0,0.1);}
+.cw{position:relative;}
+.cw::before{content:'';position:absolute;left:-18px;top:22px;width:18px;height:1.5px;background:rgba(0,0,0,0.1);}
+.lay2{display:grid;grid-template-columns:1fr 280px;gap:20px;}
+.panel{background:var(--white);border:1px solid rgba(0,0,0,0.07);border-radius:var(--radius-lg);padding:14px 16px;}
+.pt{font-size:0.68rem;font-weight:500;text-transform:uppercase;letter-spacing:0.08em;color:var(--sage);margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;}
+.al{display:flex;align-items:flex-start;gap:8px;padding:8px 12px;border-radius:var(--radius);margin-bottom:8px;font-size:0.75rem;line-height:1.5;}
+.al.warn{background:var(--amber-bg);color:var(--amber);}
+.al.info{background:var(--dew);color:var(--accent);}
+.ald{width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:4px;}
+.dw{background:var(--amber);}
+.di{background:var(--accent);}
+.ait{font-size:0.72rem;padding:8px 0;border-bottom:1px solid rgba(0,0,0,0.05);}
+.ait:last-child{border-bottom:none;}
+.ad{font-weight:500;color:var(--soil);display:block;margin-bottom:1px;}
+.lhero{background:var(--soil);border-radius:var(--radius-lg);padding:20px 24px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:flex-end;}
+.lhn{font-family:'DM Serif Display',serif;font-size:1.5rem;color:var(--dew);margin-bottom:4px;}
+.lhs{font-size:0.78rem;color:var(--mist);font-weight:300;}
+.lhr{text-align:right;}
+.lhe{font-size:0.68rem;color:var(--leaf);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px;}
+.tln{display:flex;gap:0;margin-bottom:20px;background:var(--white);border:1px solid rgba(0,0,0,0.07);border-radius:var(--radius-lg);overflow:hidden;}
+.tli{flex:1;padding:12px 8px;text-align:center;cursor:pointer;border-right:1px solid rgba(0,0,0,0.06);transition:all var(--trans);}
+.tli:last-child{border-right:none;}
+.tli.done{background:rgba(78,124,63,0.06);}
+.tli.active{background:var(--soil);}
+.tli.future{opacity:0.5;cursor:default;}
+.tln2{width:22px;height:22px;border-radius:50%;margin:0 auto 4px;display:flex;align-items:center;justify-content:center;font-size:0.68rem;font-weight:500;}
+.tli.done .tln2{background:var(--accent);color:white;}
+.tli.active .tln2{background:var(--leaf);color:var(--soil);}
+.tli.future .tln2{background:rgba(0,0,0,0.08);color:var(--sage);}
+.tll{font-size:0.65rem;color:var(--sage);}
+.tli.active .tll{color:var(--dew);}
+.tli.done .tll{color:var(--accent);}
+.field{margin-bottom:12px;}
+.field label{display:block;font-size:0.7rem;font-weight:500;color:var(--bark);margin-bottom:5px;text-transform:uppercase;letter-spacing:0.06em;}
+.req{color:var(--error);margin-left:2px;}
+.opt{color:var(--sage);font-size:0.62rem;font-weight:400;text-transform:none;margin-left:4px;}
+.fh{font-size:0.68rem;color:var(--sage);margin-top:3px;font-style:italic;}
+input[type=text],input[type=number],input[type=date],select,textarea{width:100%;padding:9px 12px;border:1px solid rgba(0,0,0,0.14);border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:0.82rem;color:var(--soil);background:var(--white);outline:none;transition:border-color var(--trans);}
+input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(78,124,63,0.1);}
+input[readonly],input[disabled],select:disabled{background:var(--cream);color:var(--sage);cursor:not-allowed;}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+.af{background:var(--dew);border-radius:var(--radius);padding:10px 12px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;}
+.afl{font-size:0.72rem;color:var(--accent);}
+.afv{font-size:0.88rem;font-weight:500;color:var(--soil);}
+.afc{font-size:0.68rem;padding:3px 8px;border-radius:100px;background:var(--white);border:1px solid var(--accent);color:var(--accent);cursor:pointer;}
+.mg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;}
+.mc{border:1.5px solid rgba(0,0,0,0.1);border-radius:var(--radius);padding:10px;cursor:pointer;transition:all var(--trans);}
+.mc:hover{border-color:var(--accent);}
+.mc.sel{border-color:var(--soil);background:var(--cream);}
+.mc .mct{font-size:0.78rem;font-weight:500;color:var(--soil);margin-bottom:2px;}
+.mc .mcs{font-size:0.68rem;color:var(--sage);}
+.cr{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:var(--cream);border-radius:var(--radius);padding:12px;}
+.cf{display:flex;flex-direction:column;gap:4px;}
+.cf label{font-size:0.68rem;color:var(--sage);}
+.cf input{width:80px;}
+.cop{font-size:1.2rem;color:var(--sage);padding-top:16px;}
+.crs{padding-top:14px;display:flex;flex-direction:column;gap:2px;}
+.crsl{font-size:0.68rem;color:var(--sage);}
+.crsv{font-size:1.3rem;font-weight:500;color:var(--accent);}
+.og{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;}
+.oc{border:1.5px solid rgba(0,0,0,0.1);border-radius:var(--radius);padding:10px;cursor:pointer;text-align:center;transition:all var(--trans);}
+.oc:hover{border-color:var(--accent);}
+.oc.sel{border-color:var(--accent);background:var(--dew);}
+.oc .oct{font-size:0.78rem;font-weight:500;color:var(--soil);margin-bottom:2px;}
+.oc .ocs{font-size:0.65rem;color:var(--sage);}
+.sb{background:var(--amber-bg);border-radius:var(--radius);padding:10px 14px;margin-top:8px;}
+.sr{display:flex;justify-content:space-between;font-size:0.75rem;color:var(--amber);padding:3px 0;}
+.sr.fin{font-weight:500;border-top:1px solid var(--amber-light);padding-top:6px;margin-top:3px;}
+.ib{background:var(--dew);border-radius:var(--radius);padding:10px 14px;font-size:0.75rem;color:var(--accent);line-height:1.6;margin-top:8px;}
+.wb{background:var(--amber-bg);border-radius:var(--radius);padding:10px 14px;font-size:0.75rem;color:var(--amber);line-height:1.6;margin-top:8px;}
+.erb{background:var(--error-bg);border-radius:var(--radius);padding:10px 14px;font-size:0.75rem;color:var(--error);line-height:1.6;margin-top:8px;}
+.um{display:flex;gap:12px;margin-bottom:10px;}
+.umo{display:flex;align-items:center;gap:6px;font-size:0.78rem;color:var(--bark);cursor:pointer;}
+.umo input[type=radio]{width:14px;height:14px;}
+.ws{display:flex;gap:0;margin-bottom:20px;}
+.wst{flex:1;display:flex;flex-direction:column;align-items:center;position:relative;}
+.wst:not(:last-child)::after{content:'';position:absolute;top:14px;left:60%;width:80%;height:1.5px;background:rgba(0,0,0,0.1);z-index:0;}
+.wst.wd::after{background:var(--accent);}
+.wd2{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.68rem;font-weight:500;position:relative;z-index:1;}
+.wd2.done{background:var(--accent);color:white;}
+.wd2.active{background:var(--soil);color:var(--dew);}
+.wd2.future{background:rgba(0,0,0,0.08);color:var(--sage);border:1px solid rgba(0,0,0,0.12);}
+.wl{font-size:0.65rem;color:var(--sage);margin-top:5px;text-align:center;}
+.wl.active{color:var(--soil);font-weight:500;}
+.cs{background:rgba(78,124,63,0.05);border:1px solid rgba(78,124,63,0.2);border-radius:var(--radius-lg);padding:10px 16px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;}
+.cst{font-size:0.78rem;font-weight:500;color:var(--soil);}
+.csv{font-size:0.72rem;color:var(--accent);}
+.chi2{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:var(--cream);border-radius:var(--radius);margin-bottom:8px;cursor:pointer;font-size:0.78rem;color:var(--bark);line-height:1.5;}
+.chi2.checked{background:var(--dew);color:var(--accent);}
+.chi2 input{margin-top:2px;flex-shrink:0;}
+.ab{display:flex;gap:8px;justify-content:flex-end;margin-top:20px;padding-top:16px;border-top:1px solid rgba(0,0,0,0.07);}
+.st2{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--cream);border:1px dashed rgba(0,0,0,0.15);border-radius:var(--radius);cursor:pointer;font-size:0.75rem;color:var(--sage);margin-top:10px;transition:all var(--trans);}
+.st2:hover{border-color:var(--accent);color:var(--accent);}
+.si{width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,0.08);display:flex;align-items:center;justify-content:center;font-size:14px;}
+.ss{text-align:center;padding:40px 20px;display:none;}
+.ssi{width:56px;height:56px;background:var(--dew);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;}
+.ssi svg{width:26px;height:26px;fill:var(--accent);}
+.sst{font-family:'DM Serif Display',serif;font-size:1.4rem;color:var(--soil);margin-bottom:6px;}
+.sss{font-size:0.82rem;color:var(--sage);margin-bottom:24px;line-height:1.6;}
+.ssa{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
+/* sublotes tree */
+.tw{display:flex;gap:0;align-items:stretch;}
+.tl{width:40px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;}
+.vs{width:1.5px;background:rgba(0,0,0,0.12);}
+.ob{width:26px;height:26px;border-radius:50%;border:1.5px solid rgba(0,0,0,0.15);background:var(--cream);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--sage);transition:all var(--trans);user-select:none;flex-shrink:0;}
+.ob:hover{border-color:#1D9E75;color:#1D9E75;}
+.ob.open{background:#1D9E75;color:white;border-color:#1D9E75;}
+.tr2{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px;}
+.str{display:flex;align-items:flex-start;}
+.ah{height:1.5px;width:14px;background:rgba(0,0,0,0.12);margin-top:22px;flex-shrink:0;}
+.scw{flex:1;min-width:0;}
+.ps{overflow:hidden;transition:max-height 0.35s ease,opacity 0.35s ease;max-height:0;opacity:0;}
+.ps.open{max-height:220px;opacity:1;}
+/* stock */
+.sgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;}
+.scard{background:var(--white);border:1px solid rgba(0,0,0,0.07);border-radius:var(--radius-lg);overflow:hidden;}
+.sch{padding:10px 14px;font-size:0.75rem;font-weight:500;color:white;}
+.sch.s1{background:var(--accent);}
+.sch.s2{background:var(--bark);}
+.sch.s3{background:var(--sage);}
+.scb{padding:12px 14px;}
+.sl{border-bottom:1px solid rgba(0,0,0,0.06);padding:8px 0;}
+.sl:last-child{border-bottom:none;}
+.sln{font-size:0.78rem;font-weight:500;color:var(--soil);margin-bottom:4px;}
+.sbw{display:flex;align-items:center;gap:8px;}
+.sbb{flex:1;height:4px;background:rgba(0,0,0,0.08);border-radius:2px;overflow:hidden;}
+.sbf{height:100%;border-radius:2px;background:var(--accent);}
+.sbf.low{background:var(--error);}
+.sn{font-size:0.68rem;color:var(--sage);white-space:nowrap;}
+.fst{font-size:0.75rem;font-weight:500;color:var(--soil);margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid rgba(0,0,0,0.07);}
+</style>
+</head>
+<body>
+<div class="app">
+
+<aside class="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-mark">
+      <div class="brand-icon"><svg viewBox="0 0 24 24"><path d="M17 8C8 10 5.9 16.17 3.82 21.34L5.71 22l1-2.3A4.49 4.49 0 0 0 8 20C19 20 22 3 22 3c-1 2-8 3-8 3z"/></svg></div>
+      <div><div class="brand-name">AgroTrace</div><div class="brand-tag">Trazabilidad</div></div>
+    </div>
+  </div>
+  <div class="sidebar-user">
+    <div class="user-row"><div class="user-avatar">GP</div><div class="user-name">Productor demo</div></div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section">Principal</div>
+    <div class="nav-item active" onclick="showView('dashboard')">
+      <svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>Dashboard
+    </div>
+    <div class="nav-item" onclick="showView('lotes')">
+      <svg viewBox="0 0 24 24"><path d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z"/></svg>
+      Mis lotes productivos<span class="nav-badge">6</span>
+    </div>
+    <div class="nav-item" onclick="showView('nuevo-lote')">
+      <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>Nuevo lote
+    </div>
+    <div class="nav-section">Material</div>
+    <div class="nav-item" onclick="showView('stock')">
+      <svg viewBox="0 0 24 24"><path d="M20 7H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2zm-9 10H5v-2h6v2zm8 0h-6v-2h6v2zm0-4H5v-2h14v2zM3 5h18V3H3v2z"/></svg>Stock de material básico
+    </div>
+    <div class="nav-section">Producción</div>
+    <div class="nav-item" onclick="showView('detalle')">
+      <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>Ver lote activo
+    </div>
+  </nav>
+  <div class="sidebar-footer"><p>AgroTrace · Prototipo v2<br/>Diseñado con Claude · Anthropic</p></div>
+</aside>
+
+<div class="main">
+<div class="topbar">
+  <div><div class="topbar-title" id="tt">Dashboard</div><div class="topbar-sub" id="ts">Resumen de tu producción</div></div>
+  <div class="topbar-actions" id="ta"><button class="btn btn-primary" onclick="showView('nuevo-lote')">+ Nuevo lote</button></div>
+</div>
+<div class="content">
+
+<!-- DASHBOARD -->
+<div class="view active" id="view-dashboard">
+  <div class="metrics">
+    <div class="metric"><div class="metric-label">Lotes activos</div><div class="metric-val">6</div></div>
+    <div class="metric"><div class="metric-label">En floración</div><div class="metric-val green">2</div></div>
+    <div class="metric"><div class="metric-label">Stock flores</div><div class="metric-val purple">340 g</div></div>
+    <div class="metric"><div class="metric-label">Alertas</div><div class="metric-val amber">1</div></div>
+  </div>
+  <div class="lay2">
+    <div>
+      <div class="filters">
+        <div class="pill active" onclick="fDash(this,'todos')">Todos</div>
+        <div class="pill" onclick="fDash(this,'nursery')">Nursery</div>
+        <div class="pill" onclick="fDash(this,'vegetativa')">Vegetativa</div>
+        <div class="pill" onclick="fDash(this,'floracion')">Floración</div>
+        <div class="pill" onclick="fDash(this,'cosecha')">Cosecha</div>
+        <div class="pill" onclick="fDash(this,'flores')">Flores</div>
+      </div>
+      <div class="lotes-grid" id="dash-lotes"></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:16px;">
+      <div class="panel">
+        <div class="pt">Alertas</div>
+        <div class="al warn"><div class="ald dw"></div>Otoño 2025 lleva 8 días sin registros en Vegetativa</div>
+        <div class="al info"><div class="ald di"></div>Verano 2024 — curado completado, avanzar a Flores</div>
+      </div>
+      <div class="panel">
+        <div class="pt">Actividad reciente</div>
+        <div class="ait"><span class="ad">Hoy 09:14</span><span style="color:var(--sage);">Primavera 2025 — actualización Floración</span></div>
+        <div class="ait"><span class="ad">Ayer 16:30</span><span style="color:var(--sage);">Verano 2024 — peso seco: 1.8 kg</span></div>
+        <div class="ait"><span class="ad">20/03 11:00</span><span style="color:var(--sage);">Invierno 2025 — inicio Nursery</span></div>
+        <div class="ait"><span class="ad">18/03 08:45</span><span style="color:var(--sage);">Primavera 2024 — entrega 100g</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MIS LOTES PRODUCTIVOS -->
+<div class="view" id="view-lotes">
+  <div class="filters">
+    <div class="pill active" onclick="fLotes(this,'todos')">Todos</div>
+    <div class="pill" onclick="fLotes(this,'nursery')">Nursery</div>
+    <div class="pill" onclick="fLotes(this,'vegetativa')">Vegetativa</div>
+    <div class="pill" onclick="fLotes(this,'floracion')">Floración</div>
+    <div class="pill" onclick="fLotes(this,'cosecha')">Cosecha</div>
+    <div class="pill" onclick="fLotes(this,'flores')">Flores</div>
+    <div class="pill" onclick="fLotes(this,'sublotes')">Sublotes</div>
+  </div>
+  <div id="lotes-normal"><div class="lotes-grid" id="lotes-list"></div></div>
+  <div id="lotes-sub" style="display:none;">
+    <div style="font-size:11px;color:var(--sage);margin-bottom:14px;padding:8px 12px;background:var(--cream);border-radius:8px;">Sublotes activos — clickeá <strong>+</strong> para ver el lote padre</div>
+    <div class="ps" id="ps-s">
+      <div class="lote-card padre-c" style="margin-bottom:6px;">
+        <div class="lote-header"><div><div class="lote-name">Primavera 2025<span class="b-pad">lote padre</span></div><div class="lote-origin">Esquejes externos · var. White Widow · dividido en Floración</div></div><span class="eb b-cer">Cerrado</span></div>
+        <div class="pb"><div class="steps"><div class="step done"></div><div class="step done"></div><div class="step spl"></div><div class="step fut"></div><div class="step fut"></div></div><div class="sc">div.</div></div>
+        <div class="lm"><div class="mi">Inicio <b>12/01/2025</b></div><div class="mi">División <b>Floración</b></div><div class="mi">Plantas <b>195</b></div></div>
+      </div>
+    </div>
+    <div class="tw">
+      <div class="tl">
+        <div class="vs" id="vs-top" style="height:16px;"></div>
+        <div class="ob" id="ob-s" onclick="togSubOr()">+</div>
+        <div class="vs" style="flex:1;"></div>
+      </div>
+      <div class="tr2" style="padding-top:8px;">
+        <div class="str"><div class="ah"></div><div class="scw"><div class="lote-card sub-a" onclick="showView('detalle')"><div class="lote-header"><div><div class="lote-name">Primavera 2025 → Invernadero Norte<span class="b-sub">sublote A</span></div><div class="lote-origin">120 plantas · desde Floración</div></div><span class="eb b-flo">Floración</span></div><div class="pb"><div class="steps"><div class="step done"></div><div class="step done"></div><div class="step act"></div><div class="step fut"></div><div class="step fut"></div></div><div class="sc">3/5</div></div><div class="lm"><div class="mi">Plantas <b>120</b></div><div class="mi">Días <b>22</b></div></div></div></div></div>
+        <div class="str"><div class="ah"></div><div class="scw"><div class="lote-card sub-b" onclick="showView('detalle')"><div class="lote-header"><div><div class="lote-name">Primavera 2025 → Invernadero Sur<span class="b-sub">sublote B</span></div><div class="lote-origin">75 plantas · desde Floración</div></div><span class="eb b-flo">Floración</span></div><div class="pb"><div class="steps"><div class="step done"></div><div class="step done"></div><div class="step act2"></div><div class="step fut"></div><div class="step fut"></div></div><div class="sc">3/5</div></div><div class="lm"><div class="mi">Plantas <b>75</b></div><div class="mi">Días <b>22</b></div></div></div></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DETALLE LOTE -->
+<div class="view" id="view-detalle">
+  <div class="lhero">
+    <div><div class="lhn">Primavera 2025</div><div class="lhs">Esquejes externos · var. White Widow · 195 plantas activas</div></div>
+    <div class="lhr"><div class="lhe">Etapa activa</div><span class="eb b-flo">Floración · orden 3</span></div>
+  </div>
+  <div class="tln">
+    <div class="tli done"><div class="tln2">✓</div><div class="tll">Nursery</div></div>
+    <div class="tli done"><div class="tln2">✓</div><div class="tll">Vegetativa</div></div>
+    <div class="tli active"><div class="tln2">3</div><div class="tll">Floración</div></div>
+    <div class="tli future"><div class="tln2">4</div><div class="tll">Cosecha</div></div>
+    <div class="tli future"><div class="tln2">5</div><div class="tll">Flores</div></div>
+  </div>
+  <div class="panel">
+    <div class="pt">Etapa Floración — datos actuales<span style="font-size:0.65rem;color:var(--sage);font-weight:400;text-transform:none;">* obligatorio</span></div>
+    <div class="af"><div class="afl">Fecha inicio (Inducción) — tomada de fin Vegetativa</div><div style="display:flex;align-items:center;gap:10px;"><span class="afv">20/03/2025</span><span class="afc">Confirmar</span></div></div>
+    <div class="af"><div class="afl">Cantidad ingreso — tomada del egreso de Vegetativa</div><div style="display:flex;align-items:center;gap:10px;"><span class="afv">195 plantas</span><span class="afc">Confirmar</span></div></div>
+    <div class="g2">
+      <div class="field"><label>Fecha fin (Cosecha)<span class="opt">opcional</span></label><input type="date"/></div>
+      <div class="field"><label>Cantidad egreso<span class="opt">opcional</span></label><input type="number" placeholder="Nº de plantas"/></div>
+    </div>
+    <div class="g2">
+      <div class="field"><label>Bajas<span class="opt">opcional</span></label><input type="number" placeholder="Nº de plantas"/></div>
+      <div class="field"><label>Notas<span class="opt">opcional</span></label><input type="text" placeholder="Observaciones..."/></div>
+    </div>
+    <div class="st2" onclick="alert('Función: dividir en sublotes desde Floración')"><div class="si">÷</div>Dividir este lote en sublotes desde Floración</div>
+    <div class="ab">
+      <button class="btn btn-secondary">Guardar borrador</button>
+      <button class="btn btn-secondary">Guardar registro</button>
+      <button class="btn btn-dark" onclick="alert('Avanzando a Cosecha y Curado...')">Avanzar a Cosecha →</button>
+    </div>
+  </div>
+  <div class="panel" style="margin-top:12px;">
+    <div class="pt">Historial de esta etapa</div>
+    <div style="display:flex;flex-direction:column;">
+      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(0,0,0,0.05);font-size:0.75rem;"><span>Inicio de inducción confirmado</span><span style="color:var(--sage);">20/03/2025</span></div>
+      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(0,0,0,0.05);font-size:0.75rem;"><span>Ingreso confirmado: 195 plantas</span><span style="color:var(--sage);">20/03/2025</span></div>
+      <div style="display:flex;justify-content:space-between;padding:8px 0;font-size:0.75rem;"><span>Baja registrada: 3 plantas (plaga)</span><span style="color:var(--sage);">25/03/2025</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- NUEVO LOTE -->
+<div class="view" id="view-nuevo-lote">
+  <!-- P1 -->
+  <div id="wp1">
+    <div class="ws">
+      <div class="wst"><div class="wd2 active">1</div><div class="wl active">Identificación</div></div>
+      <div class="wst"><div class="wd2 future">2</div><div class="wl">Origen</div></div>
+      <div class="wst"><div class="wd2 future">3</div><div class="wl">Nursery</div></div>
+      <div class="wst"><div class="wd2 future">4</div><div class="wl">Confirmar</div></div>
+    </div>
+    <div class="panel">
+      <div class="pt">Paso 1 — Identificación<span style="font-size:0.65rem;color:var(--sage);font-weight:400;text-transform:none;letter-spacing:0;">* obligatorio</span></div>
+      <div class="g2">
+        <div class="field"><label>Nombre del lote<span class="req">*</span></label><input type="text" id="p1n" placeholder="Ej: Verano 2025"/></div>
+        <div class="field"><label>Fecha de inicio<span class="req">*</span></label><input type="date" id="p1f"/></div>
+      </div>
+      <div class="field"><label>Etapa de inicio<span class="req">*</span></label><select id="p1e"><option value="nursery">Nursery (desde el principio)</option><option value="vegetativa">Vegetativa (material ya desarrollado)</option><option value="floracion">Floración (ingreso externo)</option></select></div>
+      <div class="field"><label>Variedad<span class="opt">completada automáticamente desde el lote de origen en paso 2</span></label><input type="text" id="p1v" placeholder="Se completará automáticamente" readonly/></div>
+      <div class="ab">
+        <button class="btn btn-secondary" onclick="showView('dashboard')">Cancelar</button>
+        <button class="btn btn-primary" onclick="gw(2)">Siguiente: Origen →</button>
+      </div>
+    </div>
+  </div>
+  <!-- P2 -->
+  <div id="wp2" style="display:none;">
+    <div class="ws">
+      <div class="wst wd"><div class="wd2 done">✓</div><div class="wl">Identificación</div></div>
+      <div class="wst"><div class="wd2 active">2</div><div class="wl active">Origen</div></div>
+      <div class="wst"><div class="wd2 future">3</div><div class="wl">Nursery</div></div>
+      <div class="wst"><div class="wd2 future">4</div><div class="wl">Confirmar</div></div>
+    </div>
+    <div class="cs"><span class="cst">Paso 1 — Identificación</span><span class="csv" id="cs1">—</span></div>
+    <div class="panel">
+      <div class="pt">Paso 2 — Material de origen<span style="font-size:0.65rem;color:var(--sage);font-weight:400;text-transform:none;letter-spacing:0;">* obligatorio</span></div>
+      <div class="field"><label>Tipo de material<span class="req">*</span></label>
+        <div class="og">
+          <div class="oc" id="os" onclick="selO('semillas')"><div class="oct">Semillas</div><div class="ocs">Lote de semillas</div></div>
+          <div class="oc" id="oe" onclick="selO('esquejes')"><div class="oct">Esquejes externos</div><div class="ocs">Lote de esquejes</div></div>
+          <div class="oc" id="op" onclick="selO('pm')"><div class="oct">Plantas Madre</div><div class="ocs">Directo a Nursery</div></div>
+        </div>
+      </div>
+      <div class="field">
+        <label id="lsl">Lote de material básico<span class="req">*</span></label>
+        <select id="p2l" disabled onchange="onLC(this.value)"><option value="">— Primero elegí el tipo de material —</option></select>
+        <div class="fh" id="sh"></div>
+      </div>
+      <!-- semillas: modo unidades -->
+      <div id="umw" style="display:none;">
+        <div class="field"><label>Modo de ingreso de cantidad<span class="req">*</span></label>
+          <div class="um">
+            <label class="umo"><input type="radio" name="um" value="pred" checked onchange="onUM(this.value)"/> Unidades predeterminadas del lote</label>
+            <label class="umo"><input type="radio" name="um" value="man" onchange="onUM(this.value)"/> Entrada manual</label>
+          </div>
+        </div>
+        <div id="mpred" class="field"><label>Cantidad a utilizar<span class="req">*</span> <span class="opt" id="upl">(unidad del lote)</span></label><input type="number" id="cp" placeholder="Cantidad" oninput="uS(this.value)"/></div>
+        <div id="mman" style="display:none;">
+          <div class="g2">
+            <div class="field"><label>Cantidad<span class="req">*</span></label><input type="number" id="cm" placeholder="Cantidad" oninput="uS(document.getElementById('cm').value)"/></div>
+            <div class="field"><label>Unidad<span class="req">*</span></label><select id="um2" onchange="chkUC()"><option value="">— elegí unidad —</option><option value="gramos">Gramos</option><option value="semillas">Nº de semillas</option><option value="sobres">Sobres</option><option value="otro">Otro</option></select></div>
+          </div>
+          <div class="erb" id="uiw" style="display:none;">⚠ Unidades no compatibles con el Lote de semillas. El stock <strong>no será descontado</strong> automáticamente.</div>
+        </div>
+      </div>
+      <!-- esquejes/PM: cantidad normal -->
+      <div id="cnw" style="display:none;"><div class="field"><label>Cantidad a utilizar<span class="req">*</span></label><input type="number" id="cn" placeholder="Nº de unidades" oninput="uS(this.value)"/></div></div>
+      <div class="sb" id="sp" style="display:none;">
+        <div class="sr"><span>Stock actual</span><span id="spa">—</span></div>
+        <div class="sr"><span>A utilizar</span><span id="spu">—</span></div>
+        <div class="sr fin"><span>Stock final de material básico de origen</span><span id="spf">—</span></div>
+      </div>
+      <div class="ab">
+        <button class="btn btn-secondary" onclick="gw(1)">← Anterior</button>
+        <button class="btn btn-primary" onclick="gw(3)">Siguiente: Nursery →</button>
+      </div>
+    </div>
+  </div>
+  <!-- P3 -->
+  <div id="wp3" style="display:none;">
+    <div class="ws">
+      <div class="wst wd"><div class="wd2 done">✓</div><div class="wl">Identificación</div></div>
+      <div class="wst wd"><div class="wd2 done">✓</div><div class="wl">Origen</div></div>
+      <div class="wst"><div class="wd2 active">3</div><div class="wl active">Nursery</div></div>
+      <div class="wst"><div class="wd2 future">4</div><div class="wl">Confirmar</div></div>
+    </div>
+    <div class="cs"><span class="cst">Paso 1</span><span class="csv" id="cs1b">—</span></div>
+    <div class="cs"><span class="cst">Paso 2</span><span class="csv" id="cs2b">—</span></div>
+    <div class="panel">
+      <div class="pt">Paso 3 — Etapa Nursery (orden 1)</div>
+      <div class="af" style="margin-bottom:12px;"><div class="afl">Material vinculado</div><div class="afv" id="nm">—</div></div>
+      <div class="g2">
+        <div class="field"><label>Fecha inicio Nursery<span class="req">*</span></label><input type="date" id="p3f"/></div>
+        <div class="field"><label>Fecha fin<span class="opt">al cerrar etapa</span></label><input type="date"/></div>
+      </div>
+      <div class="field">
+        <label>Cantidad de ingreso<span class="req">*</span></label>
+        <div class="fh" style="margin-bottom:8px;font-weight:500;font-style:normal;">Elegir método de ingreso</div>
+        <div class="mg">
+          <div class="mc sel" id="mcb" onclick="sm('b')"><div class="mct">Bandejas × alvéolos</div><div class="mcs">Cálculo automático</div></div>
+          <div class="mc" id="mcd" onclick="sm('d')"><div class="mct">Número directo</div><div class="mcs">Ingreso manual</div></div>
+        </div>
+        <div id="calcb">
+          <div class="cr">
+            <div class="cf"><label>Bandejas</label><input type="number" id="nb" value="10" min="1" oninput="ct()"/></div>
+            <div class="cop">×</div>
+            <div class="cf"><label>Alvéolos</label><input type="number" id="na" value="20" min="1" oninput="ct()"/></div>
+            <div class="cop">=</div>
+            <div class="crs"><div class="crsl">Total plántulas</div><div class="crsv" id="ctot">200</div></div>
+          </div>
+        </div>
+        <div id="calcd" style="display:none;"><input type="number" placeholder="Nº plántulas o esquejes sembrados"/></div>
+      </div>
+      <div class="field"><label>Notas<span class="opt">opcional</span></label><input type="text" placeholder="Condiciones, sustrato, observaciones..."/></div>
+      <div class="wb" id="nw">Al confirmar se descontarán unidades del stock del material de origen.</div>
+      <div class="ab">
+        <button class="btn btn-secondary" onclick="gw(2)">← Anterior</button>
+        <button class="btn btn-primary" onclick="gw(4)">Siguiente: Confirmar →</button>
+      </div>
+    </div>
+  </div>
+  <!-- P4 -->
+  <div id="wp4" style="display:none;">
+    <div class="ws">
+      <div class="wst wd"><div class="wd2 done">✓</div><div class="wl">Identificación</div></div>
+      <div class="wst wd"><div class="wd2 done">✓</div><div class="wl">Origen</div></div>
+      <div class="wst wd"><div class="wd2 done">✓</div><div class="wl">Nursery</div></div>
+      <div class="wst"><div class="wd2 active">4</div><div class="wl active">Confirmar</div></div>
+    </div>
+    <div class="panel" id="cpanel">
+      <div class="pt">Resumen — Paso 4 de 4</div>
+      <div style="display:flex;flex-direction:column;gap:0;margin-bottom:16px;">
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(0,0,0,0.06);font-size:0.8rem;"><span style="color:var(--sage);">Nombre del lote</span><span style="font-weight:500;" id="sn">—</span></div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(0,0,0,0.06);font-size:0.8rem;"><span style="color:var(--sage);">Variedad</span><span style="font-weight:500;" id="sv">—</span></div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(0,0,0,0.06);font-size:0.8rem;"><span style="color:var(--sage);">Fecha de inicio</span><span style="font-weight:500;" id="sf">—</span></div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(0,0,0,0.06);font-size:0.8rem;"><span style="color:var(--sage);">Material de origen</span><span style="font-weight:500;" id="so">—</span></div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(0,0,0,0.06);font-size:0.8rem;"><span style="color:var(--sage);">Cantidad utilizada</span><span style="font-weight:500;" id="sc2">—</span></div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(0,0,0,0.06);font-size:0.8rem;"><span style="color:var(--sage);">Plántulas en Nursery</span><span style="font-weight:500;color:var(--accent);" id="sp2">—</span></div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0;font-size:0.8rem;"><span style="color:var(--sage);">Stock final de material básico de origen</span><span style="font-weight:500;color:var(--amber);" id="ss2">—</span></div>
+      </div>
+      <div class="chi2" id="chk2" onclick="tc('chk2','cb2')"><input type="checkbox" id="cb2"/> Confirmo el descuento de unidades del stock del material de origen.</div>
+      <div class="chi2" id="chki" style="display:none;" onclick="tc('chki','cbi')"><input type="checkbox" id="cbi"/><span style="color:var(--error);">Las unidades ingresadas no son compatibles con el lote de semillas. El stock <strong>NO será descontado</strong> automáticamente. Entiendo que deberé resolverlo manualmente.</span></div>
+      <div class="ab">
+        <button class="btn btn-secondary" onclick="gw(3)">← Anterior</button>
+        <button class="btn btn-dark" onclick="cL()">Crear lote →</button>
+      </div>
+    </div>
+    <div class="ss" id="sscreen">
+      <div class="ssi"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg></div>
+      <div class="sst">¡Lote creado exitosamente!</div>
+      <div class="sss" id="smsg">El lote fue creado y está activo en Nursery.</div>
+      <div class="ssa">
+        <button class="btn btn-primary" onclick="showView('dashboard')">Ver dashboard</button>
+        <button class="btn btn-secondary" onclick="showView('detalle')">Continuar en Nursery</button>
+        <button class="btn btn-secondary" onclick="rW()">Crear otro lote</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- STOCK MATERIAL BÁSICO -->
+<div class="view" id="view-stock">
+  <div class="metrics" style="grid-template-columns:repeat(3,1fr);">
+    <div class="metric"><div class="metric-label">Lotes semillas</div><div class="metric-val">2</div></div>
+    <div class="metric"><div class="metric-label">Lotes esquejes</div><div class="metric-val">2</div></div>
+    <div class="metric"><div class="metric-label">Lotes plantas madre</div><div class="metric-val">1</div></div>
+  </div>
+  <div class="sgrid">
+    <div class="scard"><div class="sch s1">Lotes de Semillas</div><div class="scb"><div class="sl"><div class="sln">Semillas Batch Enero 2025 — OG Kush</div><div class="sbw"><div class="sbb"><div class="sbf" style="width:45%"></div></div><div class="sn">450/1000 g</div></div></div><div class="sl"><div class="sln">Semillas Ext. Feb 2025 — Blue Dream</div><div class="sbw"><div class="sbb"><div class="sbf low" style="width:12%"></div></div><div class="sn">60/500 g</div></div></div></div></div>
+    <div class="scard"><div class="sch s3">Lotes de Esquejes</div><div class="scb"><div class="sl"><div class="sln">Esquejes Batch Marzo 2025 — White Widow</div><div class="sbw"><div class="sbb"><div class="sbf" style="width:37%"></div></div><div class="sn">120/320 u.</div></div></div><div class="sl"><div class="sln">Esquejes Lote Feb 2025 — OG Kush</div><div class="sbw"><div class="sbb"><div class="sbf" style="width:72%"></div></div><div class="sn">130/180 u.</div></div></div></div></div>
+    <div class="scard"><div class="sch s2">Lotes de Plantas Madre</div><div class="scb"><div class="sl"><div class="sln">PM Lote Principal — Purple Haze</div><div class="sbw"><div class="sbb"><div class="sbf" style="width:80%"></div></div><div class="sn">8/10 plantas</div></div><div style="font-size:0.68rem;color:var(--sage);margin-top:4px;">Esquejes extraídos: 45</div></div></div></div>
+  </div>
+  <div class="panel">
+    <div class="fst">Registrar baja de material básico</div>
+    <div style="font-size:0.75rem;color:var(--sage);margin-bottom:14px;">Eliminá unidades del stock de un lote de material básico. Ej: deterioro, vencimiento, pérdida, error de conteo.</div>
+    <div class="field"><label>Lote de material básico<span class="req">*</span></label>
+      <select id="bl" onchange="onBL(this.value)">
+        <option value="">— Elegí el lote —</option>
+        <option value="sem1">Semillas Batch Enero 2025 — OG Kush (stock: 450 g)</option>
+        <option value="sem2">Semillas Ext. Feb 2025 — Blue Dream (stock: 60 g)</option>
+        <option value="esq1">Esquejes Batch Marzo 2025 — White Widow (stock: 120 u.)</option>
+        <option value="esq2">Esquejes Lote Feb 2025 — OG Kush (stock: 130 u.)</option>
+        <option value="pm1">PM Lote Principal — Purple Haze (stock: 8 plantas)</option>
+      </select>
+    </div>
+    <div id="bn" style="display:none;"><div class="g2"><div class="field"><label>Cantidad<span class="req">*</span></label><input type="number" placeholder="Cantidad"/></div><div class="field"><label>Unidad</label><input type="text" id="bu" readonly/></div></div></div>
+    <div id="bs" style="display:none;"><div class="g2"><div class="field"><label>Cantidad<span class="req">*</span></label><input type="number" placeholder="Cantidad"/></div><div class="field"><label>Unidad<span class="opt">automática del lote</span></label><input type="text" id="bsu" readonly/></div></div></div>
+    <div class="g2" style="margin-top:4px;">
+      <div class="field"><label>Fecha<span class="req">*</span></label><input type="date"/></div>
+      <div class="field"><label>Motivo<span class="req">*</span></label><input type="text" placeholder="Ej: deterioro, vencimiento, pérdida, error de conteo..."/></div>
+    </div>
+    <div class="ab">
+      <button class="btn btn-secondary">Cancelar</button>
+      <button class="btn btn-primary" onclick="alert('¡Baja registrada exitosamente!')">Registrar baja</button>
+    </div>
+  </div>
+</div>
+
+</div></div></div>
+
+<script>
+const LD=[
+  {id:1,n:'Primavera 2025',o:'Esquejes externos · var. White Widow',et:'floracion',b:'b-flo',bt:'Floración',hs:true,s:[1,1,2,0,0],sc:'3/5',m:[{l:'Inicio',v:'12/01/2025'},{l:'Plantas',v:'195'},{l:'Días',v:'22'}]},
+  {id:2,n:'Otoño 2025',o:'Semillas · var. OG Kush',et:'vegetativa',b:'b-veg',bt:'Vegetativa',s:[1,2,0,0,0],sc:'2/5',m:[{l:'Inicio',v:'03/03/2025'},{l:'Plantas',v:'240'},{l:'Días',v:'8'}]},
+  {id:3,n:'Invierno 2025',o:'Plantas Madre · var. Purple Haze',et:'nursery',b:'b-nur',bt:'Nursery',s:[2,0,0,0,0],sc:'1/5',m:[{l:'Inicio',v:'18/03/2025'},{l:'Plántulas',v:'120'},{l:'Días',v:'3'}]},
+  {id:4,n:'Verano 2024',o:'Esquejes externos · var. Blue Dream',et:'cosecha',b:'b-cos',bt:'Cosecha',s:[1,1,1,2,0],sc:'4/5',m:[{l:'Peso bruto',v:'2.4 kg'},{l:'Días curado',v:'14'}]},
+  {id:5,n:'Primavera 2024',o:'Semillas · var. OG Kush',et:'flores',b:'b-flo2',bt:'Flores',s:[1,1,1,1,2],sc:'5/5',m:[{l:'Stock inicial',v:'840 g'},{l:'Stock actual',v:'340 g'}]},
+];
+const SD=[
+  {id:'s1',n:'Primavera 2025 → Invernadero Norte',o:'120 plantas · desde Floración',et:'floracion',b:'b-flo',bt:'Floración',sub:'a',s:[1,1,2,0,0],sc:'3/5',m:[{l:'Plantas',v:'120'},{l:'Días',v:'22'}]},
+  {id:'s2',n:'Primavera 2025 → Invernadero Sur',o:'75 plantas · desde Floración',et:'floracion',b:'b-flo',bt:'Floración',sub:'b',s:[1,1,2,0,0],sc:'3/5',m:[{l:'Plantas',v:'75'},{l:'Días',v:'22'}]},
+];
+const LM={
+  semillas:[{v:'sem1',l:'Semillas Batch Enero 2025 — OG Kush',stock:450,u:'gramos',var:'OG Kush'},{v:'sem2',l:'Semillas Ext. Feb 2025 — Blue Dream',stock:60,u:'gramos',var:'Blue Dream'}],
+  esquejes:[{v:'esq1',l:'Esquejes Batch Marzo 2025 — White Widow',stock:320,u:'esquejes',var:'White Widow'},{v:'esq2',l:'Esquejes Lote Feb 2025 — OG Kush',stock:180,u:'esquejes',var:'OG Kush'}],
+  pm:[{v:'pm1',l:'PM Lote Principal — Purple Haze',stock:10,u:'plantas',var:'Purple Haze'}]
+};
+let OA=null,LA=null,UI=false;
+
+function sc(s){return s===1?'done':s===2?'act':'fut';}
+
+function rLC(l){
+  const sc2=l.s.map(s=>sc(s));
+  return `<div class="lote-card" data-et="${l.et}" onclick="showView('detalle')" style="cursor:pointer;">
+    <div class="lote-header"><div class="lote-hl">
+      ${l.hs?`<div class="xbtn" id="xb${l.id}" onclick="event.stopPropagation();tSub(${l.id})">+</div>`:'<div style="width:22px;flex-shrink:0;"></div>'}
+      <div><div class="lote-name">${l.n}</div><div class="lote-origin">${l.o}</div></div>
+    </div><span class="eb ${l.b}">${l.bt}</span></div>
+    <div class="pb"><div class="steps">${sc2.map(c=>`<div class="step ${c}"></div>`).join('')}</div><div class="sc">${l.sc}</div></div>
+    <div class="lm">${l.m.map(m=>`<div class="mi">${m.l} <b>${m.v}</b></div>`).join('')}</div>
+  </div>`;
+}
+
+function rAll(cid,fe){
+  const el=document.getElementById(cid); if(!el) return;
+  let h='';
+  LD.filter(l=>fe==='todos'||l.et===fe).forEach(l=>{
+    h+=`<div class="lotes-grid" id="lg${l.id}" style="margin-bottom:10px;">${rLC(l)}`;
+    if(l.hs){
+      h+=`<div class="ch" id="ch${l.id}"><div class="chi">`;
+      SD.forEach(s=>{h+=`<div class="cw"><div class="lote-card sub-${s.sub}" onclick="showView('detalle')"><div class="lote-header"><div><div class="lote-name">${s.n}<span class="b-sub">sublote</span></div><div class="lote-origin">${s.o}</div></div><span class="eb ${s.b}">${s.bt}</span></div><div class="pb"><div class="steps">${s.s.map(x=>`<div class="step ${sc(x)}"></div>`).join('')}</div><div class="sc">${s.sc}</div></div><div class="lm">${s.m.map(m=>`<div class="mi">${m.l} <b>${m.v}</b></div>`).join('')}</div></div></div>`;});
+      h+=`</div></div>`;
+    }
+    h+=`</div>`;
+  });
+  el.innerHTML=h;
+}
+
+function showView(id){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+id).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const mp={
+    dashboard:['Dashboard','Resumen de tu producción','<button class="btn btn-primary" onclick="showView(\'nuevo-lote\')">+ Nuevo lote</button>'],
+    lotes:['Mis lotes productivos','Gestión de lotes de producción','<button class="btn btn-primary" onclick="showView(\'nuevo-lote\')">+ Nuevo lote</button>'],
+    detalle:['Primavera 2025','Etapa Floración · activa',''],
+    'nuevo-lote':['Nuevo lote','Crear un lote de producción',''],
+    stock:['Stock de material básico','Semillas · Esquejes · Plantas Madre','<button class="btn btn-primary" onclick="showView(\'nuevo-lote\')">+ Nuevo lote</button>'],
+  };
+  if(mp[id]){
+    document.getElementById('tt').textContent=mp[id][0];
+    document.getElementById('ts').textContent=mp[id][1];
+    document.getElementById('ta').innerHTML=mp[id][2];
+  }
+  if(id==='lotes') rAll('lotes-list','todos');
+  if(id==='dashboard') rAll('dash-lotes','todos');
+}
+
+function fDash(el,et){
+  document.querySelectorAll('#view-dashboard .pill').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active'); rAll('dash-lotes',et);
+}
+function fLotes(el,et){
+  document.querySelectorAll('#view-lotes .pill').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  const n=document.getElementById('lotes-normal');
+  const s=document.getElementById('lotes-sub');
+  if(et==='sublotes'){n.style.display='none';s.style.display='block';}
+  else{n.style.display='block';s.style.display='none';rAll('lotes-list',et);}
+}
+function tSub(id){
+  const ch=document.getElementById('ch'+id);
+  const btn=document.getElementById('xb'+id);
+  if(!ch||!btn) return;
+  const op=ch.classList.toggle('open');
+  btn.textContent=op?'−':'+'; btn.classList.toggle('open',op);
+}
+function togSubOr(){
+  const p=document.getElementById('ps-s');
+  const b=document.getElementById('ob-s');
+  const v=document.getElementById('vs-top');
+  const op=p.classList.toggle('open');
+  b.textContent=op?'−':'+'; b.classList.toggle('open',op);
+  if(v) v.style.height=op?'6px':'16px';
+}
+
+function gw(step){
+  [1,2,3,4].forEach(n=>{const e=document.getElementById('wp'+n);if(e)e.style.display=n===step?'block':'none';});
+  if(step===2){const n=document.getElementById('p1n').value||'Nuevo lote';const f=document.getElementById('p1f').value||'Sin fecha';const e=document.getElementById('cs1');if(e)e.textContent=n+' · '+f;}
+  if(step===3){
+    const n=document.getElementById('p1n').value||'Nuevo lote';
+    const e1=document.getElementById('cs1b');if(e1)e1.textContent=n;
+    const e2=document.getElementById('cs2b');if(e2&&LA)e2.textContent=LA.l+' · '+gC()+' '+LA.u;
+    const nm=document.getElementById('nm');if(nm&&LA)nm.textContent=LA.l+' · '+gC()+' '+LA.u;
+    uNW();
+  }
+  if(step===4){
+    document.getElementById('sn').textContent=document.getElementById('p1n').value||'—';
+    document.getElementById('sv').textContent=LA?LA.var:'—';
+    document.getElementById('sf').textContent=document.getElementById('p1f').value||'—';
+    document.getElementById('so').textContent=LA?LA.l:'—';
+    const c=gC();
+    document.getElementById('sc2').textContent=c+' '+(LA?LA.u:'');
+    const b=parseInt(document.getElementById('nb').value)||0;
+    const a=parseInt(document.getElementById('na').value)||0;
+    document.getElementById('sp2').textContent=(b*a)+' plántulas ('+b+'×'+a+')';
+    document.getElementById('ss2').textContent=Math.max(0,(LA?LA.stock:0)-c)+' '+(LA?LA.u:'');
+    const ci=document.getElementById('chki');if(ci)ci.style.display=UI?'flex':'none';
+  }
+}
+function gC(){
+  const m=document.querySelector('input[name="um"]:checked');
+  if(OA==='semillas'&&m){if(m.value==='pred')return parseInt(document.getElementById('cp').value)||0;else return parseInt(document.getElementById('cm').value)||0;}
+  return parseInt(document.getElementById('cn').value)||0;
+}
+function selO(t){
+  ['s','e','p'].forEach(x=>{const map={s:'os',e:'oe',p:'op'};const e=document.getElementById(map[x]);if(e)e.classList.toggle('sel',x===t[0]);});
+  OA=t; LA=null; UI=false;
+  const sel=document.getElementById('p2l'); sel.disabled=false;
+  sel.innerHTML='<option value="">— Elegí el lote —</option>';
+  LM[t].forEach(l=>{sel.innerHTML+=`<option value="${l.v}">${l.l}</option>`;});
+  document.getElementById('sp').style.display='none';
+  document.getElementById('umw').style.display=t==='semillas'?'block':'none';
+  document.getElementById('cnw').style.display=t!=='semillas'?'block':'none';
+  document.getElementById('uiw').style.display='none';
+  document.getElementById('sh').textContent='';
+  document.getElementById('p1v').value='';
+  const ll=document.getElementById('lsl');
+  if(ll) ll.innerHTML=(t==='semillas'?'Lote de Semillas a utilizar':t==='esquejes'?'Lote de Esquejes a utilizar':'Lote de Plantas Madre a utilizar')+'<span class="req">*</span>';
+}
+function onLC(v){
+  if(!v||!OA){LA=null;return;}
+  LA=LM[OA].find(l=>l.v===v)||null;
+  if(!LA)return;
+  document.getElementById('sh').textContent='Stock disponible: '+LA.stock+' '+LA.u;
+  document.getElementById('p1v').value=LA.var;
+  if(OA==='semillas') document.getElementById('upl').textContent='('+LA.u+')';
+  document.getElementById('sp').style.display='block'; uS(0);
+}
+function onUM(v){
+  document.getElementById('mpred').style.display=v==='pred'?'block':'none';
+  document.getElementById('mman').style.display=v==='man'?'block':'none';
+  UI=false; document.getElementById('uiw').style.display='none';
+}
+function chkUC(){
+  if(!LA)return;
+  const s=document.getElementById('um2').value;
+  const inc=s&&s!==LA.u;
+  UI=inc; document.getElementById('uiw').style.display=inc?'block':'none';
+}
+function uS(v){
+  if(!LA){document.getElementById('sp').style.display='none';return;}
+  const val=parseInt(v)||0;
+  const r=Math.max(0,LA.stock-val);
+  document.getElementById('spa').textContent=LA.stock+' '+LA.u;
+  document.getElementById('spu').textContent='− '+val+' '+LA.u;
+  document.getElementById('spf').textContent=r+' '+LA.u;
+  document.getElementById('sp').style.display='block';
+}
+function uNW(){
+  const w=document.getElementById('nw'); if(!w)return;
+  const c=gC();
+  if(LA&&!UI){w.className='wb';w.innerHTML='Al confirmar se descontarán <strong>'+c+' '+LA.u+'</strong> del stock de "'+LA.l+'". Stock resultante: <strong>'+Math.max(0,LA.stock-c)+' '+LA.u+'</strong>.';}
+  else if(UI){w.className='erb';w.innerHTML='⚠ Unidades no compatibles. El stock <strong>NO será descontado</strong> automáticamente.';}
+}
+function sm(m){
+  document.getElementById('mcb').classList.toggle('sel',m==='b');
+  document.getElementById('mcd').classList.toggle('sel',m==='d');
+  document.getElementById('calcb').style.display=m==='b'?'block':'none';
+  document.getElementById('calcd').style.display=m==='d'?'block':'none';
+}
+function ct(){
+  const b=parseInt(document.getElementById('nb').value)||0;
+  const a=parseInt(document.getElementById('na').value)||0;
+  document.getElementById('ctot').textContent=b*a;
+}
+function tc(di,ci){
+  const cb=document.getElementById(ci);cb.checked=!cb.checked;
+  document.getElementById(di).classList.toggle('checked',cb.checked);
+}
+function cL(){
+  if(UI&&!document.getElementById('cbi').checked){alert('Por favor confirmá el checkbox de unidades incompatibles.');return;}
+  if(!document.getElementById('cb2').checked){alert('Por favor confirmá el descuento de stock.');return;}
+  document.getElementById('cpanel').style.display='none';
+  const ss=document.getElementById('sscreen'); ss.style.display='block';
+  const n=document.getElementById('p1n').value||'Nuevo lote';
+  document.getElementById('smsg').innerHTML='<strong>'+n+'</strong> fue creado y está activo en Nursery.'+(UI?'<br/><em>Nota: el stock no fue descontado por unidades incompatibles.</em>':'');
+}
+function rW(){
+  document.getElementById('cpanel').style.display='block';
+  document.getElementById('sscreen').style.display='none';
+  OA=null;LA=null;UI=false;
+  gw(1);
+  ['p1n','p1f','p1v'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  ['os','oe','op'].forEach(id=>{const e=document.getElementById(id);if(e)e.classList.remove('sel');});
+  const sel=document.getElementById('p2l');
+  sel.disabled=true; sel.innerHTML='<option value="">— Primero elegí el tipo de material —</option>';
+}
+function onBL(v){
+  document.getElementById('bn').style.display='none';
+  document.getElementById('bs').style.display='none';
+  if(!v)return;
+  if(v.startsWith('sem')){
+    document.getElementById('bs').style.display='block';
+    const l=LM.semillas.find(x=>x.v===v);
+    if(l) document.getElementById('bsu').value=l.u;
+  } else {
+    document.getElementById('bn').style.display='block';
+    const u={'esq1':'esquejes','esq2':'esquejes','pm1':'plantas'};
+    document.getElementById('bu').value=u[v]||'unidades';
+  }
+}
+
+rAll('dash-lotes','todos');
+</script>
+</body>
+</html>
