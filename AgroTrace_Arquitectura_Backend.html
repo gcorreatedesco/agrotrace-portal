@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>AgroTrace — Arquitectura Backend & Servidor</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;700&display=swap');
+
+  :root {
+    --soil:   #2C1F0E;
+    --bark:   #4A3520;
+    --sage:   #6B7F5E;
+    --leaf:   #8EAA7B;
+    --mist:   #C8D9BC;
+    --dew:    #EDF2E8;
+    --cream:  #F7F4EF;
+    --accent: #4E7C3F;
+    --amber:  #854F0B;
+    --purple: #534AB7;
+    --error:  #B94A3A;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 400;
+    background: white;
+    color: #1a1a1a;
+    font-size: 11pt;
+    line-height: 1.6;
+  }
+
+  .page {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 40px 50px;
+  }
+
+  /* ── PORTADA ────────────────────────── */
+  .cover {
+    background: var(--soil);
+    color: white;
+    padding: 50px 50px 40px;
+    border-radius: 0 0 12px 12px;
+    margin-bottom: 36px;
+    position: relative;
+    overflow: hidden;
+  }
+  .cover::before {
+    content: '';
+    position: absolute;
+    top: -40px; right: -40px;
+    width: 200px; height: 200px;
+    border-radius: 50%;
+    background: rgba(142,170,123,0.15);
+  }
+  .cover::after {
+    content: '';
+    position: absolute;
+    bottom: -60px; left: -20px;
+    width: 160px; height: 160px;
+    border-radius: 50%;
+    background: rgba(78,124,63,0.12);
+  }
+  .cover-tag {
+    display: inline-block;
+    background: var(--accent);
+    color: white;
+    font-size: 8pt;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 4px 12px;
+    border-radius: 20px;
+    margin-bottom: 20px;
+  }
+  .cover h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 28pt;
+    font-weight: 400;
+    line-height: 1.2;
+    margin-bottom: 10px;
+    position: relative;
+    z-index: 1;
+  }
+  .cover h1 span { color: var(--leaf); }
+  .cover .subtitle {
+    font-size: 12pt;
+    font-weight: 300;
+    color: var(--mist);
+    margin-bottom: 28px;
+    position: relative;
+    z-index: 1;
+  }
+  .cover-meta {
+    display: flex;
+    gap: 24px;
+    position: relative;
+    z-index: 1;
+    border-top: 1px solid rgba(255,255,255,0.15);
+    padding-top: 18px;
+  }
+  .cover-meta span {
+    font-size: 9pt;
+    color: var(--mist);
+  }
+  .cover-meta strong { color: white; }
+
+  /* ── SECCIONES ──────────────────────── */
+  .section {
+    margin-bottom: 32px;
+    break-inside: avoid;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--mist);
+  }
+  .section-num {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: white;
+    font-weight: 700;
+    font-size: 13pt;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .section-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 15pt;
+    color: var(--soil);
+    font-weight: 400;
+  }
+
+  p { margin-bottom: 10px; }
+
+  /* ── CAJAS ──────────────────────────── */
+  .box {
+    background: var(--dew);
+    border-left: 4px solid var(--accent);
+    border-radius: 0 8px 8px 0;
+    padding: 14px 18px;
+    margin: 14px 0;
+  }
+  .box.amber {
+    background: #FFF8EE;
+    border-left-color: var(--amber);
+  }
+  .box.purple {
+    background: #F4F3FF;
+    border-left-color: var(--purple);
+  }
+  .box.soil {
+    background: #F2EDE8;
+    border-left-color: var(--bark);
+  }
+  .box-title {
+    font-weight: 700;
+    font-size: 9pt;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--accent);
+    margin-bottom: 6px;
+  }
+  .box.amber .box-title { color: var(--amber); }
+  .box.purple .box-title { color: var(--purple); }
+  .box.soil .box-title { color: var(--bark); }
+
+  /* ── TABLA COMPARATIVA ──────────────── */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14px 0;
+    font-size: 10pt;
+  }
+  thead tr {
+    background: var(--soil);
+    color: white;
+  }
+  thead th {
+    padding: 10px 14px;
+    text-align: left;
+    font-weight: 500;
+    font-size: 9pt;
+    letter-spacing: 0.5px;
+  }
+  tbody tr:nth-child(even) { background: var(--cream); }
+  tbody tr:nth-child(odd)  { background: white; }
+  tbody td {
+    padding: 9px 14px;
+    border-bottom: 1px solid var(--mist);
+    vertical-align: top;
+  }
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 8pt;
+    font-weight: 700;
+  }
+  .badge-green  { background: #D4EDDA; color: #1E6A32; }
+  .badge-yellow { background: #FFF3CD; color: #7A5000; }
+  .badge-blue   { background: #D1ECF1; color: #0C4A6E; }
+
+  /* ── DIAGRAMA ASCII ─────────────────── */
+  .diagram {
+    background: var(--soil);
+    color: #C8D9BC;
+    font-family: 'Courier New', monospace;
+    font-size: 9pt;
+    line-height: 1.7;
+    padding: 20px 24px;
+    border-radius: 10px;
+    margin: 16px 0;
+    overflow-x: auto;
+    white-space: pre;
+  }
+  .diagram .highlight { color: #8EAA7B; font-weight: bold; }
+  .diagram .accent-c  { color: #B8E994; }
+
+  /* ── ROADMAP ─────────────────────────── */
+  .roadmap {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin: 14px 0;
+  }
+  .step {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    position: relative;
+  }
+  .step:not(:last-child)::before {
+    content: '';
+    position: absolute;
+    left: 15px;
+    top: 34px;
+    bottom: -8px;
+    width: 2px;
+    background: var(--mist);
+  }
+  .step-circle {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: white;
+    font-weight: 700;
+    font-size: 11pt;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    margin-top: 4px;
+    position: relative;
+    z-index: 1;
+  }
+  .step-circle.done { background: var(--sage); }
+  .step-body {
+    background: var(--cream);
+    border: 1px solid var(--mist);
+    border-radius: 8px;
+    padding: 12px 16px;
+    flex: 1;
+    margin-bottom: 12px;
+  }
+  .step-title { font-weight: 700; color: var(--soil); margin-bottom: 4px; }
+  .step-desc  { font-size: 10pt; color: #444; }
+
+  /* ── CLAVES VISUALES ─────────────────── */
+  .key-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin: 14px 0;
+  }
+  .key-card {
+    background: var(--cream);
+    border: 1px solid var(--mist);
+    border-radius: 8px;
+    padding: 14px 16px;
+  }
+  .key-card-icon {
+    font-size: 20pt;
+    margin-bottom: 6px;
+  }
+  .key-card-title {
+    font-weight: 700;
+    color: var(--soil);
+    font-size: 10pt;
+    margin-bottom: 4px;
+  }
+  .key-card-desc {
+    font-size: 9.5pt;
+    color: #555;
+  }
+
+  /* ── FOOTER ──────────────────────────── */
+  .footer {
+    background: var(--soil);
+    color: var(--mist);
+    padding: 18px 24px;
+    border-radius: 10px;
+    margin-top: 36px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 9pt;
+  }
+  .footer strong { color: var(--leaf); }
+
+  /* ── PRINT ───────────────────────────── */
+  @media print {
+    body { font-size: 10pt; }
+    .page { padding: 20px 30px; }
+    .cover { border-radius: 0; }
+    .section { break-inside: avoid; }
+    .key-grid { break-inside: avoid; }
+    .roadmap  { break-inside: avoid; }
+    @page { margin: 1.5cm; size: A4; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- PORTADA -->
+  <div class="cover">
+    <div class="cover-tag">Documento técnico</div>
+    <h1><span>AgroTrace</span> — Backend,<br>Servidor y Base de Datos</h1>
+    <p class="subtitle">Guía de arquitectura para el sistema de trazabilidad REPROCANN</p>
+    <div class="cover-meta">
+      <span><strong>Autor:</strong> Guillermo Correa</span>
+      <span><strong>Fecha:</strong> Abril 2026</span>
+      <span><strong>Versión:</strong> 1.0</span>
+    </div>
+  </div>
+
+
+  <!-- 1. QUÉ ES UN BACKEND -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-num">1</div>
+      <div class="section-title">¿Qué es un Backend?</div>
+    </div>
+
+    <p>Hoy el prototipo AgroTrace es <strong>100% frontend</strong>: todo el código corre en el navegador del usuario. Si se recarga la página, los datos desaparecen. Si dos usuarios abren la misma URL, ven datos distintos. No existe "memoria" compartida.</p>
+
+    <p>El <strong>backend</strong> es un programa que corre en un servidor (una computadora que nunca se apaga, en un data center), y actúa como intermediario entre el usuario y la base de datos.</p>
+
+    <div class="diagram">USUARIO (navegador)        SERVIDOR (backend)          BASE DE DATOS
+──────────────────         ──────────────────          ─────────────────
+"Quiero mis lotes"    →    Recibe el pedido
+                           Verifica quién sos     →    SELECT * FROM lotes
+                           Recibe los datos       ←    WHERE productor_id = 42
+"Acá están tus lotes" ←   Formatea y responde</div>
+
+    <div class="box">
+      <div class="box-title">Regla fundamental</div>
+      El usuario <strong>nunca habla directamente con la base de datos</strong>. El backend decide qué puede ver cada usuario, aplica las reglas de negocio y guarda todo de forma permanente.
+    </div>
+  </div>
+
+
+  <!-- 2. PERSISTENCIA ENTRE SESIONES -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-num">2</div>
+      <div class="section-title">Persistencia de datos entre sesiones</div>
+    </div>
+
+    <div class="key-grid">
+      <div class="key-card">
+        <div class="key-card-icon">❌</div>
+        <div class="key-card-title">Estado actual (prototipo)</div>
+        <div class="key-card-desc">Los datos son constantes JavaScript hardcodeadas en memoria RAM del navegador. Al recargar: todo desaparece. Sin historial, sin usuarios reales.</div>
+      </div>
+      <div class="key-card">
+        <div class="key-card-icon">✅</div>
+        <div class="key-card-title">Con backend + base de datos</div>
+        <div class="key-card-desc">Los datos se guardan en PostgreSQL. El lunes cargás un lote; el jueves desde otro celular, el lote sigue ahí, intacto.</div>
+      </div>
+    </div>
+
+    <p><strong>Flujo de autenticación real:</strong></p>
+    <ol style="margin-left:20px; margin-bottom:10px;">
+      <li style="margin-bottom:6px;">Usuario ingresa usuario + contraseña.</li>
+      <li style="margin-bottom:6px;">El backend verifica contra la base de datos.</li>
+      <li style="margin-bottom:6px;">Si es correcto, genera un <strong>token JWT</strong> — como una llave temporal, válida por X horas.</li>
+      <li style="margin-bottom:6px;">El token se guarda en el navegador del usuario.</li>
+      <li style="margin-bottom:6px;">Cada pedido incluye el token → el backend sabe quién es → devuelve solo sus datos.</li>
+    </ol>
+
+    <div class="box amber">
+      <div class="box-title">Separación multi-productor</div>
+      Cada productor tiene un <code>productor_id</code> único. La base de datos garantiza que un productor <strong>nunca puede ver los datos de otro</strong>, incluso si intenta manipular la URL.
+    </div>
+  </div>
+
+
+  <!-- 3. OPCIONES DE SERVIDOR GRATUITO -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-num">3</div>
+      <div class="section-title">Opciones de servidor gratuito</div>
+    </div>
+
+    <p>Para el volumen esperado de AgroTrace (decenas de productores, no millones), estas opciones gratuitas son más que suficientes:</p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Servicio</th>
+          <th>Qué ofrece gratis</th>
+          <th>Limitación</th>
+          <th>Recomendado</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Supabase</strong></td>
+          <td>PostgreSQL + Auth + API automática</td>
+          <td>500 MB DB, 50k usuarios</td>
+          <td><span class="badge badge-green">★ Primera opción</span></td>
+        </tr>
+        <tr>
+          <td><strong>Railway</strong></td>
+          <td>Node.js / Python + PostgreSQL</td>
+          <td>$5 crédito/mes</td>
+          <td><span class="badge badge-green">Alternativa</span></td>
+        </tr>
+        <tr>
+          <td><strong>Render</strong></td>
+          <td>Node.js / Python hosting</td>
+          <td>Se "duerme" tras 15 min sin uso</td>
+          <td><span class="badge badge-yellow">Con caveats</span></td>
+        </tr>
+        <tr>
+          <td><strong>Vercel</strong></td>
+          <td>Serverless functions (Node.js)</td>
+          <td>Sin base de datos incluida</td>
+          <td><span class="badge badge-blue">Parcial</span></td>
+        </tr>
+        <tr>
+          <td><strong>Neon</strong></td>
+          <td>PostgreSQL serverless</td>
+          <td>0.5 GB</td>
+          <td><span class="badge badge-blue">Solo DB</span></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="box">
+      <div class="box-title">¿Por qué Supabase para AgroTrace?</div>
+      <ul style="margin-left:18px;">
+        <li>El ERD ya es PostgreSQL → migración directa sin conversión.</li>
+        <li>Incluye autenticación con roles lista para usar.</li>
+        <li>Tiene <strong>Row Level Security (RLS)</strong>: la regla "cada productor ve solo sus lotes" se aplica <em>en la base de datos misma</em>, no solo en el código.</li>
+        <li>Genera una API REST automáticamente desde tus tablas.</li>
+        <li>Dashboard excelente para ver y editar datos como administrador.</li>
+      </ul>
+    </div>
+  </div>
+
+
+  <!-- 4. PROTECCIÓN DEL CÓDIGO -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-num">4</div>
+      <div class="section-title">Proteger el código del sistema</div>
+    </div>
+
+    <p>La regla más importante para ofrecer el servicio con seguridad:</p>
+
+    <div class="key-grid">
+      <div class="key-card">
+        <div class="key-card-title">Lo que el usuario SÍ ve</div>
+        <div class="key-card-desc" style="color:#1E6A32;">
+          ✔ HTML — estructura visual<br>
+          ✔ CSS — estilos<br>
+          ✔ JS — comportamiento de botones<br>
+          <br>
+          <em>Esto es normal. El frontend no tiene secretos: solo tiene formularios.</em>
+        </div>
+      </div>
+      <div class="key-card">
+        <div class="key-card-title">Lo que el usuario NUNCA ve</div>
+        <div class="key-card-desc" style="color:#B94A3A;">
+          ✘ Lógica de negocio (backend)<br>
+          ✘ Consultas a la base de datos<br>
+          ✘ Reglas de descuento de stock<br>
+          ✘ Validaciones REPROCANN<br>
+          ✘ Credenciales / contraseñas
+        </div>
+      </div>
+    </div>
+
+    <div class="diagram">                 ┌─────────────────────────────┐
+                 │   Tu servidor (PRIVADO)      │
+                 │   ─────────────────────────  │
+                 │   Código backend             │
+Productores  ──► │   Reglas REPROCANN           │
+(ven solo su     │   Descuento de stock         │
+ interfaz)       │   Validaciones de lotes      │
+                 │   Separación por productor   │
+Admin        ──► │                              │
+(ve todo)        └──────────────┬──────────────┘
+                                │
+                 ┌──────────────▼──────────────┐
+                 │   PostgreSQL (PRIVADO)       │
+                 │   Datos separados por        │
+                 │   productor_id               │
+                 └─────────────────────────────┘</div>
+
+    <div class="box soil">
+      <div class="box-title">Medidas concretas de protección</div>
+      <ul style="margin-left:18px;">
+        <li><strong>Repositorio privado en GitHub:</strong> nadie puede ver el código fuente.</li>
+        <li><strong>Variables de entorno:</strong> las contraseñas de la DB nunca van en el código.</li>
+        <li><strong>El cliente recibe solo datos (JSON):</strong> nunca el código que los genera.</li>
+        <li><strong>Minificación del frontend</strong> (opcional): Vite/esbuild comprimen y ofuscan el JS visible.</li>
+      </ul>
+    </div>
+  </div>
+
+
+  <!-- 5. ROADMAP -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-num">5</div>
+      <div class="section-title">Camino de implementación para AgroTrace</div>
+    </div>
+
+    <div class="roadmap">
+      <div class="step">
+        <div class="step-circle done">✓</div>
+        <div class="step-body">
+          <div class="step-title">HECHO — Prototipo funcional</div>
+          <div class="step-desc">HTML estático, datos hardcodeados, UI completa de lotes y material básico.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-circle">1</div>
+        <div class="step-body">
+          <div class="step-title">Crear proyecto en Supabase</div>
+          <div class="step-desc">Migrar el ERD definitivo a tablas PostgreSQL reales. Configurar Row Level Security por <code>productor_id</code>.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-circle">2</div>
+        <div class="step-body">
+          <div class="step-title">Conectar autenticación</div>
+          <div class="step-desc">Reemplazar el <code>doLogin()</code> actual por Supabase Auth. Cada usuario tiene rol asignado (productor / inspector / admin).</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-circle">3</div>
+        <div class="step-body">
+          <div class="step-title">Conectar el frontend via Supabase JS SDK</div>
+          <div class="step-desc">Las listas de lotes y material dejan de ser constantes fijas y se consultan en tiempo real desde la base de datos.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-circle">4</div>
+        <div class="step-body">
+          <div class="step-title">Desplegar frontend en Vercel o Netlify</div>
+          <div class="step-desc">URL pública gratuita (ej: <em>agrotrace.vercel.app</em>). Productores acceden con su usuario/contraseña y ven solo sus datos.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-circle">5</div>
+        <div class="step-body">
+          <div class="step-title">Migrar a React + Vite (futuro)</div>
+          <div class="step-desc">Cuando el prototipo esté validado, refactorizar a componentes React para escalabilidad y mantenibilidad a largo plazo.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="box purple">
+      <div class="box-title">Resultado final</div>
+      <strong>agrotrace.com.ar</strong> → Productores inician sesión → Ven solo sus datos → Vos como admin ves todo → El código permanece privado en GitHub → Sin costo mensual en las etapas iniciales.
+    </div>
+  </div>
+
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <div><strong>AgroTrace</strong> — Sistema de trazabilidad REPROCANN</div>
+    <div>Guillermo Correa · 2026</div>
+  </div>
+
+</div>
+</body>
+</html>

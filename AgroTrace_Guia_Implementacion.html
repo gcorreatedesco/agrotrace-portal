@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>AgroTrace — Guía de Implementación</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;700&display=swap');
+
+  :root {
+    --soil:   #2C1F0E;
+    --bark:   #4A3520;
+    --sage:   #6B7F5E;
+    --leaf:   #8EAA7B;
+    --mist:   #C8D9BC;
+    --dew:    #EDF2E8;
+    --cream:  #F7F4EF;
+    --accent: #4E7C3F;
+    --amber:  #854F0B;
+    --purple: #534AB7;
+    --error:  #B94A3A;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 400;
+    background: white;
+    color: #1a1a1a;
+    font-size: 11pt;
+    line-height: 1.6;
+  }
+
+  .page {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 40px 50px;
+  }
+
+  /* PORTADA */
+  .cover {
+    background: var(--soil);
+    color: white;
+    padding: 44px 50px 36px;
+    border-radius: 0 0 14px 14px;
+    margin-bottom: 36px;
+    position: relative;
+    overflow: hidden;
+  }
+  .cover::before {
+    content: '';
+    position: absolute;
+    top: -50px; right: -50px;
+    width: 220px; height: 220px;
+    border-radius: 50%;
+    background: rgba(142,170,123,0.12);
+  }
+  .cover::after {
+    content: '';
+    position: absolute;
+    bottom: -60px; left: -30px;
+    width: 180px; height: 180px;
+    border-radius: 50%;
+    background: rgba(78,124,63,0.10);
+  }
+  .cover-tag {
+    display: inline-block;
+    background: var(--accent);
+    color: white;
+    font-size: 8pt;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 4px 14px;
+    border-radius: 20px;
+    margin-bottom: 18px;
+  }
+  .cover h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 26pt;
+    font-weight: 400;
+    line-height: 1.2;
+    margin-bottom: 8px;
+    position: relative;
+    z-index: 1;
+  }
+  .cover h1 span { color: var(--leaf); }
+  .cover .subtitle {
+    font-size: 11.5pt;
+    font-weight: 300;
+    color: var(--mist);
+    margin-bottom: 26px;
+    position: relative;
+    z-index: 1;
+  }
+  .cover-meta {
+    display: flex;
+    gap: 28px;
+    position: relative;
+    z-index: 1;
+    border-top: 1px solid rgba(255,255,255,0.15);
+    padding-top: 16px;
+  }
+  .cover-meta span { font-size: 9pt; color: var(--mist); }
+  .cover-meta strong { color: white; }
+
+  /* INTRO BOX */
+  .intro {
+    background: var(--dew);
+    border-radius: 10px;
+    padding: 18px 22px;
+    margin-bottom: 30px;
+    border-left: 4px solid var(--accent);
+  }
+  .intro p { margin: 0; font-size: 10.5pt; color: #333; }
+  .intro strong { color: var(--accent); }
+
+  /* SECCIÓN */
+  .section {
+    margin-bottom: 30px;
+    break-inside: avoid;
+  }
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--mist);
+  }
+  .section-num {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: white;
+    font-weight: 700;
+    font-size: 13pt;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .section-num.done { background: var(--sage); }
+  .section-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 14pt;
+    color: var(--soil);
+    font-weight: 400;
+  }
+  .section-subtitle {
+    font-size: 9pt;
+    color: var(--sage);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 2px;
+  }
+
+  /* TABLA DIFICULTAD */
+  .diff-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 18px;
+    font-size: 10.5pt;
+  }
+  .diff-table thead tr {
+    background: var(--soil);
+    color: white;
+  }
+  .diff-table thead th {
+    padding: 10px 14px;
+    text-align: left;
+    font-weight: 500;
+    font-size: 9pt;
+    letter-spacing: 0.5px;
+  }
+  .diff-table tbody tr:nth-child(even) { background: var(--cream); }
+  .diff-table tbody tr:nth-child(odd)  { background: white; }
+  .diff-table tbody td {
+    padding: 11px 14px;
+    border-bottom: 1px solid var(--mist);
+    vertical-align: middle;
+  }
+  .diff-table .paso-num {
+    font-weight: 700;
+    color: var(--accent);
+    font-size: 10pt;
+    white-space: nowrap;
+  }
+  .diff-table .paso-nombre {
+    font-weight: 600;
+    color: var(--soil);
+    display: block;
+    margin-bottom: 2px;
+  }
+  .diff-table .paso-desc {
+    font-size: 9.5pt;
+    color: #555;
+  }
+
+  /* DOTS de dificultad */
+  .dots { display: flex; gap: 4px; align-items: center; }
+  .dot {
+    width: 12px; height: 12px;
+    border-radius: 50%;
+  }
+  .dot.on  { background: var(--accent); }
+  .dot.off { background: var(--mist); }
+  .dots-label {
+    font-size: 8.5pt;
+    color: #666;
+    margin-left: 6px;
+    white-space: nowrap;
+  }
+
+  /* RAZÓN */
+  .reason {
+    font-size: 9.5pt;
+    color: #555;
+  }
+
+  /* CAJAS */
+  .box {
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin: 14px 0;
+  }
+  .box.green  { background: var(--dew);  border-left: 4px solid var(--accent); }
+  .box.amber  { background: #FFF8EE;     border-left: 4px solid var(--amber); }
+  .box.purple { background: #F4F3FF;     border-left: 4px solid var(--purple); }
+  .box.soil   { background: #F2EDE8;     border-left: 4px solid var(--bark); }
+  .box.dark   { background: var(--soil); color: #C8D9BC; border-radius: 10px; padding: 18px 22px; }
+
+  .box-title {
+    font-weight: 700;
+    font-size: 9pt;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 7px;
+  }
+  .box.green  .box-title { color: var(--accent); }
+  .box.amber  .box-title { color: var(--amber); }
+  .box.purple .box-title { color: var(--purple); }
+  .box.soil   .box-title { color: var(--bark); }
+  .box.dark   .box-title { color: var(--leaf); }
+
+  /* VS CODE */
+  .vscode-block {
+    display: flex;
+    gap: 18px;
+    align-items: flex-start;
+    background: var(--cream);
+    border: 1px solid var(--mist);
+    border-radius: 10px;
+    padding: 18px 20px;
+    margin: 14px 0;
+  }
+  .vscode-icon {
+    font-size: 36pt;
+    flex-shrink: 0;
+    line-height: 1;
+  }
+  .vscode-body h3 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 13pt;
+    color: var(--soil);
+    font-weight: 400;
+    margin-bottom: 6px;
+  }
+  .vscode-body p { font-size: 10pt; color: #444; margin-bottom: 0; }
+
+  /* INSTALACIÓN */
+  .install-step {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    margin-bottom: 10px;
+  }
+  .install-num {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    background: var(--bark);
+    color: white;
+    font-weight: 700;
+    font-size: 10pt;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .install-body { flex: 1; }
+  .install-title { font-weight: 700; color: var(--soil); font-size: 10.5pt; }
+  .install-desc  { font-size: 9.5pt; color: #555; margin-top: 2px; }
+
+  code {
+    font-family: 'Courier New', monospace;
+    background: #EEE;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 9.5pt;
+    color: var(--bark);
+  }
+
+  /* CONCLUSIÓN */
+  .conclusion {
+    background: var(--soil);
+    color: white;
+    border-radius: 12px;
+    padding: 24px 28px;
+    margin-top: 10px;
+  }
+  .conclusion h2 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 16pt;
+    font-weight: 400;
+    color: var(--leaf);
+    margin-bottom: 14px;
+  }
+  .conclusion p { color: var(--mist); font-size: 10.5pt; margin-bottom: 10px; }
+  .conclusion ul { margin-left: 20px; }
+  .conclusion li { color: var(--mist); font-size: 10.5pt; margin-bottom: 6px; }
+  .conclusion li strong { color: white; }
+
+  /* FOOTER */
+  .footer {
+    border-top: 2px solid var(--mist);
+    margin-top: 32px;
+    padding-top: 14px;
+    display: flex;
+    justify-content: space-between;
+    font-size: 8.5pt;
+    color: #888;
+  }
+
+  /* PRINT */
+  @media print {
+    body { font-size: 10pt; }
+    .page { padding: 20px 28px; }
+    .cover { border-radius: 0; }
+    .section, .vscode-block, .conclusion { break-inside: avoid; }
+    @page { margin: 1.5cm; size: A4; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- PORTADA -->
+  <div class="cover">
+    <div class="cover-tag">Guía práctica</div>
+    <h1><span>AgroTrace</span> — Del prototipo<br>al sistema real</h1>
+    <p class="subtitle">Dificultad por etapas · Herramientas necesarias · Primeros pasos</p>
+    <div class="cover-meta">
+      <span><strong>Autor:</strong> Guillermo Correa</span>
+      <span><strong>Fecha:</strong> Abril 2026</span>
+      <span><strong>Nivel:</strong> Desarrollador aprendiendo</span>
+    </div>
+  </div>
+
+  <!-- INTRO -->
+  <div class="intro">
+    <p>Este documento responde tres preguntas concretas: <strong>¿qué tan difícil es cada etapa?</strong>, <strong>¿alcanza con VS Code?</strong>, y <strong>¿qué necesito instalar?</strong> — todo pensado para alguien que está aprendiendo mientras construye.</p>
+  </div>
+
+
+  <!-- SECCIÓN 1: TABLA DE DIFICULTAD -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-num">1</div>
+      <div>
+        <div class="section-title">Dificultad por etapa</div>
+        <div class="section-subtitle">5 pasos para pasar del prototipo HTML al sistema en producción</div>
+      </div>
+    </div>
+
+    <table class="diff-table">
+      <thead>
+        <tr>
+          <th>Paso</th>
+          <th>Qué implica</th>
+          <th>Dificultad</th>
+          <th>Por qué</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="paso-num">✓ HECHO</td>
+          <td>
+            <span class="paso-nombre">Prototipo funcional</span>
+            <span class="paso-desc">HTML + CSS + JS, UI completa de lotes y material básico</span>
+          </td>
+          <td>
+            <div class="dots">
+              <div class="dot on"></div><div class="dot on"></div><div class="dot off"></div><div class="dot off"></div><div class="dot off"></div>
+              <span class="dots-label">Ya hecho</span>
+            </div>
+          </td>
+          <td class="reason">—</td>
+        </tr>
+        <tr>
+          <td class="paso-num">Paso 1</td>
+          <td>
+            <span class="paso-nombre">Crear proyecto en Supabase</span>
+            <span class="paso-desc">Migrar el ERD a tablas PostgreSQL reales</span>
+          </td>
+          <td>
+            <div class="dots">
+              <div class="dot on"></div><div class="dot on"></div><div class="dot off"></div><div class="dot off"></div><div class="dot off"></div>
+              <span class="dots-label">Baja</span>
+            </div>
+          </td>
+          <td class="reason">Es visual, como un panel web. Tiene asistente. No requiere escribir código.</td>
+        </tr>
+        <tr>
+          <td class="paso-num">Paso 2</td>
+          <td>
+            <span class="paso-nombre">Autenticación real</span>
+            <span class="paso-desc">Reemplazar el doLogin() con Supabase Auth</span>
+          </td>
+          <td>
+            <div class="dots">
+              <div class="dot on"></div><div class="dot on"></div><div class="dot on"></div><div class="dot off"></div><div class="dot off"></div>
+              <span class="dots-label">Media</span>
+            </div>
+          </td>
+          <td class="reason">Requiere entender qué es un token JWT, pero hay ejemplos directos y Claude lo escribe.</td>
+        </tr>
+        <tr>
+          <td class="paso-num">Paso 3</td>
+          <td>
+            <span class="paso-nombre">Conectar el frontend</span>
+            <span class="paso-desc">Cambiar datos hardcodeados por consultas a la base de datos</span>
+          </td>
+          <td>
+            <div class="dots">
+              <div class="dot on"></div><div class="dot on"></div><div class="dot on"></div><div class="dot on"></div><div class="dot off"></div>
+              <span class="dots-label">Media-alta</span>
+            </div>
+          </td>
+          <td class="reason">Se escribe JS real: respuestas asíncronas, manejo de errores. El más técnico del camino.</td>
+        </tr>
+        <tr>
+          <td class="paso-num">Paso 4</td>
+          <td>
+            <span class="paso-nombre">Deploy en Vercel</span>
+            <span class="paso-desc">Publicar el proyecto en una URL pública gratuita</span>
+          </td>
+          <td>
+            <div class="dots">
+              <div class="dot on"></div><div class="dot on"></div><div class="dot off"></div><div class="dot off"></div><div class="dot off"></div>
+              <span class="dots-label">Baja</span>
+            </div>
+          </td>
+          <td class="reason">Casi drag & drop. Se conecta directo al repositorio de GitHub. Un clic y está online.</td>
+        </tr>
+        <tr>
+          <td class="paso-num">Paso 5</td>
+          <td>
+            <span class="paso-nombre">Migrar a React + Vite</span>
+            <span class="paso-desc">Reescribir la UI en componentes React</span>
+          </td>
+          <td>
+            <div class="dots">
+              <div class="dot on"></div><div class="dot on"></div><div class="dot on"></div><div class="dot on"></div><div class="dot on"></div>
+              <span class="dots-label">Alta</span>
+            </div>
+          </td>
+          <td class="reason">Nuevo paradigma, nueva forma de pensar el código. <strong>No es urgente</strong> — se hace cuando el sistema ya funciona y está probado.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="box amber">
+      <div class="box-title">Foco recomendado ahora</div>
+      Los pasos 1 y 4 los podés hacer casi solo siguiendo una guía. Los pasos 2 y 3 son donde Claude te escribe el código exacto y te explica qué hace cada línea. No necesitás entenderlo todo de entrada — lo vas a ir entendiendo mientras lo hacés.
+    </div>
+  </div>
+
+
+  <!-- SECCIÓN 2: VS CODE -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-num">2</div>
+      <div>
+        <div class="section-title">¿Alcanza con VS Code?</div>
+        <div class="section-subtitle">La respuesta corta: sí, completamente</div>
+      </div>
+    </div>
+
+    <div class="vscode-block">
+      <div class="vscode-icon">💻</div>
+      <div class="vscode-body">
+        <h3>VS Code es suficiente para todo el camino</h3>
+        <p>Para los pasos 1 al 4 no necesitás ninguna otra herramienta. Ya lo estás usando bien. VS Code tiene terminal integrada — todo se hace desde ahí. No hay que instalar un IDE diferente ni aprender otra interfaz.</p>
+      </div>
+    </div>
+
+    <div class="box green">
+      <div class="box-title">Lo único que sí hay que instalar (una sola vez)</div>
+      <div style="display:flex; align-items:center; gap:12px; margin-top:4px;">
+        <div style="font-size:22pt;">⚙️</div>
+        <div>
+          <strong>Node.js</strong> — <code>nodejs.org</code><br>
+          <span style="font-size:9.5pt; color:#555;">Se descarga e instala como cualquier programa de Windows. Con esto tenés acceso a todo el ecosistema de desarrollo web moderno.</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="box soil">
+      <div class="box-title">¿Qué hace Node.js exactamente?</div>
+      Node.js permite ejecutar JavaScript fuera del navegador — en tu computadora o en un servidor. También instala <strong>npm</strong>, el gestor de paquetes que te permite agregar librerías con un solo comando desde la terminal de VS Code.
+    </div>
+  </div>
+
+
+  <!-- SECCIÓN 3: PRIMEROS PASOS -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-num">3</div>
+      <div>
+        <div class="section-title">Para arrancar el Paso 1 hoy</div>
+        <div class="section-subtitle">Tres acciones concretas, en orden</div>
+      </div>
+    </div>
+
+    <div class="install-step">
+      <div class="install-num">A</div>
+      <div class="install-body">
+        <div class="install-title">Crear cuenta en Supabase</div>
+        <div class="install-desc">Entrás a <code>supabase.com</code>, te registrás con tu cuenta de GitHub. Es gratis. Creás un nuevo proyecto con el nombre "agrotrace".</div>
+      </div>
+    </div>
+    <div class="install-step">
+      <div class="install-num">B</div>
+      <div class="install-body">
+        <div class="install-title">Migrar el ERD a tablas</div>
+        <div class="install-desc">Supabase tiene un editor SQL visual. Con el ERD que ya tenemos diseñado, Claude genera el script SQL exacto para crear todas las tablas. Lo pegás, lo ejecutás, y las tablas están listas.</div>
+      </div>
+    </div>
+    <div class="install-step">
+      <div class="install-num">C</div>
+      <div class="install-body">
+        <div class="install-title">Instalar Node.js</div>
+        <div class="install-desc">Descargás e instalás desde <code>nodejs.org</code>. Abrís la terminal de VS Code y escribís <code>node --version</code> — si te responde un número, está listo.</div>
+      </div>
+    </div>
+
+    <div class="box purple">
+      <div class="box-title">Importante recordar</div>
+      No necesitás entender todo antes de empezar. El modelo de trabajo es: <strong>Claude genera el código → vos lo pegás y probás → preguntás qué hace cada parte → aprendés en el proceso.</strong> Así funciona el desarrollo asistido.
+    </div>
+  </div>
+
+
+  <!-- CONCLUSIÓN -->
+  <div class="conclusion">
+    <h2>Resumen ejecutivo</h2>
+    <ul>
+      <li><strong>VS Code</strong> es suficiente para todo el camino — no cambies de herramienta.</li>
+      <li>Solo necesitás instalar <strong>Node.js</strong> (una vez, gratis).</li>
+      <li>Los pasos más fáciles son <strong>Supabase (1)</strong> y <strong>Deploy en Vercel (4)</strong> — casi sin código.</li>
+      <li>El paso más técnico es <strong>conectar el frontend (3)</strong> — ahí Claude te asiste línea por línea.</li>
+      <li><strong>React (paso 5)</strong> no es urgente — el sistema puede funcionar perfecto en HTML puro.</li>
+      <li>El MVP demostrable a clientes requiere solo los pasos <strong>1 → 2 → 3 → 4</strong>.</li>
+    </ul>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <span>AgroTrace — Sistema de trazabilidad REPROCANN · Guillermo Correa</span>
+    <span>Abril 2026 · v1.0</span>
+  </div>
+
+</div>
+</body>
+</html>
