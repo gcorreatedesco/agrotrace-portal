@@ -10,18 +10,40 @@ Repositorio GitHub: `github.com/gcorreatedesco/agrotrace-portal`
 
 ## Stack actual
 
-- **Frontend:** HTML + CSS + JS vanilla (prototipo). Migración futura planificada a React + Vite.
-- **Backend:** pendiente de decidir (Node.js/Express vs Python/FastAPI)
-- **Base de datos:** PostgreSQL (ERD definido, aún no implementado)
-- No hay build, bundler ni test runner configurado. Abrir los `.html` directamente en Chrome.
+- **Frontend:** HTML + CSS + JS vanilla. Cada pantalla es **un único `.html` autocontenido** con `<style>` y `<script>` inline — no hay archivos `.css`/`.js` separados, ni imports entre archivos. Migración futura planificada a React + Vite.
+- **Backend:** aún no implementado. Los documentos de diseño (`AgroTrace_Arquitectura_Backend.html`) **recomiendan Supabase** (PostgreSQL + Auth + API automática + Row Level Security por `productor_id`). El aislamiento entre productores se hará con RLS, no en el cliente. El frontend se conecta a Supabase desde el navegador con el Supabase JS SDK; la `anon key` es pública por diseño (lo que protege los datos es el RLS, no esconder la clave).
+- **Base de datos:** PostgreSQL (ERD definido, aún no implementado).
+- No hay build, bundler, linter ni test runner. No hay `package.json`.
+
+## Cómo ejecutar y desplegar
+
+- **Ver una pantalla:** abrir el `.html` directamente en Chrome (`file://`) — no requiere servidor.
+- **Producción:** GitHub Pages sirve `index.html`. Preview público: https://gcorreatedesco.github.io/agrotrace-portal/ — un push a `main` lo actualiza.
+
+### Decisión de hosting del frontend: GitHub Pages (etapa inicial)
+
+Para empezar, el frontend se aloja en **GitHub Pages**, no en Vercel. GitHub Pages y Vercel cumplen el mismo rol (servir archivos estáticos); ninguno guarda datos — eso es Supabase. GitHub Pages ya está activo, es gratis y con HTTPS, y evita configurar un servicio extra. Vale recordar:
+
+- **Repo público:** GitHub Pages gratis lo exige. Es seguro aquí porque el frontend no tiene secretos (la lógica REPROCANN, el descuento de stock y la `anon key` se protegen vía Supabase + RLS, no escondiendo el código).
+- **Reevaluar al migrar a React + Vite:** ahí hace falta un paso de *build*. GitHub Pages lo soporta vía GitHub Action; Vercel/Netlify lo hacen automático. Recién entonces conviene comparar de nuevo.
 
 ## Archivos en el repositorio
 
 | Archivo | Descripción |
 |---------|-------------|
-| `index.html` | Portal de acceso (login) — único archivo en producción actualmente |
+| `index.html` | Portal de acceso (login). Es lo que se publica en GitHub Pages. |
+| `agrotrace_prototipo_v2.html` | Prototipo funcional de la app interna (dashboard, lotes, sublotes, stock, alta de lote). Aún no enlazado desde `index.html`. |
+| `AgroTrace_Arquitectura_Backend.html` | Documento de diseño: justificación del backend (Supabase) y arquitectura de datos. |
+| `AgroTrace_Guia_Implementacion.html` | Documento de diseño: guía paso a paso del prototipo al sistema real. |
 
-Los archivos de prototipo (`agrotrace_prototipo_v2.html`), ERDs y documentos de diseño se trabajan localmente y aún no están todos versionados.
+Los dos `AgroTrace_*.html` son **documentación renderizada como página**, no código de la app. No están enlazados ni forman parte del producto.
+
+## Convenciones de código (prototipo)
+
+- **Navegación SPA:** una sola página con varios `<div class="view" id="view-XXX">`; solo uno tiene la clase `active`. Se cambia con `showView('id')`. No hay router ni URLs distintas.
+- **Datos hardcodeados:** el prototipo no persiste nada. Los datos de ejemplo viven en constantes JS al inicio del `<script>` (`LD` = lotes, `SD` = sublotes, `LM` = material básico por tipo). Render manual concatenando strings de HTML (p. ej. `rLC(l)` arma la tarjeta de un lote).
+- **Nombres abreviados:** funciones y variables del prototipo usan abreviaturas (`rLC`, `gw`, `selO`, `OA`, `UI`). Al extender, seguí el estilo del archivo que estás tocando.
+- **Auth es demo:** en `index.html`, `doLogin()` solo valida campos y muestra un `alert` — no autentica ni redirige al prototipo todavía.
 
 ## Diseño visual — reglas fijas
 
