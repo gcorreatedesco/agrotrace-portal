@@ -392,10 +392,10 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
 <!-- DASHBOARD -->
 <div class="view active" id="view-dashboard">
   <div class="metrics">
-    <div class="metric"><div class="metric-label">Lotes activos</div><div class="metric-val">6</div></div>
-    <div class="metric"><div class="metric-label">En floración</div><div class="metric-val green">2</div></div>
-    <div class="metric"><div class="metric-label">Stock flores</div><div class="metric-val purple">340 g</div></div>
-    <div class="metric"><div class="metric-label">Alertas</div><div class="metric-val amber">1</div></div>
+    <div class="metric"><div class="metric-label">Lotes activos</div><div class="metric-val" id="m-lotes">—</div></div>
+    <div class="metric"><div class="metric-label">En floración</div><div class="metric-val green" id="m-flor">—</div></div>
+    <div class="metric"><div class="metric-label">Stock flores</div><div class="metric-val purple" id="m-flores">—</div></div>
+    <div class="metric"><div class="metric-label">Alertas</div><div class="metric-val amber" id="m-alertas">0</div></div>
   </div>
   <div class="lay2">
     <div>
@@ -722,20 +722,20 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
 <!-- STOCK MATERIAL BÁSICO -->
 <div class="view" id="view-stock">
   <div class="metrics" style="grid-template-columns:repeat(3,1fr);">
-    <div class="metric"><div class="metric-label">Lotes semillas</div><div class="metric-val">2</div></div>
-    <div class="metric"><div class="metric-label">Lotes esquejes</div><div class="metric-val">2</div></div>
-    <div class="metric"><div class="metric-label">Lotes plantas madre</div><div class="metric-val">1</div></div>
+    <div class="metric"><div class="metric-label">Lotes semillas</div><div class="metric-val" id="m-sem">—</div></div>
+    <div class="metric"><div class="metric-label">Lotes esquejes</div><div class="metric-val" id="m-esq">—</div></div>
+    <div class="metric"><div class="metric-label">Lotes plantas madre</div><div class="metric-val" id="m-pm">—</div></div>
   </div>
   <div class="sgrid">
-    <div class="scard"><div class="sch s1">Lotes de Semillas</div><div class="scb">
+    <div class="scard"><div class="sch s1">Lotes de Semillas</div><div class="scb" id="scb-sem">
       <div class="sl"><div class="sln">Semillas Batch Enero 2025 — OG Kush</div><div class="sbw"><div class="sbb"><div class="sbf" style="width:45%"></div></div><div class="sn">450/1000 g</div></div></div>
       <div class="sl"><div class="sln">Semillas Ext. Feb 2025 — Blue Dream</div><div class="sbw"><div class="sbb"><div class="sbf low" style="width:12%"></div></div><div class="sn">60/500 g</div></div></div>
     </div></div>
-    <div class="scard"><div class="sch s3">Lotes de Esquejes</div><div class="scb">
+    <div class="scard"><div class="sch s3">Lotes de Esquejes</div><div class="scb" id="scb-esq">
       <div class="sl"><div class="sln">Esquejes Batch Marzo 2025 — White Widow</div><div class="sbw"><div class="sbb"><div class="sbf" style="width:37%"></div></div><div class="sn">120/320 u.</div></div></div>
       <div class="sl"><div class="sln">Esquejes Lote Feb 2025 — OG Kush</div><div class="sbw"><div class="sbb"><div class="sbf" style="width:72%"></div></div><div class="sn">130/180 u.</div></div></div>
     </div></div>
-    <div class="scard"><div class="sch s2">Lotes de Plantas Madre</div><div class="scb">
+    <div class="scard"><div class="sch s2">Lotes de Plantas Madre</div><div class="scb" id="scb-pm">
       <div class="sl"><div class="sln">PM Lote Principal — Purple Haze</div><div class="sbw"><div class="sbb"><div class="sbf" style="width:80%"></div></div><div class="sn">8/10 plantas</div></div><div style="font-size:0.65rem;color:var(--sage);margin-top:3px;">Esquejes extraídos: 45</div></div>
     </div></div>
   </div>
@@ -753,20 +753,20 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
       </select>
     </div>
     <div id="bn" style="display:none;"><div class="g2">
-      <div class="field"><label>Cantidad<span class="req">*</span></label><input type="number" placeholder="Cantidad"/></div>
+      <div class="field"><label>Cantidad<span class="req">*</span></label><input type="number" id="b-cant-n" placeholder="Cantidad"/></div>
       <div class="field"><label>Unidad</label><input type="text" id="bu" readonly/></div>
     </div></div>
     <div id="bs" style="display:none;"><div class="g2">
-      <div class="field"><label>Cantidad<span class="req">*</span></label><input type="number" placeholder="Cantidad"/></div>
+      <div class="field"><label>Cantidad<span class="req">*</span></label><input type="number" id="b-cant-s" placeholder="Cantidad"/></div>
       <div class="field"><label>Unidad<span class="opt">automática del lote</span></label><input type="text" id="bsu" readonly/></div>
     </div></div>
     <div class="g2" style="margin-top:4px;">
-      <div class="field"><label>Fecha<span class="req">*</span></label><input type="date"/></div>
-      <div class="field"><label>Motivo<span class="req">*</span></label><input type="text" placeholder="Ej: deterioro, vencimiento, pérdida, error de conteo..."/></div>
+      <div class="field"><label>Fecha<span class="req">*</span></label><input type="date" id="b-fecha"/></div>
+      <div class="field"><label>Motivo<span class="req">*</span></label><input type="text" id="b-motivo" placeholder="Ej: deterioro, vencimiento, pérdida, error de conteo..."/></div>
     </div>
     <div class="ab">
       <button class="btn btn-secondary">Cancelar</button>
-      <button class="btn btn-primary" onclick="alert('¡Baja registrada exitosamente!')">Registrar baja</button>
+      <button class="btn btn-primary" onclick="guardarBaja()">Registrar baja</button>
     </div>
   </div>
 </div>
@@ -783,8 +783,8 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
       </div>
     </div>
     <div class="g2">
-      <div class="field"><label>Nombre del lote<span class="req">*</span></label><input type="text" placeholder="Ej: Semillas Batch Abril 2025"/></div>
-      <div class="field"><label>Fecha de adquisición<span class="req">*</span></label><input type="date"/></div>
+      <div class="field"><label>Nombre del lote<span class="req">*</span></label><input type="text" id="nm-nombre" placeholder="Ej: Semillas Batch Abril 2025"/></div>
+      <div class="field"><label>Fecha de adquisición<span class="req">*</span></label><input type="date" id="nm-fecha"/></div>
     </div>
     <div class="field"><label>Origen<span class="req">*</span></label>
       <select id="nm-origen" onchange="onNMOrigen(this.value)">
@@ -794,15 +794,15 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
       </select>
     </div>
     <div id="nm-externo" style="display:none;">
-      <div class="field"><label>Proveedor<span class="req">*</span></label><input type="text" placeholder="Nombre del proveedor"/></div>
+      <div class="field"><label>Proveedor<span class="req">*</span></label><input type="text" id="nm-proveedor" placeholder="Nombre del proveedor"/></div>
       <div class="field"><label>Documentación<span class="opt">opcional · factura, estampilla de origen</span></label><input type="text" placeholder="Subir archivo (PDF, imagen)"/></div>
     </div>
     <div id="nm-interno" style="display:none;">
       <div class="field"><label>Lote de origen<span class="req">*</span></label><select><option>— Elegí el lote de origen —</option><option>PM Lote Principal — Purple Haze</option><option>Primavera 2024</option></select></div>
     </div>
-    <div class="field"><label>Variedad<span class="req">*</span></label><input type="text" placeholder="Ej: White Widow, OG Kush..."/></div>
+    <div class="field"><label>Variedad<span class="req">*</span></label><input type="text" id="nm-variedad" placeholder="Ej: White Widow, OG Kush..."/></div>
     <div class="g2">
-      <div class="field"><label>Stock inicial<span class="req">*</span></label><input type="number" placeholder="Cantidad"/></div>
+      <div class="field"><label>Stock inicial<span class="req">*</span></label><input type="number" id="nm-stock" placeholder="Cantidad"/></div>
       <div class="field"><label>Unidad<span class="req">*</span></label>
         <select id="nm-unidad">
           <option value="">— Elegí unidad —</option>
@@ -813,10 +813,10 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
         </select>
       </div>
     </div>
-    <div class="field"><label>Notas<span class="opt">opcional</span></label><input type="text" placeholder="Observaciones..."/></div>
+    <div class="field"><label>Notas<span class="opt">opcional</span></label><input type="text" id="nm-notas" placeholder="Observaciones..."/></div>
     <div class="ab">
       <button class="btn btn-secondary" onclick="sv('stock')">Cancelar</button>
-      <button class="btn btn-primary" onclick="alert('¡Lote de material básico creado exitosamente!')">Crear lote</button>
+      <button class="btn btn-primary" onclick="guardarMaterial()">Crear lote</button>
     </div>
   </div>
 </div>
@@ -841,58 +841,128 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 </script>
 
 <script>
-/* ── DATA ── */
-const LD=[
-  {id:1,n:'Primavera 2025',o:'Esquejes externos · var. White Widow',et:'floracion',b:'b-flo',bt:'Floración',hs:true,s:[1,1,2,0,0],sc:'3/5',m:[{l:'Inicio',v:'12/01/2025'},{l:'Plantas',v:'195'},{l:'Días',v:'22'}]},
-  {id:2,n:'Otoño 2025',o:'Semillas · var. OG Kush',et:'vegetativa',b:'b-veg',bt:'Vegetativa',s:[1,2,0,0,0],sc:'2/5',m:[{l:'Inicio',v:'03/03/2025'},{l:'Plantas',v:'240'},{l:'Días',v:'8'}]},
-  {id:3,n:'Invierno 2025',o:'Plantas Madre · var. Purple Haze',et:'nursery',b:'b-nur',bt:'Nursery',s:[2,0,0,0,0],sc:'1/5',m:[{l:'Inicio',v:'18/03/2025'},{l:'Plántulas',v:'120'},{l:'Días',v:'3'}]},
-  {id:4,n:'Verano 2024',o:'Esquejes externos · var. Blue Dream',et:'cosecha',b:'b-cos',bt:'Cosecha',s:[1,1,1,2,0],sc:'4/5',m:[{l:'Peso bruto',v:'2.4 kg'},{l:'Días curado',v:'14'}]},
-  {id:5,n:'Primavera 2024',o:'Semillas · var. OG Kush',et:'flores',b:'b-fl2',bt:'Flores',s:[1,1,1,1,2],sc:'5/5',m:[{l:'Stock inicial',v:'840 g'},{l:'Stock actual',v:'340 g'}]},
-];
-const SD=[
-  {id:'s1',n:'Primavera 2025 — Invernadero Norte',o:'120 plantas · desde Floración',et:'floracion',b:'b-flo',bt:'Floración',sub:'a',s:[1,1,2,0,0],sc:'3/5',m:[{l:'Plantas',v:'120'},{l:'Días',v:'22'}]},
-  {id:'s2',n:'Primavera 2025 — Invernadero Sur',o:'75 plantas · desde Floración',et:'floracion',b:'b-flo',bt:'Floración',sub:'b',s:[1,1,2,0,0],sc:'3/5',m:[{l:'Plantas',v:'75'},{l:'Días',v:'22'}]},
-];
-const LM={
-  semillas:[{v:'sem1',l:'Semillas Batch Enero 2025 — OG Kush',stock:450,u:'gramos',var:'OG Kush'},{v:'sem2',l:'Semillas Ext. Feb 2025 — Blue Dream',stock:60,u:'gramos',var:'Blue Dream'}],
-  esquejes:[{v:'esq1',l:'Esquejes Batch Marzo 2025 — White Widow',stock:320,u:'esquejes',var:'White Widow'},{v:'esq2',l:'Esquejes Lote Feb 2025 — OG Kush',stock:180,u:'esquejes',var:'OG Kush'}],
-  pm:[{v:'pm1',l:'PM Lote Principal — Purple Haze',stock:10,u:'plantas',var:'Purple Haze'}]
-};
-const ALL_LOTES=[
-  {name:'Primavera 2025',info:'Esquejes externos · White Widow',badge:'Floración',bc:'b-flo',tipo:'produccion',id:1},
-  {name:'Primavera 2025 — Invernadero Norte',info:'Sublote A · White Widow',badge:'Floración',bc:'b-flo',tipo:'produccion',id:'s1'},
-  {name:'Primavera 2025 — Invernadero Sur',info:'Sublote B · White Widow',badge:'Floración',bc:'b-flo',tipo:'produccion',id:'s2'},
-  {name:'Otoño 2025',info:'Semillas · OG Kush',badge:'Vegetativa',bc:'b-veg',tipo:'produccion',id:2},
-  {name:'Invierno 2025',info:'Plantas Madre · Purple Haze',badge:'Nursery',bc:'b-nur',tipo:'produccion',id:3},
-  {name:'Verano 2024',info:'Esquejes · Blue Dream',badge:'Cosecha',bc:'b-cos',tipo:'produccion',id:4},
-  {name:'Primavera 2024',info:'Semillas · OG Kush',badge:'Flores',bc:'b-fl2',tipo:'produccion',id:5},
-  {name:'Semillas Batch Enero 2025 — OG Kush',info:'Stock: 450 g',badge:'Semillas',bc:'b-sem',tipo:'material'},
-  {name:'Semillas Ext. Feb 2025 — Blue Dream',info:'Stock: 60 g',badge:'Semillas',bc:'b-sem',tipo:'material'},
-  {name:'Esquejes Batch Marzo 2025 — White Widow',info:'Stock: 120 u.',badge:'Esquejes',bc:'b-esq',tipo:'material'},
-  {name:'Esquejes Lote Feb 2025 — OG Kush',info:'Stock: 130 u.',badge:'Esquejes',bc:'b-esq',tipo:'material'},
-  {name:'PM Lote Principal — Purple Haze',info:'Stock: 8 plantas',badge:'Plantas Madre',bc:'b-pm',tipo:'material'},
-];
+/* ── CONFIG DEV (sin login en la UI) ── */
+// 1. Crear usuario en Supabase > Authentication > Users > Add user
+// 2. Reemplazar estos valores con tu email y contraseña
+const DEV_EMAIL    = 'admin@agrotrace.dev';
+const DEV_PASSWORD = 'AgroTrace2025!';
+
+let CURRENT_USER = null;
+let TIPO_NM = null;
+
+/* ── DATA (desde Supabase) ── */
+let LD = [];
+let SD = [];
+let LM = { semillas:[], esquejes:[], pm:[] };
+let ALL_LOTES = [];
 
 const HIST={
   nursery:{title:'Nursery (orden 1)',rows:[
-    {l:'Fecha inicio',v:'12/01/2025'},{l:'Método de ingreso',v:'Bandejas × alvéolos'},{l:'Bandejas',v:'10'},{l:'Alvéolos por bandeja',v:'20'},
-    {l:'Total plántulas sembradas',v:'200'},{l:'Material utilizado',v:'—'},{l:'Fecha fin',v:'10/02/2025'},{l:'Cantidad egreso',v:'195'},{l:'Bajas',v:'5'},
+    {l:'Fecha inicio',v:'—'},{l:'Método de ingreso',v:'—'},{l:'Total plántulas',v:'—'},{l:'Fecha fin',v:'—'},{l:'Cantidad egreso',v:'—'},{l:'Bajas',v:'—'},
   ]},
   vegetativa:{title:'Vegetativa (orden 2)',rows:[
-    {l:'Fecha inicio (Trasplante)',v:'10/02/2025'},{l:'Fecha fin (Inicio inducción)',v:'20/03/2025'},
-    {l:'Cantidad ingreso',v:'195 plantas'},{l:'Cantidad egreso',v:'195 plantas'},{l:'Bajas',v:'0'},
+    {l:'Fecha inicio (Trasplante)',v:'—'},{l:'Fecha fin (Inicio inducción)',v:'—'},
+    {l:'Cantidad ingreso',v:'—'},{l:'Cantidad egreso',v:'—'},{l:'Bajas',v:'—'},
   ]},
 };
 
 let OA=null,LA=null,UI=false,searchOpen=false;
 
+/* ── INIT ── */
+async function initApp(){
+  const {data,error}=await sb.auth.signInWithPassword({email:DEV_EMAIL,password:DEV_PASSWORD});
+  if(error){
+    document.getElementById('tt').textContent='⚠ Error de conexión';
+    document.getElementById('ts').textContent='No se pudo autenticar: '+error.message;
+    return;
+  }
+  CURRENT_USER=data.user;
+  await Promise.all([cargarLotes(),cargarMaterial()]);
+  rebuildSearchIndex();
+  rAll('dash-lotes','todos');
+  actualizarMetricasDash();
+}
+
+/* ── CARGA LOTES ── */
+async function cargarLotes(){
+  const {data,error}=await sb.from('lotes_produccion').select('*').is('lote_padre_id',null).order('creado_en',{ascending:false});
+  if(error){console.error('Error cargando lotes:',error);return;}
+  LD=(data||[]).map(mapLote);
+}
+
+function mapLote(row){
+  const em={nursery:{b:'b-nur',bt:'Nursery',idx:1},vegetativa:{b:'b-veg',bt:'Vegetativa',idx:2},floracion:{b:'b-flo',bt:'Floración',idx:3},cosecha_curado:{b:'b-cos',bt:'Cosecha',idx:4},flores:{b:'b-fl2',bt:'Flores',idx:5}};
+  const info=em[row.etapa_actual]||{b:'b-nur',bt:row.etapa_actual,idx:1};
+  const steps=[0,0,0,0,0];
+  for(let i=0;i<info.idx-1;i++)steps[i]=1;
+  steps[info.idx-1]=2;
+  let o='—';
+  if(row.origen_semilla_id)o='Semillas';
+  else if(row.origen_esqueje_id)o='Esquejes externos';
+  else if(row.origen_pm_id)o='Plantas Madre';
+  return{id:row.id,n:row.nombre_completo,o,et:row.etapa_actual==='cosecha_curado'?'cosecha':row.etapa_actual,b:info.b,bt:info.bt,hs:false,s:steps,sc:info.idx+'/5',m:[{l:'Inicio',v:fmtDate(row.fecha_inicio)}]};
+}
+
+function fmtDate(iso){if(!iso)return'—';const[y,m,d]=iso.split('-');return d+'/'+m+'/'+y;}
+
+/* ── CARGA MATERIAL ── */
+async function cargarMaterial(){
+  const[semR,esqR,pmR]=await Promise.all([
+    sb.from('lotes_semillas').select('*').order('creado_en'),
+    sb.from('lotes_esquejes').select('*').order('creado_en'),
+    sb.from('lotes_plantas_madre').select('*').order('creado_en'),
+  ]);
+  LM.semillas=(semR.data||[]).map(r=>({v:r.id,l:r.nombre_lote+' — '+r.variedad,stock:r.stock_actual,stockI:r.stock_inicial,u:r.unidad,var:r.variedad}));
+  LM.esquejes=(esqR.data||[]).map(r=>({v:r.id,l:r.nombre_lote+' — '+r.variedad,stock:r.stock_actual,stockI:r.stock_inicial,u:'esquejes',var:r.variedad}));
+  LM.pm=(pmR.data||[]).map(r=>({v:r.id,l:r.nombre_lote+' — '+r.variedad,stock:r.cantidad_actual,stockI:r.cantidad_inicial,u:'plantas',var:r.variedad}));
+  renderStock();
+  actualizarMetricasStock();
+}
+
+function rebuildSearchIndex(){
+  ALL_LOTES=[];
+  LD.forEach(l=>ALL_LOTES.push({name:l.n,info:l.o,badge:l.bt,bc:l.b,tipo:'produccion',id:l.id}));
+  LM.semillas.forEach(r=>ALL_LOTES.push({name:r.l,info:'Stock: '+r.stock+' '+r.u,badge:'Semillas',bc:'b-sem',tipo:'material'}));
+  LM.esquejes.forEach(r=>ALL_LOTES.push({name:r.l,info:'Stock: '+r.stock+' u.',badge:'Esquejes',bc:'b-esq',tipo:'material'}));
+  LM.pm.forEach(r=>ALL_LOTES.push({name:r.l,info:'Stock: '+r.stock+' plantas',badge:'Plantas Madre',bc:'b-pm',tipo:'material'}));
+}
+
+/* ── MÉTRICAS ── */
+function actualizarMetricasDash(){
+  document.getElementById('m-lotes').textContent=LD.length;
+  document.getElementById('m-flor').textContent=LD.filter(l=>l.et==='floracion').length;
+  document.getElementById('m-flores').textContent='—';
+  document.getElementById('m-alertas').textContent='0';
+}
+function actualizarMetricasStock(){
+  const s=document.getElementById('m-sem'),e=document.getElementById('m-esq'),p=document.getElementById('m-pm');
+  if(s)s.textContent=LM.semillas.length;if(e)e.textContent=LM.esquejes.length;if(p)p.textContent=LM.pm.length;
+}
+
+/* ── RENDER STOCK ── */
+function renderStock(){
+  const sEl=document.getElementById('scb-sem'),eEl=document.getElementById('scb-esq'),pEl=document.getElementById('scb-pm');
+  if(!sEl)return;
+  function rl(r){const pct=r.stockI>0?Math.round((r.stock/r.stockI)*100):0;const low=pct<20?' low':'';return`<div class="sl"><div class="sln">${r.l}</div><div class="sbw"><div class="sbb"><div class="sbf${low}" style="width:${pct}%"></div></div><div class="sn">${r.stock}/${r.stockI} ${r.u}</div></div></div>`;}
+  const empty='<div style="font-size:0.75rem;color:var(--sage);padding:8px 0;">Sin lotes registrados.</div>';
+  sEl.innerHTML=LM.semillas.length?LM.semillas.map(rl).join(''):empty;
+  eEl.innerHTML=LM.esquejes.length?LM.esquejes.map(rl).join(''):empty;
+  pEl.innerHTML=LM.pm.length?LM.pm.map(rl).join(''):empty;
+  const sel=document.getElementById('bl');
+  sel.innerHTML='<option value="">— Elegí el lote —</option>';
+  LM.semillas.forEach(r=>sel.innerHTML+=`<option value="${r.v}" data-tipo="semillas">${r.l} (stock: ${r.stock} ${r.u})</option>`);
+  LM.esquejes.forEach(r=>sel.innerHTML+=`<option value="${r.v}" data-tipo="esquejes">${r.l} (stock: ${r.stock} ${r.u})</option>`);
+  LM.pm.forEach(r=>sel.innerHTML+=`<option value="${r.v}" data-tipo="pm">${r.l} (stock: ${r.stock} ${r.u})</option>`);
+}
+
+/* ── RENDER LOTES ── */
 function sc(s){return s===1?'done':s===2?'act':'fut';}
 
 function rLC(l){
   const sc2=l.s.map(s=>sc(s));
-  return `<div class="lote-card" data-et="${l.et}" onclick="openLote('${l.n}','${l.o}','${l.et}')" style="cursor:pointer;">
+  return`<div class="lote-card" data-et="${l.et}" onclick="openLote('${l.n}','${l.o}','${l.et}')" style="cursor:pointer;">
     <div class="lote-header"><div class="lote-hl">
-      ${l.hs?`<div class="xbtn" id="xb${l.id}" onclick="event.stopPropagation();tSub(${l.id})">+</div>`:'<div style="width:20px;flex-shrink:0;"></div>'}
+      <div style="width:20px;flex-shrink:0;"></div>
       <div><div class="lote-name">${l.n}</div><div class="lote-orig">${l.o}</div></div>
     </div><span class="eb ${l.b}">${l.bt}</span></div>
     <div class="pb"><div class="steps">${sc2.map(c=>`<div class="step ${c}"></div>`).join('')}</div><div class="sc">${l.sc}</div></div>
@@ -901,34 +971,20 @@ function rLC(l){
 }
 
 function rAll(cid,fe){
-  const el=document.getElementById(cid); if(!el) return;
-  let h='';
-  LD.filter(l=>fe==='todos'||l.et===fe).forEach(l=>{
-    h+=`<div style="margin-bottom:8px;" id="lg${l.id}">${rLC(l)}`;
-    if(l.hs){
-      h+=`<div class="ch" id="ch${l.id}"><div class="chi">`;
-      SD.forEach(s=>{h+=`<div class="cw"><div class="lote-card lc-sub${s.sub}" onclick="openLote('${s.n}','${s.o}','${s.et}')">
-        <div class="lote-header"><div><div class="lote-name">${s.n}<span class="b-sub">sublote</span></div><div class="lote-orig">${s.o}</div></div><span class="eb ${s.b}">${s.bt}</span></div>
-        <div class="pb"><div class="steps">${s.s.map(x=>`<div class="step ${sc(x)}"></div>`).join('')}</div><div class="sc">${s.sc}</div></div>
-        <div class="lm">${s.m.map(m=>`<div class="mi">${m.l} <b>${m.v}</b></div>`).join('')}</div>
-      </div></div>`;});
-      h+=`</div></div>`;
-    }
-    h+=`</div>`;
-  });
-  el.innerHTML=h;
+  const el=document.getElementById(cid);if(!el)return;
+  const filtered=LD.filter(l=>fe==='todos'||l.et===fe);
+  if(!filtered.length){el.innerHTML='<div style="font-size:0.78rem;color:var(--sage);padding:24px 0;text-align:center;">Sin lotes'+(fe!=='todos'?' en esta etapa':'')+'. Creá uno con "+ Nuevo lote".</div>';return;}
+  el.innerHTML=filtered.map(l=>`<div style="margin-bottom:8px;" id="lg${l.id}">${rLC(l)}</div>`).join('');
 }
 
 function openLote(nombre,sub,etapa){
   document.getElementById('det-nombre').textContent=nombre;
   document.getElementById('det-sub').textContent=sub;
-  const emap={nursery:'Nursery · orden 1',vegetativa:'Vegetativa · orden 2',floracion:'Floración · orden 3',cosecha:'Cosecha y Curado · orden 4',flores:'Flores Cosechadas · orden 5'};
-  const bmap={nursery:'b-nur',vegetativa:'b-veg',floracion:'b-flo',cosecha:'b-cos',flores:'b-fl2'};
+  const emap={nursery:'Nursery · orden 1',vegetativa:'Vegetativa · orden 2',floracion:'Floración · orden 3',cosecha:'Cosecha y Curado · orden 4',cosecha_curado:'Cosecha y Curado · orden 4',flores:'Flores Cosechadas · orden 5'};
+  const bmap={nursery:'b-nur',vegetativa:'b-veg',floracion:'b-flo',cosecha:'b-cos',cosecha_curado:'b-cos',flores:'b-fl2'};
   const eEl=document.getElementById('det-etapa');
-  eEl.textContent=emap[etapa]||etapa;
-  eEl.className='eb '+(bmap[etapa]||'b-flo');
-  closeHist();
-  sv('detalle');
+  eEl.textContent=emap[etapa]||etapa;eEl.className='eb '+(bmap[etapa]||'b-flo');
+  closeHist();sv('detalle');
 }
 
 /* ── NAVIGATION ── */
@@ -945,13 +1001,10 @@ function sv(id){
     'nuevo-material':['Nuevo lote de material básico','Registrar ingreso de material',''],
     busqueda:['Búsqueda de lotes','Resultados de búsqueda por nombre',''],
   };
-  if(mp[id]){
-    document.getElementById('tt').textContent=mp[id][0];
-    document.getElementById('ts').textContent=mp[id][1];
-    document.getElementById('ta').innerHTML=mp[id][2];
-  }
-  if(id==='lotes') rAll('lotes-list','todos');
-  if(id==='dashboard') rAll('dash-lotes','todos');
+  if(mp[id]){document.getElementById('tt').textContent=mp[id][0];document.getElementById('ts').textContent=mp[id][1];document.getElementById('ta').innerHTML=mp[id][2];}
+  if(id==='lotes')rAll('lotes-list','todos');
+  if(id==='dashboard')rAll('dash-lotes','todos');
+  if(id==='stock')renderStock();
 }
 
 function fD(el,et){document.querySelectorAll('#view-dashboard .pill').forEach(p=>p.classList.remove('active'));el.classList.add('active');rAll('dash-lotes',et);}
@@ -961,130 +1014,49 @@ function fL(el,et){
   if(et==='sublotes'){n.style.display='none';s.style.display='block';}
   else{n.style.display='block';s.style.display='none';rAll('lotes-list',et);}
 }
-function tSub(id){
-  const ch=document.getElementById('ch'+id);const btn=document.getElementById('xb'+id);
-  if(!ch||!btn)return;const op=ch.classList.toggle('open');
-  btn.textContent=op?'−':'+';btn.classList.toggle('open',op);
-}
-function togSubOr(){
-  const p=document.getElementById('ps-sub');const b=document.getElementById('ob-sub');const v=document.getElementById('vs-top');
-  const op=p.classList.toggle('open');b.textContent=op?'−':'+';b.classList.toggle('open',op);
-  if(v)v.style.height=op?'4px':'14px';
-}
+function tSub(id){const ch=document.getElementById('ch'+id);const btn=document.getElementById('xb'+id);if(!ch||!btn)return;const op=ch.classList.toggle('open');btn.textContent=op?'−':'+';btn.classList.toggle('open',op);}
+function togSubOr(){const p=document.getElementById('ps-sub');const b=document.getElementById('ob-sub');const v=document.getElementById('vs-top');const op=p.classList.toggle('open');b.textContent=op?'−':'+';b.classList.toggle('open',op);if(v)v.style.height=op?'4px':'14px';}
 
-/* ── HISTORIAL ETAPAS ── */
-function showHist(etapa){
-  const panel=document.getElementById('hist-panel');
-  const h=HIST[etapa];if(!h)return;
-  document.getElementById('hist-title-text').textContent='Datos registrados — '+h.title;
-  document.getElementById('hist-content').innerHTML=h.rows.map(r=>`
-    <div class="hist-row"><span class="hist-label">${r.l}</span><span class="hist-val">${r.v}</span></div>`).join('');
-  panel.classList.add('show');
-}
+/* ── HISTORIAL ── */
+function showHist(etapa){const panel=document.getElementById('hist-panel');const h=HIST[etapa];if(!h)return;document.getElementById('hist-title-text').textContent='Datos registrados — '+h.title;document.getElementById('hist-content').innerHTML=h.rows.map(r=>`<div class="hist-row"><span class="hist-label">${r.l}</span><span class="hist-val">${r.v}</span></div>`).join('');panel.classList.add('show');}
 function closeHist(){document.getElementById('hist-panel').classList.remove('show');}
 
-/* ── CONFIRMAR CAMPOS AUTO ── */
-function confirmarAF(divId,btn){
-  const div=document.getElementById(divId);
-  div.classList.remove('pending');div.classList.add('confirmed');
-  btn.outerHTML='<span class="af-done">✓ Confirmado</span>';
-}
-
-/* ── GUARDAR BORRADOR / AVANZAR ── */
-function guardarBorrador(){
-  alert('Borrador guardado. Podés continuar cargando datos cuando quieras.');
-}
+/* ── CONFIRMAR / AVANZAR ── */
+function confirmarAF(divId,btn){const div=document.getElementById(divId);div.classList.remove('pending');div.classList.add('confirmed');btn.outerHTML='<span class="af-done">✓ Confirmado</span>';}
+function guardarBorrador(){alert('Borrador guardado. Podés continuar cargando datos cuando quieras.');}
 function guardarAvanzar(){
-  const egreso=document.getElementById('flo-egreso').value;
-  const bajas=document.getElementById('flo-bajas').value;
-  const fechaFin=document.getElementById('flo-fecha-fin').value;
-  const vbox=document.getElementById('flo-validacion');
-  if(!fechaFin||!egreso||!bajas){
-    vbox.style.display='block';vbox.className='erb';
-    vbox.textContent='Completá todos los campos obligatorios: Fecha fin, Cantidad egreso y Bajas.';return;
-  }
+  const egreso=document.getElementById('flo-egreso').value;const bajas=document.getElementById('flo-bajas').value;const fechaFin=document.getElementById('flo-fecha-fin').value;const vbox=document.getElementById('flo-validacion');
+  if(!fechaFin||!egreso||!bajas){vbox.style.display='block';vbox.className='erb';vbox.textContent='Completá todos los campos obligatorios: Fecha fin, Cantidad egreso y Bajas.';return;}
   const ingreso=195;const total=parseInt(egreso)+parseInt(bajas);
-  if(total!==ingreso){
-    vbox.style.display='block';vbox.className='erb';
-    vbox.textContent='La cantidad de ingreso ('+ingreso+') no coincide con egreso ('+egreso+') + bajas ('+bajas+') = '+total+'. Revisá los datos.';return;
-  }
-  vbox.style.display='none';
-  alert('¡Etapa Floración cerrada!\nAvanzando a Cosecha y Curado...');
+  if(total!==ingreso){vbox.style.display='block';vbox.className='erb';vbox.textContent='La cantidad de ingreso ('+ingreso+') no coincide con egreso ('+egreso+') + bajas ('+bajas+') = '+total+'. Revisá los datos.';return;}
+  vbox.style.display='none';alert('¡Etapa Floración cerrada!\nAvanzando a Cosecha y Curado...');
 }
 
 /* ── BÚSQUEDA ── */
-function toggleSearch(){
-  searchOpen=!searchOpen;
-  const wrap=document.getElementById('search-sb-wrap');
-  wrap.classList.toggle('open',searchOpen);
-  document.getElementById('nav-busqueda').classList.toggle('active',searchOpen);
-  if(searchOpen){setTimeout(()=>document.getElementById('search-input').focus(),300);}
-  else{document.getElementById('search-input').value='';}
-}
-function onSearchKey(e){
-  if(e.key==='Enter'){
-    const q=document.getElementById('search-input').value.trim();
-    if(q.length>0) doSearch(q);
-  }
-}
+function toggleSearch(){searchOpen=!searchOpen;const wrap=document.getElementById('search-sb-wrap');wrap.classList.toggle('open',searchOpen);document.getElementById('nav-busqueda').classList.toggle('active',searchOpen);if(searchOpen){setTimeout(()=>document.getElementById('search-input').focus(),300);}else{document.getElementById('search-input').value='';}}
+function onSearchKey(e){if(e.key==='Enter'){const q=document.getElementById('search-input').value.trim();if(q.length>0)doSearch(q);}}
 function doSearch(q){
   const ql=q.toLowerCase();
   const filtered=ALL_LOTES.filter(l=>l.name.toLowerCase().includes(ql)||similarity(l.name.toLowerCase(),ql)>0.2);
-  const prod=filtered.filter(l=>l.tipo==='produccion');
-  const mat=filtered.filter(l=>l.tipo==='material');
+  const prod=filtered.filter(l=>l.tipo==='produccion');const mat=filtered.filter(l=>l.tipo==='material');
   document.getElementById('sq-label').textContent=`Resultados para "${q}"`;
   document.getElementById('sq-sub').textContent=filtered.length>0?`${filtered.length} lote${filtered.length>1?'s':''} encontrado${filtered.length>1?'s':''}`:'' ;
   let html='';
-  if(filtered.length===0){
-    html=`<div class="no-results-msg">No se encontraron lotes con el nombre "<strong>${q}</strong>".<br/><span style="font-size:0.75rem;">Probá con otra palabra o parte del nombre.</span></div>`;
-  } else {
-    if(prod.length){
-      html+=`<div class="search-group"><div class="search-group-title">Lotes productivos (${prod.length})</div>`;
-      prod.forEach(l=>{
-        html+=`<div class="search-result-item" onclick="openLote('${l.name}','${l.info}','floracion')">
-          <div><div class="sri-name">${highlight(l.name,ql)}</div><div class="sri-sub">${l.info}</div></div>
-          <div class="sri-right"><span class="eb ${l.bc}">${l.badge}</span><span class="sri-arrow">→</span></div>
-        </div>`;
-      });
-      html+=`</div>`;
-    }
-    if(mat.length){
-      html+=`<div class="search-group"><div class="search-group-title">Material básico (${mat.length})</div>`;
-      mat.forEach(l=>{
-        html+=`<div class="search-result-item" onclick="sv('stock')">
-          <div><div class="sri-name">${highlight(l.name,ql)}</div><div class="sri-sub">${l.info}</div></div>
-          <div class="sri-right"><span class="eb ${l.bc}">${l.badge}</span><span class="sri-arrow">→</span></div>
-        </div>`;
-      });
-      html+=`</div>`;
-    }
+  if(filtered.length===0){html=`<div class="no-results-msg">No se encontraron lotes con el nombre "<strong>${q}</strong>".<br/><span style="font-size:0.75rem;">Probá con otra palabra o parte del nombre.</span></div>`;}
+  else{
+    if(prod.length){html+=`<div class="search-group"><div class="search-group-title">Lotes productivos (${prod.length})</div>`;prod.forEach(l=>{html+=`<div class="search-result-item" onclick="openLote('${l.name}','${l.info}','${l.bc.replace('b-','')}')"><div><div class="sri-name">${highlight(l.name,ql)}</div><div class="sri-sub">${l.info}</div></div><div class="sri-right"><span class="eb ${l.bc}">${l.badge}</span><span class="sri-arrow">→</span></div></div>`;});html+=`</div>`;}
+    if(mat.length){html+=`<div class="search-group"><div class="search-group-title">Material básico (${mat.length})</div>`;mat.forEach(l=>{html+=`<div class="search-result-item" onclick="sv('stock')"><div><div class="sri-name">${highlight(l.name,ql)}</div><div class="sri-sub">${l.info}</div></div><div class="sri-right"><span class="eb ${l.bc}">${l.badge}</span><span class="sri-arrow">→</span></div></div>`;});html+=`</div>`;}
   }
-  document.getElementById('search-results-container').innerHTML=html;
-  sv('busqueda');
+  document.getElementById('search-results-container').innerHTML=html;sv('busqueda');
 }
-function similarity(a,b){
-  if(a.includes(b)||b.includes(a))return 0.9;
-  let matches=0;
-  for(let i=0;i<Math.min(a.length,b.length);i++){if(a[i]===b[i])matches++;}
-  return matches/Math.max(a.length,b.length);
-}
-function highlight(text,q){
-  const idx=text.toLowerCase().indexOf(q);
-  if(idx===-1)return text;
-  return text.slice(0,idx)+'<strong style="color:var(--accent);">'+text.slice(idx,idx+q.length)+'</strong>'+text.slice(idx+q.length);
-}
+function similarity(a,b){if(a.includes(b)||b.includes(a))return 0.9;let m=0;for(let i=0;i<Math.min(a.length,b.length);i++){if(a[i]===b[i])m++;}return m/Math.max(a.length,b.length);}
+function highlight(text,q){const idx=text.toLowerCase().indexOf(q);if(idx===-1)return text;return text.slice(0,idx)+'<strong style="color:var(--accent);">'+text.slice(idx,idx+q.length)+'</strong>'+text.slice(idx+q.length);}
 
 /* ── WIZARD ── */
 function gw(step){
   [1,2,3,4].forEach(n=>{const e=document.getElementById('wp'+n);if(e)e.style.display=n===step?'block':'none';});
   if(step===2){const n=document.getElementById('p1n').value||'Nuevo lote';const f=document.getElementById('p1f').value||'Sin fecha';const e=document.getElementById('cs1');if(e)e.textContent=n+' · '+f;}
-  if(step===3){
-    const n=document.getElementById('p1n').value||'Nuevo lote';
-    const e1=document.getElementById('cs1b');if(e1)e1.textContent=n;
-    const e2=document.getElementById('cs2b');if(e2&&LA)e2.textContent=LA.l+' · '+gC()+' '+LA.u;
-    const nm=document.getElementById('nm');if(nm&&LA)nm.textContent=LA.l+' · '+gC()+' '+LA.u;
-    uNW();
-  }
+  if(step===3){const n=document.getElementById('p1n').value||'Nuevo lote';const e1=document.getElementById('cs1b');if(e1)e1.textContent=n;const e2=document.getElementById('cs2b');if(e2&&LA)e2.textContent=LA.l+' · '+gC()+' '+LA.u;const nm=document.getElementById('nm');if(nm&&LA)nm.textContent=LA.l+' · '+gC()+' '+LA.u;uNW();}
   if(step===4){
     document.getElementById('sn').textContent=document.getElementById('p1n').value||'—';
     document.getElementById('sv').textContent=LA?LA.var:'—';
@@ -1097,11 +1069,7 @@ function gw(step){
     const ci=document.getElementById('chki');if(ci)ci.style.display=UI?'flex':'none';
   }
 }
-function gC(){
-  const m=document.querySelector('input[name="um"]:checked');
-  if(OA==='semillas'&&m){if(m.value==='pred')return parseInt(document.getElementById('cp').value)||0;else return parseInt(document.getElementById('cm').value)||0;}
-  return parseInt(document.getElementById('cn').value)||0;
-}
+function gC(){const m=document.querySelector('input[name="um"]:checked');if(OA==='semillas'&&m){if(m.value==='pred')return parseInt(document.getElementById('cp').value)||0;else return parseInt(document.getElementById('cm').value)||0;}return parseInt(document.getElementById('cn').value)||0;}
 function selO(t){
   ['s','e','p'].forEach(x=>{const map={s:'os',e:'oe',p:'op'};const e=document.getElementById(map[x]);if(e)e.classList.toggle('sel',x===t[0]);});
   OA=t;LA=null;UI=false;
@@ -1112,105 +1080,141 @@ function selO(t){
   document.getElementById('umw').style.display=t==='semillas'?'block':'none';
   document.getElementById('cnw').style.display=t!=='semillas'?'block':'none';
   document.getElementById('uiw').style.display='none';
-  document.getElementById('sh').textContent='';
-  document.getElementById('p1v').value='';
+  document.getElementById('sh').textContent='';document.getElementById('p1v').value='';
   const ll=document.getElementById('lsl');
   if(ll)ll.innerHTML=(t==='semillas'?'Lote de Semillas a utilizar':t==='esquejes'?'Lote de Esquejes a utilizar':'Lote de Plantas Madre a utilizar')+'<span class="req">*</span>';
 }
-function onLC(v){
-  if(!v||!OA){LA=null;return;}
-  LA=LM[OA].find(l=>l.v===v)||null;if(!LA)return;
-  document.getElementById('sh').textContent='Stock disponible: '+LA.stock+' '+LA.u;
-  document.getElementById('p1v').value=LA.var;
-  if(OA==='semillas')document.getElementById('upl').textContent='('+LA.u+')';
-  document.getElementById('sp').style.display='block';uS(0);
-}
-function onUM(v){
-  document.getElementById('mpred').style.display=v==='pred'?'block':'none';
-  document.getElementById('mman').style.display=v==='man'?'block':'none';
-  UI=false;document.getElementById('uiw').style.display='none';
-}
-function chkUC(){
-  if(!LA)return;
-  const s=document.getElementById('um2').value;
-  const inc=s&&s!==LA.u;
-  UI=inc;document.getElementById('uiw').style.display=inc?'block':'none';
-}
-function uS(v){
-  if(!LA){document.getElementById('sp').style.display='none';return;}
-  const val=parseInt(v)||0;const r=Math.max(0,LA.stock-val);
-  document.getElementById('spa').textContent=LA.stock+' '+LA.u;
-  document.getElementById('spu').textContent='− '+val+' '+LA.u;
-  document.getElementById('spf').textContent=r+' '+LA.u;
-  document.getElementById('sp').style.display='block';
-}
-function uNW(){
-  const w=document.getElementById('nw');if(!w)return;
-  const c=gC();
-  if(LA&&!UI){w.className='wb';w.innerHTML='Al confirmar se descontarán <strong>'+c+' '+LA.u+'</strong> del stock de "'+LA.l+'". Stock resultante: <strong>'+Math.max(0,LA.stock-c)+' '+LA.u+'</strong>.';}
-  else if(UI){w.className='erb';w.innerHTML='⚠ Unidades no compatibles. El stock <strong>NO será descontado</strong> automáticamente.';}
-}
-function sm(m){
-  document.getElementById('mcb').classList.toggle('sel',m==='b');
-  document.getElementById('mcd').classList.toggle('sel',m==='d');
-  document.getElementById('calcb').style.display=m==='b'?'block':'none';
-  document.getElementById('calcd').style.display=m==='d'?'block':'none';
-}
-function ct(){
-  const b=parseInt(document.getElementById('nb').value)||0;const a=parseInt(document.getElementById('na').value)||0;
-  document.getElementById('ctot').textContent=b*a;
-}
-function tc(di,ci){
-  const cb=document.getElementById(ci);cb.checked=!cb.checked;
-  document.getElementById(di).classList.toggle('checked',cb.checked);
-}
-function cL(){
+function onLC(v){if(!v||!OA){LA=null;return;}LA=LM[OA].find(l=>l.v===v)||null;if(!LA)return;document.getElementById('sh').textContent='Stock disponible: '+LA.stock+' '+LA.u;document.getElementById('p1v').value=LA.var;if(OA==='semillas')document.getElementById('upl').textContent='('+LA.u+')';document.getElementById('sp').style.display='block';uS(0);}
+function onUM(v){document.getElementById('mpred').style.display=v==='pred'?'block':'none';document.getElementById('mman').style.display=v==='man'?'block':'none';UI=false;document.getElementById('uiw').style.display='none';}
+function chkUC(){if(!LA)return;const s=document.getElementById('um2').value;const inc=s&&s!==LA.u;UI=inc;document.getElementById('uiw').style.display=inc?'block':'none';}
+function uS(v){if(!LA){document.getElementById('sp').style.display='none';return;}const val=parseInt(v)||0;const r=Math.max(0,LA.stock-val);document.getElementById('spa').textContent=LA.stock+' '+LA.u;document.getElementById('spu').textContent='− '+val+' '+LA.u;document.getElementById('spf').textContent=r+' '+LA.u;document.getElementById('sp').style.display='block';}
+function uNW(){const w=document.getElementById('nw');if(!w)return;const c=gC();if(LA&&!UI){w.className='wb';w.innerHTML='Al confirmar se descontarán <strong>'+c+' '+LA.u+'</strong> del stock de "'+LA.l+'". Stock resultante: <strong>'+Math.max(0,LA.stock-c)+' '+LA.u+'</strong>';}else if(UI){w.className='erb';w.innerHTML='⚠ Unidades no compatibles. El stock <strong>NO será descontado</strong> automáticamente.';}}
+function sm(m){document.getElementById('mcb').classList.toggle('sel',m==='b');document.getElementById('mcd').classList.toggle('sel',m==='d');document.getElementById('calcb').style.display=m==='b'?'block':'none';document.getElementById('calcd').style.display=m==='d'?'block':'none';}
+function ct(){const b=parseInt(document.getElementById('nb').value)||0;const a=parseInt(document.getElementById('na').value)||0;document.getElementById('ctot').textContent=b*a;}
+function tc(di,ci){const cb=document.getElementById(ci);cb.checked=!cb.checked;document.getElementById(di).classList.toggle('checked',cb.checked);}
+
+/* ── CREAR LOTE ── */
+async function cL(){
   if(UI&&!document.getElementById('cbi').checked){alert('Por favor confirmá el checkbox de unidades incompatibles.');return;}
   if(!document.getElementById('cb2').checked){alert('Por favor confirmá el descuento de stock.');return;}
+  const nombre=document.getElementById('p1n').value.trim();
+  const fecha=document.getElementById('p1f').value;
+  const etapa=document.getElementById('p1e').value;
+  if(!nombre||!fecha||!LA){alert('Completá todos los campos obligatorios.');return;}
+  const{data:lote,error:loteErr}=await sb.from('lotes_produccion').insert({
+    usuario_id:CURRENT_USER.id,nombre_base:nombre,nombre_completo:nombre,
+    fecha_inicio:fecha,etapa_actual:etapa,
+    origen_semilla_id:OA==='semillas'?LA.v:null,
+    origen_esqueje_id:OA==='esquejes'?LA.v:null,
+    origen_pm_id:OA==='pm'?LA.v:null,
+  }).select().single();
+  if(loteErr){alert('Error al crear el lote: '+loteErr.message);return;}
+  if(etapa==='nursery'){
+    const metodo=document.getElementById('mcb').classList.contains('sel')?'bandejas':'directo';
+    const nB=parseInt(document.getElementById('nb').value)||null;
+    const nA=parseInt(document.getElementById('na').value)||null;
+    const cantI=metodo==='bandejas'?(nB||0)*(nA||0):parseInt(document.getElementById('cn').value)||0;
+    await sb.from('etapa_nursery').insert({
+      lote_id:lote.id,origen_material:OA==='pm'?'plantas_madre':OA,
+      fecha_inicio:document.getElementById('p3f').value||fecha,
+      metodo_ingreso:metodo,bandejas:metodo==='bandejas'?nB:null,alveolos:metodo==='bandejas'?nA:null,
+      cantidad_ingreso:cantI,material_utilizado:OA==='semillas'?gC():null,
+    });
+  }
+  if(!UI){
+    const c=gC();
+    if(OA==='semillas')await sb.from('lotes_semillas').update({stock_actual:Math.max(0,LA.stock-c)}).eq('id',LA.v);
+    else if(OA==='esquejes')await sb.from('lotes_esquejes').update({stock_actual:Math.max(0,LA.stock-c)}).eq('id',LA.v);
+  }
   document.getElementById('cpanel').style.display='none';
-  const ss=document.getElementById('sscreen');ss.style.display='block';
-  const n=document.getElementById('p1n').value||'Nuevo lote';
-  document.getElementById('smsg').innerHTML='<strong>'+n+'</strong> fue creado y está activo en Nursery.'+(UI?'<br/><em>Nota: el stock no fue descontado por unidades incompatibles.</em>':'');
+  document.getElementById('sscreen').style.display='block';
+  document.getElementById('smsg').innerHTML='<strong>'+nombre+'</strong> fue creado y está activo en Nursery.';
+  await cargarLotes();await cargarMaterial();rebuildSearchIndex();actualizarMetricasDash();
 }
+
 function rW(){
-  document.getElementById('cpanel').style.display='block';
-  document.getElementById('sscreen').style.display='none';
+  document.getElementById('cpanel').style.display='block';document.getElementById('sscreen').style.display='none';
   OA=null;LA=null;UI=false;gw(1);
   ['p1n','p1f','p1v'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
   ['os','oe','op'].forEach(id=>{const e=document.getElementById(id);if(e)e.classList.remove('sel');});
-  const sel=document.getElementById('p2l');sel.disabled=true;
-  sel.innerHTML='<option value="">— Primero elegí el tipo de material —</option>';
+  const sel=document.getElementById('p2l');sel.disabled=true;sel.innerHTML='<option value="">— Primero elegí el tipo de material —</option>';
 }
 
 /* ── BAJA ── */
 function onBL(v){
   document.getElementById('bn').style.display='none';document.getElementById('bs').style.display='none';
   if(!v)return;
-  if(v.startsWith('sem')){
-    document.getElementById('bs').style.display='block';
-    const l=LM.semillas.find(x=>x.v===v);if(l)document.getElementById('bsu').value=l.u;
-  } else {
-    document.getElementById('bn').style.display='block';
-    const u={'esq1':'esquejes','esq2':'esquejes','pm1':'plantas'};
-    document.getElementById('bu').value=u[v]||'unidades';
-  }
+  const sel=document.getElementById('bl');
+  const tipo=sel.options[sel.selectedIndex]?.dataset.tipo;
+  if(tipo==='semillas'){document.getElementById('bs').style.display='block';const l=LM.semillas.find(x=>x.v===v);if(l)document.getElementById('bsu').value=l.u;}
+  else{document.getElementById('bn').style.display='block';const l=[...LM.esquejes,...LM.pm].find(x=>x.v===v);document.getElementById('bu').value=l?l.u:'unidades';}
+}
+
+async function guardarBaja(){
+  const sel=document.getElementById('bl');const loteId=sel.value;
+  if(!loteId){alert('Elegí el lote al que darle de baja.');return;}
+  const tipo=sel.options[sel.selectedIndex]?.dataset.tipo;
+  const cantEl=tipo==='semillas'?document.getElementById('b-cant-s'):document.getElementById('b-cant-n');
+  const cant=parseFloat(cantEl?.value);
+  const fecha=document.getElementById('b-fecha').value;
+  const motivo=document.getElementById('b-motivo').value.trim();
+  if(!cant||cant<=0){alert('Ingresá una cantidad válida.');return;}
+  if(!fecha){alert('Ingresá la fecha de la baja.');return;}
+  if(!motivo){alert('Ingresá el motivo de la baja.');return;}
+  const{error:bajaErr}=await sb.from('bajas_material').insert({
+    usuario_id:CURRENT_USER.id,lote_id:loteId,
+    lote_tipo:tipo==='pm'?'plantas_madre':tipo,
+    fecha_baja:fecha,cantidad_baja:cant,motivo_baja:motivo
+  });
+  if(bajaErr){alert('Error al registrar la baja: '+bajaErr.message);return;}
+  if(tipo==='semillas'){const l=LM.semillas.find(x=>x.v===loteId);if(l)await sb.from('lotes_semillas').update({stock_actual:Math.max(0,l.stock-cant)}).eq('id',loteId);}
+  else if(tipo==='esquejes'){const l=LM.esquejes.find(x=>x.v===loteId);if(l)await sb.from('lotes_esquejes').update({stock_actual:Math.max(0,l.stock-cant)}).eq('id',loteId);}
+  else if(tipo==='pm'){const l=LM.pm.find(x=>x.v===loteId);if(l)await sb.from('lotes_plantas_madre').update({cantidad_actual:Math.max(0,l.stock-cant)}).eq('id',loteId);}
+  alert('¡Baja registrada exitosamente!');
+  if(cantEl)cantEl.value='';document.getElementById('b-fecha').value='';document.getElementById('b-motivo').value='';sel.value='';
+  document.getElementById('bn').style.display='none';document.getElementById('bs').style.display='none';
+  await cargarMaterial();rebuildSearchIndex();
 }
 
 /* ── NUEVO MATERIAL ── */
 function selNM(t){
+  TIPO_NM=t;
   ['s','e','p'].forEach(x=>{const map={s:'nm-s',e:'nm-e',p:'nm-p'};const e=document.getElementById(map[x]);if(e)e.classList.toggle('sel',x===t[0]);});
   const uSel=document.getElementById('nm-unidad');
   if(t==='semillas'){uSel.innerHTML='<option value="">— Elegí unidad —</option><option value="gramos">Gramos</option><option value="semillas">Nº de semillas</option>';}
   else if(t==='esquejes'){uSel.innerHTML='<option value="esquejes">Nº de esquejes</option>';}
   else{uSel.innerHTML='<option value="plantas">Nº de plantas</option>';}
 }
-function onNMOrigen(v){
-  document.getElementById('nm-externo').style.display=v==='externo'?'block':'none';
-  document.getElementById('nm-interno').style.display=v==='interno'?'block':'none';
+function onNMOrigen(v){document.getElementById('nm-externo').style.display=v==='externo'?'block':'none';document.getElementById('nm-interno').style.display=v==='interno'?'block':'none';}
+
+async function guardarMaterial(){
+  const nombre=document.getElementById('nm-nombre').value.trim();
+  const fecha=document.getElementById('nm-fecha').value;
+  const origen=document.getElementById('nm-origen').value;
+  const variedad=document.getElementById('nm-variedad').value.trim();
+  const stockIni=parseFloat(document.getElementById('nm-stock').value);
+  const unidad=document.getElementById('nm-unidad').value;
+  const notas=document.getElementById('nm-notas').value.trim()||null;
+  const prov=origen==='externo'?(document.getElementById('nm-proveedor').value.trim()||null):null;
+  if(!TIPO_NM){alert('Elegí el tipo de material.');return;}
+  if(!nombre||!fecha||!origen||!variedad||isNaN(stockIni)||stockIni<=0||!unidad){alert('Completá todos los campos obligatorios.');return;}
+  let error;
+  if(TIPO_NM==='semillas'){({error}=await sb.from('lotes_semillas').insert({usuario_id:CURRENT_USER.id,nombre_lote:nombre,fecha_adquisicion:fecha,origen_tipo:origen,proveedor:prov,variedad,stock_inicial:stockIni,stock_actual:stockIni,unidad,notas}));}
+  else if(TIPO_NM==='esquejes'){({error}=await sb.from('lotes_esquejes').insert({usuario_id:CURRENT_USER.id,nombre_lote:nombre,fecha_adquisicion:fecha,origen_tipo:origen==='externo'?'externo':'plantas_madre_propio',proveedor:prov,variedad,stock_inicial:Math.round(stockIni),stock_actual:Math.round(stockIni),notas}));}
+  else if(TIPO_NM==='pm'){({error}=await sb.from('lotes_plantas_madre').insert({usuario_id:CURRENT_USER.id,nombre_lote:nombre,fecha_adquisicion:fecha,origen_tipo:origen,proveedor:prov,variedad,cantidad_inicial:Math.round(stockIni),cantidad_actual:Math.round(stockIni),notas}));}
+  if(error){alert('Error al guardar: '+error.message);return;}
+  alert('¡Lote de material básico creado exitosamente!');
+  ['nm-nombre','nm-fecha','nm-variedad','nm-stock','nm-notas'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  const pEl=document.getElementById('nm-proveedor');if(pEl)pEl.value='';
+  document.getElementById('nm-origen').value='';document.getElementById('nm-unidad').value='';
+  document.getElementById('nm-externo').style.display='none';document.getElementById('nm-interno').style.display='none';
+  ['nm-s','nm-e','nm-p'].forEach(id=>document.getElementById(id).classList.remove('sel'));
+  TIPO_NM=null;
+  await cargarMaterial();rebuildSearchIndex();sv('stock');
 }
 
 /* ── INIT ── */
-rAll('dash-lotes','todos');
+initApp();
 </script>
 </body>
 </html>

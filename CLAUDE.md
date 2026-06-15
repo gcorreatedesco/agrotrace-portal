@@ -11,39 +11,39 @@ Repositorio GitHub: `github.com/gcorreatedesco/agrotrace-portal`
 ## Stack actual
 
 - **Frontend:** HTML + CSS + JS vanilla. Cada pantalla es **un único `.html` autocontenido** con `<style>` y `<script>` inline — no hay archivos `.css`/`.js` separados, ni imports entre archivos. Migración futura planificada a React + Vite.
-- **Backend:** aún no implementado. Los documentos de diseño (`AgroTrace_Arquitectura_Backend.html`) **recomiendan Supabase** (PostgreSQL + Auth + API automática + Row Level Security por `productor_id`). El aislamiento entre productores se hará con RLS, no en el cliente. El frontend se conecta a Supabase desde el navegador con el Supabase JS SDK; la `anon key` es pública por diseño (lo que protege los datos es el RLS, no esconder la clave).
-- **Base de datos:** PostgreSQL (ERD definido, aún no implementado).
+- **Backend:** Supabase planificado (PostgreSQL + Auth + RLS). El SDK está cargado en v3 desde CDN y el cliente `sb` está inicializado, pero **ningún dato real fluye aún** — todo el frontend usa arrays JS hardcodeados. La `anon key` es pública por diseño — la seguridad la provee RLS, no esconder la clave.
+- **Base de datos:** 13 tablas PostgreSQL definidas en `supabase_schema.sql` (ERD v5), creadas en Supabase con RLS activado. La conexión entre el HTML y esas tablas aún no está implementada. URL del proyecto: `https://jqkyifuyaxxwugrnjfnq.supabase.co`.
 - No hay build, bundler, linter ni test runner. No hay `package.json`.
 
 ## Cómo ejecutar y desplegar
 
 - **Ver una pantalla:** abrir el `.html` directamente en Chrome (`file://`) — no requiere servidor.
-- **Producción:** GitHub Pages sirve `index.html`. Preview público: https://gcorreatedesco.github.io/agrotrace-portal/ — un push a `main` lo actualiza.
+- **Producción:** GitHub Pages sirve `index.html`. Preview público: `https://gcorreatedesco.github.io/agrotrace-portal/` — un push a `main` lo actualiza.
+- **App principal (v3):** `https://gcorreatedesco.github.io/agrotrace-portal/agrotrace_prototipo_v3.html`
 
-### Decisión de hosting del frontend: GitHub Pages (etapa inicial)
-
-Para empezar, el frontend se aloja en **GitHub Pages**, no en Vercel. GitHub Pages y Vercel cumplen el mismo rol (servir archivos estáticos); ninguno guarda datos — eso es Supabase. GitHub Pages ya está activo, es gratis y con HTTPS, y evita configurar un servicio extra. Vale recordar:
-
-- **Repo público:** GitHub Pages gratis lo exige. Es seguro aquí porque el frontend no tiene secretos (la lógica REPROCANN, el descuento de stock y la `anon key` se protegen vía Supabase + RLS, no escondiendo el código).
-- **Reevaluar al migrar a React + Vite:** ahí hace falta un paso de *build*. GitHub Pages lo soporta vía GitHub Action; Vercel/Netlify lo hacen automático. Recién entonces conviene comparar de nuevo.
+GitHub Pages (repo público, gratis, HTTPS) es el hosting elegido para la etapa inicial. Al migrar a React + Vite habrá que reevaluar (Vercel/Netlify automatizan el build step).
 
 ## Archivos en el repositorio
 
 | Archivo | Descripción |
 |---------|-------------|
-| `index.html` | Portal de acceso (login). Es lo que se publica en GitHub Pages. |
-| `agrotrace_prototipo_v2.html` | Prototipo funcional de la app interna (dashboard, lotes, sublotes, stock, alta de lote). Aún no enlazado desde `index.html`. |
-| `AgroTrace_Arquitectura_Backend.html` | Documento de diseño: justificación del backend (Supabase) y arquitectura de datos. |
+| `index.html` | Portal de acceso (login). Auth es demo: `doLogin()` solo valida campos, aún no usa Supabase Auth. |
+| `agrotrace_prototipo_v3.html` | **Versión activa.** App completa con sidebar, dashboard, lotes, sublotes, stock, wizards. El SDK de Supabase está cargado y `sb = supabase.createClient(...)` está inicializado, pero **`sb` no se usa en ninguna parte** — todos los datos son hardcodeados. La integración real aún no está implementada. |
+| `agrotrace_prototipo_v2.html` | Versión anterior, referencia histórica. |
+| `supabase_schema.sql` | Schema SQL completo (13 tablas, RLS). Ejecutar en Supabase > SQL Editor para recrear la base. |
+| `AgroTrace_Arquitectura_Backend.html` | Documento de diseño: justificación de Supabase y arquitectura de datos. |
 | `AgroTrace_Guia_Implementacion.html` | Documento de diseño: guía paso a paso del prototipo al sistema real. |
+| `Proximospasos.md` | Hoja de ruta detallada para la próxima sesión (pasos 1–7 ordenados). Leer antes de implementar integración con Supabase. |
+| `summary.md` | Resumen de lo construido en la última sesión. |
 
-Los dos `AgroTrace_*.html` son **documentación renderizada como página**, no código de la app. No están enlazados ni forman parte del producto.
+Los dos `AgroTrace_*.html` son documentación renderizada, no código de la app.
 
 ## Convenciones de código (prototipo)
 
 - **Navegación SPA:** una sola página con varios `<div class="view" id="view-XXX">`; solo uno tiene la clase `active`. Se cambia con `showView('id')`. No hay router ni URLs distintas.
-- **Datos hardcodeados:** el prototipo no persiste nada. Los datos de ejemplo viven en constantes JS al inicio del `<script>` (`LD` = lotes, `SD` = sublotes, `LM` = material básico por tipo). Render manual concatenando strings de HTML (p. ej. `rLC(l)` arma la tarjeta de un lote).
-- **Nombres abreviados:** funciones y variables del prototipo usan abreviaturas (`rLC`, `gw`, `selO`, `OA`, `UI`). Al extender, seguí el estilo del archivo que estás tocando.
-- **Auth es demo:** en `index.html`, `doLogin()` solo valida campos y muestra un `alert` — no autentica ni redirige al prototipo todavía.
+- **Datos hardcodeados:** el prototipo aún no persiste nada. Los datos de ejemplo viven en constantes JS al inicio del `<script>` (`LD` = lotes, `SD` = sublotes, `LM` = material básico por tipo). Render manual concatenando strings de HTML (p. ej. `rLC(l)` arma la tarjeta de un lote).
+- **Nombres abreviados:** funciones y variables usan abreviaturas (`rLC`, `gw`, `selO`, `OA`, `UI`). Al extender, seguí el estilo del archivo que estás tocando.
+- **Supabase en v3:** el cliente `sb` está inicializado globalmente pero no se usa todavía. La integración real requiere reemplazar cada array hardcodeado por consultas `await sb.from('tabla').select(...)` y agregar `async` a las funciones que los llamen.
 
 ## Diseño visual — reglas fijas
 
@@ -68,23 +68,25 @@ Los dos `AgroTrace_*.html` son **documentación renderizada como página**, no c
 
 ## Arquitectura del sistema — módulos
 
-1. **Autenticación** — roles: `productor`, `inspector`, `operador`, `administrador`. El `index.html` ya implementa el flujo completo: selección de rol → login → recuperación de contraseña.
+1. **Autenticación** — roles: `productor`, `inspector`, `operador`, `administrador`. El `index.html` implementa el flujo UI completo pero aún sin Supabase Auth real. La tabla `perfiles` extiende `auth.users` de Supabase.
 
-2. **Material Básico** — stock independiente con tres tipos: Semillas, Esquejes, Plantas Madre. Cada tipo tiene su propia tabla con `stock_actual` calculado automáticamente. Las bajas se registran en una tabla compartida `BAJAS_MATERIAL`.
+2. **Material Básico** — stock independiente con tres tipos: Semillas, Esquejes, Plantas Madre. Cada tipo tiene su propia tabla con `stock_actual`. Las bajas se registran en `bajas_material`.
 
-3. **Lotes de Producción** — ciclo de 5 etapas secuenciales: Nursery → Vegetativa → Floración → Cosecha/Curado → Flores Cosechadas. Cada lote referencia su material de origen. Los lotes pueden dividirse en **sublotes** desde cualquier etapa (Nursery, Vegetativa, Floración).
+3. **Lotes de Producción** — ciclo de 5 etapas secuenciales: Nursery → Vegetativa → Floración → Cosecha/Curado → Flores Cosechadas. Los lotes pueden dividirse en **sublotes** desde cualquier etapa. Sublotes y lotes principales comparten la tabla `lotes_produccion` (campo `lote_padre_id`).
 
 4. **Reportes** — pendiente de desarrollo.
 
 ## Lógica crítica de negocio
 
 **Descuento de stock al confirmar Nursery:**
-- Origen Semillas → descuenta `material_utilizado` de `LOTES_SEMILLAS.stock_actual`
-- Origen Esquejes externos → descuenta `cantidad_ingreso` de `LOTES_ESQUEJES.stock_actual`
+- Origen Semillas → descuenta `material_utilizado` de `lotes_semillas.stock_actual`
+- Origen Esquejes externos → descuenta `cantidad_ingreso` de `lotes_esquejes.stock_actual`
 - Origen Plantas Madre → solo vínculo, sin descuento; incrementa `esquejes_extraidos` (informativo)
 
+**Restricción biológica:** `lotes_esquejes` NO puede tener como origen un "Lote de Semillas propio".
+
 **Sublotes:**
-- `nombre_completo` = `nombre_base` (raíz, AUTO no editable) + " → " + `nombre_agregado` (libre)
+- `nombre_completo` = `nombre_base` (raíz, AUTO, no editable) + " → " + `nombre_agregado` (libre)
 - Sub-sublote: "Primavera 2025 → Invernadero Norte → Sector 1"
 - La suma de plantas de todos los sublotes debe igualar la cantidad disponible del lote padre
 - El lote padre queda "cerrado en [etapa]" y no avanza más
@@ -94,14 +96,15 @@ Los dos `AgroTrace_*.html` son **documentación renderizada como página**, no c
 - Floración toma `fecha_inicio` de `fecha_fin` de Vegetativa (con confirmación)
 - Floración toma `cantidad_ingreso` del egreso de Vegetativa (con confirmación)
 
-**Restricción biológica importante:** `LOTES_ESQUEJES` NO puede tener como origen "Lote de Semillas propio".
+## Pendientes de implementación (integración Supabase)
 
-## Pendientes de implementación (prototipo)
+Ver `Proximospasos.md` para el orden recomendado. Resumen:
 
-1. Formularios de nuevo material básico (Semillas / Esquejes / Plantas Madre)
-2. Formulario Cosecha y Curado
-3. Formulario Flores Cosechadas con entregas a pacientes (campo `nro_reprocann` obligatorio)
-4. Botón "Avanzar a siguiente etapa" con lógica real
-5. "Guardar borrador" y "Guardar registro" funcionales
-6. Formulario de división en sublotes desde el detalle del lote
-7. Click en lote individual → abrir detalle de ese lote específico
+1. **Autenticación real** — conectar `index.html` con `sb.auth.signInWithPassword` / `signUp` / `signOut`; al hacer login redirigir a `agrotrace_prototipo_v3.html`
+2. **Cargar lotes desde Supabase** — reemplazar array `LD` hardcodeado por consulta real a `lotes_produccion`
+3. **Guardar nuevo lote** — wizard "Nuevo lote" debe insertar en `lotes_produccion` + `etapa_nursery` + descuento de stock
+4. **Guardar material básico** — formularios de alta/baja conectados a `lotes_semillas`, `lotes_esquejes`, `lotes_plantas_madre`, `bajas_material`
+5. **Formulario Cosecha y Curado** — insertar en `etapa_cosecha_curado`
+6. **Formulario Flores Cosechadas** — insertar en `flores_cosechadas` + `entregas` (campo `nro_reprocann` obligatorio)
+7. **División en sublotes** — crear registro en `lotes_produccion` con `lote_padre_id`
+8. **Política RLS para admin** — política que permita al rol `administrador` ver datos de todos los productores
