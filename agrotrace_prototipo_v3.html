@@ -240,6 +240,7 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
 .ib{background:var(--dew);border-radius:var(--radius);padding:9px 12px;font-size:0.72rem;color:var(--accent);line-height:1.6;margin-top:6px;}
 .wb{background:var(--amber-bg);border-radius:var(--radius);padding:9px 12px;font-size:0.72rem;color:var(--amber);line-height:1.6;margin-top:6px;}
 .erb{background:var(--error-bg);border-radius:var(--radius);padding:9px 12px;font-size:0.72rem;color:var(--error);line-height:1.6;margin-top:6px;}
+.ro-val{padding:7px 10px;font-size:0.78rem;font-weight:500;color:var(--soil);background:var(--cream);border-radius:var(--radius);border:1px solid rgba(0,0,0,0.07);}
 
 /* unidades mode */
 .um{display:flex;gap:12px;margin-bottom:8px;}
@@ -472,83 +473,19 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
 <!-- DETALLE LOTE -->
 <div class="view" id="view-detalle">
   <div class="lhero">
-    <div><div class="lhn" id="det-nombre">Primavera 2025</div><div class="lhs" id="det-sub">Esquejes externos · var. White Widow · 195 plantas activas</div></div>
-    <div class="lhr"><div class="lhe">Etapa activa</div><span class="eb b-flo" id="det-etapa">Floración · orden 3</span></div>
+    <div><div class="lhn" id="det-nombre">—</div><div class="lhs" id="det-sub">—</div></div>
+    <div class="lhr"><div class="lhe">Etapa activa</div><span class="eb b-nur" id="det-etapa">—</span></div>
   </div>
-
-  <!-- timeline clickeable -->
-  <div class="tln">
-    <div class="tli done" onclick="showHist('nursery')">
-      <div class="tln2">✓</div><div class="tll">Nursery</div>
-    </div>
-    <div class="tli done" onclick="showHist('vegetativa')">
-      <div class="tln2">✓</div><div class="tll">Vegetativa</div>
-    </div>
-    <div class="tli active">
-      <div class="tln2">3</div><div class="tll">Floración</div>
-    </div>
-    <div class="tli future">
-      <div class="tln2">4</div><div class="tll">Cosecha</div>
-    </div>
-    <div class="tli future">
-      <div class="tln2">5</div><div class="tll">Flores</div>
-    </div>
-  </div>
-
-  <!-- panel historial etapa completada -->
+  <div class="tln" id="det-timeline"></div>
   <div class="hist-panel" id="hist-panel">
     <div class="hist-title">
-      <span id="hist-title-text">Datos registrados — Nursery</span>
+      <span id="hist-title-text">Datos registrados</span>
       <span class="hist-close" onclick="closeHist()">✕ cerrar</span>
     </div>
     <div id="hist-content"></div>
     <div class="hist-readonly">Vista de solo lectura. Para modificar datos de etapas cerradas contactá al administrador.</div>
   </div>
-
-  <!-- formulario etapa activa -->
-  <div class="panel">
-    <div class="pt">Etapa Floración — datos actuales<span style="font-size:0.62rem;color:var(--sage);font-weight:400;text-transform:none;">* obligatorio</span></div>
-
-    <!-- campos automáticos con confirmación -->
-    <div class="af pending" id="af-fecha">
-      <div class="afl">Fecha inicio (Inducción) — tomada de fin Vegetativa</div>
-      <div class="af-right">
-        <span class="afv">20/03/2025</span>
-        <span class="afc" onclick="confirmarAF('af-fecha',this)">Confirmar</span>
-      </div>
-    </div>
-    <div class="af pending" id="af-cant">
-      <div class="afl">Cantidad ingreso — tomada del egreso de Vegetativa</div>
-      <div class="af-right">
-        <span class="afv">195 plantas</span>
-        <span class="afc" onclick="confirmarAF('af-cant',this)">Confirmar</span>
-      </div>
-    </div>
-
-    <div class="g2">
-      <div class="field"><label>Fecha fin (Cosecha)<span class="req">*</span></label><input type="date" id="flo-fecha-fin"/></div>
-      <div class="field"><label>Cantidad egreso<span class="req">*</span></label><input type="number" id="flo-egreso" placeholder="Nº de plantas"/></div>
-    </div>
-    <div class="g2">
-      <div class="field"><label>Bajas<span class="req">*</span></label><input type="number" id="flo-bajas" placeholder="Nº de plantas"/></div>
-      <div class="field"><label>Notas<span class="opt">opcional</span></label><input type="text" placeholder="Observaciones..."/></div>
-    </div>
-    <div class="ib" id="flo-validacion" style="display:none;"></div>
-    <div class="st2" onclick="alert('Función: dividir en sublotes desde Floración')"><div class="si">÷</div>Dividir este lote en sublotes desde Floración</div>
-    <div class="ab">
-      <button class="btn btn-secondary" onclick="guardarBorrador()">Guardar borrador</button>
-      <button class="btn btn-advance" onclick="guardarAvanzar()">Guardar y avanzar a Cosecha →</button>
-    </div>
-  </div>
-
-  <div class="panel" style="margin-top:10px;">
-    <div class="pt">Historial — Etapa Floración</div>
-    <div style="display:flex;flex-direction:column;">
-      <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(0,0,0,0.05);font-size:0.72rem;"><span>Inicio de inducción confirmado</span><span style="color:var(--sage);">20/03/2025</span></div>
-      <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(0,0,0,0.05);font-size:0.72rem;"><span>Ingreso confirmado: 195 plantas</span><span style="color:var(--sage);">20/03/2025</span></div>
-      <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:0.72rem;"><span>Baja registrada: 3 plantas (plaga)</span><span style="color:var(--sage);">25/03/2025</span></div>
-    </div>
-  </div>
+  <div id="det-panel"><div style="padding:24px;text-align:center;color:var(--sage);font-size:0.78rem;">Cargando...</div></div>
 </div>
 
 <!-- NUEVO LOTE -->
@@ -856,15 +793,8 @@ let SD = [];
 let LM = { semillas:[], esquejes:[], pm:[] };
 let ALL_LOTES = [];
 
-const HIST={
-  nursery:{title:'Nursery (orden 1)',rows:[
-    {l:'Fecha inicio',v:'—'},{l:'Método de ingreso',v:'—'},{l:'Total plántulas',v:'—'},{l:'Fecha fin',v:'—'},{l:'Cantidad egreso',v:'—'},{l:'Bajas',v:'—'},
-  ]},
-  vegetativa:{title:'Vegetativa (orden 2)',rows:[
-    {l:'Fecha inicio (Trasplante)',v:'—'},{l:'Fecha fin (Inicio inducción)',v:'—'},
-    {l:'Cantidad ingreso',v:'—'},{l:'Cantidad egreso',v:'—'},{l:'Bajas',v:'—'},
-  ]},
-};
+let LOTE_ACTIVO=null;
+let HIST_DATA={};
 
 let OA=null,LA=null,UI=false,searchOpen=false;
 
@@ -900,7 +830,7 @@ function mapLote(row){
   if(row.origen_semilla_id)o='Semillas';
   else if(row.origen_esqueje_id)o='Esquejes externos';
   else if(row.origen_pm_id)o='Plantas Madre';
-  return{id:row.id,n:row.nombre_completo,o,et:row.etapa_actual==='cosecha_curado'?'cosecha':row.etapa_actual,b:info.b,bt:info.bt,hs:false,s:steps,sc:info.idx+'/5',m:[{l:'Inicio',v:fmtDate(row.fecha_inicio)}]};
+  return{id:row.id,n:row.nombre_completo,o,et:row.etapa_actual==='cosecha_curado'?'cosecha':row.etapa_actual,etapaRaw:row.etapa_actual,b:info.b,bt:info.bt,hs:false,s:steps,sc:info.idx+'/5',m:[{l:'Inicio',v:fmtDate(row.fecha_inicio)}]};
 }
 
 function fmtDate(iso){if(!iso)return'—';const[y,m,d]=iso.split('-');return d+'/'+m+'/'+y;}
@@ -921,7 +851,7 @@ async function cargarMaterial(){
 
 function rebuildSearchIndex(){
   ALL_LOTES=[];
-  LD.forEach(l=>ALL_LOTES.push({name:l.n,info:l.o,badge:l.bt,bc:l.b,tipo:'produccion',id:l.id}));
+  LD.forEach(l=>ALL_LOTES.push({name:l.n,info:l.o,badge:l.bt,bc:l.b,tipo:'produccion',id:l.id,etapaRaw:l.etapaRaw}));
   LM.semillas.forEach(r=>ALL_LOTES.push({name:r.l,info:'Stock: '+r.stock+' '+r.u,badge:'Semillas',bc:'b-sem',tipo:'material'}));
   LM.esquejes.forEach(r=>ALL_LOTES.push({name:r.l,info:'Stock: '+r.stock+' u.',badge:'Esquejes',bc:'b-esq',tipo:'material'}));
   LM.pm.forEach(r=>ALL_LOTES.push({name:r.l,info:'Stock: '+r.stock+' plantas',badge:'Plantas Madre',bc:'b-pm',tipo:'material'}));
@@ -960,7 +890,7 @@ function sc(s){return s===1?'done':s===2?'act':'fut';}
 
 function rLC(l){
   const sc2=l.s.map(s=>sc(s));
-  return`<div class="lote-card" data-et="${l.et}" onclick="openLote('${l.n}','${l.o}','${l.et}')" style="cursor:pointer;">
+  return`<div class="lote-card" data-et="${l.et}" onclick="openLote('${l.id}')" style="cursor:pointer;">
     <div class="lote-header"><div class="lote-hl">
       <div style="width:20px;flex-shrink:0;"></div>
       <div><div class="lote-name">${l.n}</div><div class="lote-orig">${l.o}</div></div>
@@ -977,14 +907,186 @@ function rAll(cid,fe){
   el.innerHTML=filtered.map(l=>`<div style="margin-bottom:8px;" id="lg${l.id}">${rLC(l)}</div>`).join('');
 }
 
-function openLote(nombre,sub,etapa){
-  document.getElementById('det-nombre').textContent=nombre;
-  document.getElementById('det-sub').textContent=sub;
+async function openLote(id){
+  const lote=LD.find(l=>l.id===id);
+  if(!lote)return;
+  LOTE_ACTIVO=lote;
+  HIST_DATA={};
   const emap={nursery:'Nursery · orden 1',vegetativa:'Vegetativa · orden 2',floracion:'Floración · orden 3',cosecha:'Cosecha y Curado · orden 4',cosecha_curado:'Cosecha y Curado · orden 4',flores:'Flores Cosechadas · orden 5'};
   const bmap={nursery:'b-nur',vegetativa:'b-veg',floracion:'b-flo',cosecha:'b-cos',cosecha_curado:'b-cos',flores:'b-fl2'};
+  document.getElementById('det-nombre').textContent=lote.n;
+  document.getElementById('det-sub').textContent=lote.o;
   const eEl=document.getElementById('det-etapa');
-  eEl.textContent=emap[etapa]||etapa;eEl.className='eb '+(bmap[etapa]||'b-flo');
-  closeHist();sv('detalle');
+  eEl.textContent=emap[lote.et]||lote.et;
+  eEl.className='eb '+(bmap[lote.et]||'b-nur');
+  closeHist();
+  sv('detalle');
+  document.getElementById('det-panel').innerHTML='<div style="padding:24px;text-align:center;color:var(--sage);font-size:0.78rem;">Cargando datos...</div>';
+  const etIdx={nursery:1,vegetativa:2,floracion:3,cosecha_curado:4,flores:5}[lote.etapaRaw]||1;
+  const reqs=[];
+  if(etIdx>=1)reqs.push(sb.from('etapa_nursery').select('*').eq('lote_id',id).maybeSingle());
+  if(etIdx>=2)reqs.push(sb.from('etapa_vegetativa').select('*').eq('lote_id',id).maybeSingle());
+  if(etIdx>=3)reqs.push(sb.from('etapa_floracion').select('*').eq('lote_id',id).maybeSingle());
+  if(etIdx>=4)reqs.push(sb.from('etapa_cosecha_curado').select('*').eq('lote_id',id).maybeSingle());
+  if(etIdx>=5)reqs.push(sb.from('flores_cosechadas').select('*').eq('lote_id',id).maybeSingle());
+  const results=await Promise.all(reqs);
+  const keys=['nursery','vegetativa','floracion','cosecha_curado','flores'];
+  for(let i=0;i<results.length;i++){if(results[i].data)HIST_DATA[keys[i]]=results[i].data;}
+  renderTimeline(lote.etapaRaw);
+  renderPanelActivo();
+}
+
+function renderTimeline(etapa){
+  const stages=[{key:'nursery',label:'Nursery',ord:1},{key:'vegetativa',label:'Vegetativa',ord:2},{key:'floracion',label:'Floración',ord:3},{key:'cosecha_curado',label:'Cosecha',ord:4},{key:'flores',label:'Flores',ord:5}];
+  const curIdx={nursery:1,vegetativa:2,floracion:3,cosecha_curado:4,flores:5}[etapa]||1;
+  document.getElementById('det-timeline').innerHTML=stages.map(s=>{
+    let cls='tli future',ico=s.ord;
+    if(s.ord<curIdx){cls='tli done';ico='✓';}
+    else if(s.ord===curIdx){cls='tli active';}
+    const click=s.ord<curIdx?` onclick="showHist('${s.key}')" style="cursor:pointer;"`:' style="cursor:default;"';
+    return`<div class="${cls}"${click}><div class="tln2">${ico}</div><div class="tll">${s.label}</div></div>`;
+  }).join('');
+}
+
+function renderPanelActivo(){
+  const et=LOTE_ACTIVO.etapaRaw;
+  const el=document.getElementById('det-panel');
+  if(et==='nursery')el.innerHTML=panelNursery();
+  else if(et==='vegetativa')el.innerHTML=panelVegetativa();
+  else if(et==='floracion')el.innerHTML=panelFloracion();
+  else if(et==='cosecha_curado')el.innerHTML=panelCosecha();
+  else if(et==='flores')el.innerHTML=panelFlores();
+  else el.innerHTML='<div class="panel"><div class="pt">Lote completado</div></div>';
+}
+
+function panelNursery(){
+  const d=HIST_DATA.nursery||{};
+  const metodo=d.metodo_ingreso==='bandejas'?`${d.bandejas||0} bandejas × ${d.alveolos||0} alveolos`:(d.metodo_ingreso||'—');
+  return`<div class="panel">
+    <div class="pt">Etapa Nursery — datos actuales<span style="font-size:0.62rem;color:var(--sage);font-weight:400;text-transform:none;">* obligatorio</span></div>
+    <div class="g2">
+      <div class="field"><label>Fecha inicio</label><div class="ro-val">${fmtDate(d.fecha_inicio)||'—'}</div></div>
+      <div class="field"><label>Origen material</label><div class="ro-val">${d.origen_material||'—'}</div></div>
+    </div>
+    <div class="g2">
+      <div class="field"><label>Método ingreso</label><div class="ro-val">${metodo}</div></div>
+      <div class="field"><label>Cantidad ingreso</label><div class="ro-val">${d.cantidad_ingreso!=null?d.cantidad_ingreso+' plántulas':'—'}</div></div>
+    </div>
+    <hr style="border:none;border-top:1px solid rgba(0,0,0,0.07);margin:10px 0;">
+    <div class="g2">
+      <div class="field"><label>Fecha fin<span class="req">*</span></label><input type="date" id="nur-fecha-fin" value="${d.fecha_fin||''}"/></div>
+      <div class="field"><label>Cantidad egreso<span class="req">*</span></label><input type="number" id="nur-egreso" value="${d.cantidad_egreso||''}" placeholder="Nº de plántulas"/></div>
+    </div>
+    <div class="g2">
+      <div class="field"><label>Bajas<span class="req">*</span></label><input type="number" id="nur-bajas" value="${d.bajas!=null?d.bajas:0}"/></div>
+      <div class="field"><label>Notas<span class="opt">opcional</span></label><input type="text" id="nur-notas" value="${d.notas||''}" placeholder="Observaciones..."/></div>
+    </div>
+    <div class="erb" id="det-validacion" style="display:none;"></div>
+    <div class="ab">
+      <button class="btn btn-secondary" onclick="guardarBorrador()">Guardar borrador</button>
+      <button class="btn btn-advance" onclick="guardarAvanzar()">Guardar y avanzar a Vegetativa →</button>
+    </div>
+  </div>`;
+}
+
+function panelVegetativa(){
+  const nur=HIST_DATA.nursery||{};
+  const d=HIST_DATA.vegetativa||{};
+  const autoFecha=nur.fecha_fin||'';
+  const autoCant=nur.cantidad_egreso||'';
+  return`<div class="panel">
+    <div class="pt">Etapa Vegetativa — datos actuales<span style="font-size:0.62rem;color:var(--sage);font-weight:400;text-transform:none;">* obligatorio</span></div>
+    ${autoFecha&&!d.fecha_inicio?`<div class="af pending" id="af-fv"><div class="afl">Fecha inicio (Trasplante) — tomada de fin Nursery</div><div class="af-right"><span class="afv">${fmtDate(autoFecha)}</span><span class="afc" onclick="confirmarAF('af-fv',this)">Confirmar</span></div></div>`:''}
+    ${autoCant&&!d.cantidad_ingreso?`<div class="af pending" id="af-cv"><div class="afl">Cantidad ingreso — tomada del egreso de Nursery</div><div class="af-right"><span class="afv">${autoCant} plantas</span><span class="afc" onclick="confirmarAF('af-cv',this)">Confirmar</span></div></div>`:''}
+    <div class="g2">
+      <div class="field"><label>Fecha inicio (Trasplante)<span class="req">*</span></label><input type="date" id="veg-fecha-ini" value="${d.fecha_inicio||autoFecha}"/></div>
+      <div class="field"><label>Cantidad ingreso<span class="req">*</span></label><input type="number" id="veg-cant-ini" value="${d.cantidad_ingreso||autoCant}" placeholder="Nº de plantas"/></div>
+    </div>
+    <hr style="border:none;border-top:1px solid rgba(0,0,0,0.07);margin:10px 0;">
+    <div class="g2">
+      <div class="field"><label>Fecha fin (Inicio inducción)<span class="req">*</span></label><input type="date" id="veg-fecha-fin" value="${d.fecha_fin||''}"/></div>
+      <div class="field"><label>Cantidad egreso<span class="req">*</span></label><input type="number" id="veg-egreso" value="${d.cantidad_egreso||''}" placeholder="Nº de plantas"/></div>
+    </div>
+    <div class="g2">
+      <div class="field"><label>Bajas<span class="req">*</span></label><input type="number" id="veg-bajas" value="${d.bajas!=null?d.bajas:0}"/></div>
+      <div class="field"><label>Notas<span class="opt">opcional</span></label><input type="text" id="veg-notas" value="${d.notas||''}" placeholder="Observaciones..."/></div>
+    </div>
+    <div class="erb" id="det-validacion" style="display:none;"></div>
+    <div class="ab">
+      <button class="btn btn-secondary" onclick="guardarBorrador()">Guardar borrador</button>
+      <button class="btn btn-advance" onclick="guardarAvanzar()">Guardar y avanzar a Floración →</button>
+    </div>
+  </div>`;
+}
+
+function panelFloracion(){
+  const veg=HIST_DATA.vegetativa||{};
+  const d=HIST_DATA.floracion||{};
+  const autoFecha=veg.fecha_fin||'';
+  const autoCant=veg.cantidad_egreso||'';
+  return`<div class="panel">
+    <div class="pt">Etapa Floración — datos actuales<span style="font-size:0.62rem;color:var(--sage);font-weight:400;text-transform:none;">* obligatorio</span></div>
+    ${autoFecha&&!d.fecha_inicio?`<div class="af pending" id="af-ff"><div class="afl">Fecha inicio (Inducción) — tomada de fin Vegetativa</div><div class="af-right"><span class="afv">${fmtDate(autoFecha)}</span><span class="afc" onclick="confirmarAF('af-ff',this)">Confirmar</span></div></div>`:''}
+    ${autoCant&&!d.cantidad_ingreso?`<div class="af pending" id="af-cf"><div class="afl">Cantidad ingreso — tomada del egreso de Vegetativa</div><div class="af-right"><span class="afv">${autoCant} plantas</span><span class="afc" onclick="confirmarAF('af-cf',this)">Confirmar</span></div></div>`:''}
+    <div class="g2">
+      <div class="field"><label>Fecha inicio (Inducción)<span class="req">*</span></label><input type="date" id="flo-fecha-ini" value="${d.fecha_inicio||autoFecha}"/></div>
+      <div class="field"><label>Cantidad ingreso<span class="req">*</span></label><input type="number" id="flo-cant-ini" value="${d.cantidad_ingreso||autoCant}" placeholder="Nº de plantas"/></div>
+    </div>
+    <hr style="border:none;border-top:1px solid rgba(0,0,0,0.07);margin:10px 0;">
+    <div class="g2">
+      <div class="field"><label>Fecha fin (Cosecha)<span class="req">*</span></label><input type="date" id="flo-fecha-fin" value="${d.fecha_fin||''}"/></div>
+      <div class="field"><label>Cantidad egreso<span class="req">*</span></label><input type="number" id="flo-egreso" value="${d.cantidad_egreso||''}" placeholder="Nº de plantas"/></div>
+    </div>
+    <div class="g2">
+      <div class="field"><label>Bajas<span class="req">*</span></label><input type="number" id="flo-bajas" value="${d.bajas!=null?d.bajas:0}"/></div>
+      <div class="field"><label>Notas<span class="opt">opcional</span></label><input type="text" id="flo-notas" value="${d.notas||''}" placeholder="Observaciones..."/></div>
+    </div>
+    <div class="erb" id="det-validacion" style="display:none;"></div>
+    <div class="st2" onclick="alert('Sublotes: funcionalidad en desarrollo')"><div class="si">÷</div>Dividir este lote en sublotes desde Floración</div>
+    <div class="ab">
+      <button class="btn btn-secondary" onclick="guardarBorrador()">Guardar borrador</button>
+      <button class="btn btn-advance" onclick="guardarAvanzar()">Guardar y avanzar a Cosecha →</button>
+    </div>
+  </div>`;
+}
+
+function panelCosecha(){
+  const d=HIST_DATA.cosecha_curado||{};
+  return`<div class="panel">
+    <div class="pt">Etapa Cosecha y Curado<span style="font-size:0.62rem;color:var(--sage);font-weight:400;text-transform:none;">* obligatorio</span></div>
+    <div class="g2">
+      <div class="field"><label>Fecha inicio cosecha<span class="req">*</span></label><input type="date" id="cos-fecha-ini" value="${d.fecha_inicio_cosecha||''}"/></div>
+      <div class="field"><label>Fecha fin cosecha<span class="opt">opcional</span></label><input type="date" id="cos-fecha-fin" value="${d.fecha_fin_cosecha||''}"/></div>
+    </div>
+    <div class="g2">
+      <div class="field"><label>Peso inicial curado (g)<span class="req">*</span></label><input type="number" id="cos-peso-ini" value="${d.peso_inicial_curado||''}" step="0.1" placeholder="Gramos"/></div>
+      <div class="field"><label>¿Tiene empaque?</label><select id="cos-empaque"><option value="false" ${!d.tiene_empaque?'selected':''}>No</option><option value="true" ${d.tiene_empaque?'selected':''}>Sí</option></select></div>
+    </div>
+    <div class="g2">
+      <div class="field"><label>Tara empaque (g)<span class="opt">si tiene empaque</span></label><input type="number" id="cos-tara" value="${d.tara_empaque||''}" step="0.1" placeholder="0"/></div>
+      <div class="field"><label>Notas<span class="opt">opcional</span></label><input type="text" id="cos-notas" value="${d.notas||''}" placeholder="Observaciones..."/></div>
+    </div>
+    <div class="erb" id="det-validacion" style="display:none;"></div>
+    <div class="ab">
+      <button class="btn btn-secondary" onclick="guardarBorrador()">Guardar borrador</button>
+      <button class="btn btn-advance" onclick="guardarAvanzar()">Guardar y avanzar a Flores →</button>
+    </div>
+  </div>`;
+}
+
+function panelFlores(){
+  const d=HIST_DATA.flores||{};
+  return`<div class="panel">
+    <div class="pt">Flores Cosechadas</div>
+    <div class="g2">
+      <div class="field"><label>Stock inicial</label><div class="ro-val">${d.stock_inicial!=null?d.stock_inicial+' g':'—'}</div></div>
+      <div class="field"><label>Stock actual</label><div class="ro-val">${d.stock_actual!=null?d.stock_actual+' g':'—'}</div></div>
+    </div>
+    ${d.fecha_disponible?`<div class="field"><label>Fecha disponible</label><div class="ro-val">${fmtDate(d.fecha_disponible)}</div></div>`:''}
+    <div class="ab" style="margin-top:12px;">
+      <button class="btn btn-primary" onclick="alert('Función: registrar entrega a paciente — en desarrollo')">+ Registrar entrega</button>
+    </div>
+  </div>`;
 }
 
 /* ── NAVIGATION ── */
@@ -1018,18 +1120,141 @@ function tSub(id){const ch=document.getElementById('ch'+id);const btn=document.g
 function togSubOr(){const p=document.getElementById('ps-sub');const b=document.getElementById('ob-sub');const v=document.getElementById('vs-top');const op=p.classList.toggle('open');b.textContent=op?'−':'+';b.classList.toggle('open',op);if(v)v.style.height=op?'4px':'14px';}
 
 /* ── HISTORIAL ── */
-function showHist(etapa){const panel=document.getElementById('hist-panel');const h=HIST[etapa];if(!h)return;document.getElementById('hist-title-text').textContent='Datos registrados — '+h.title;document.getElementById('hist-content').innerHTML=h.rows.map(r=>`<div class="hist-row"><span class="hist-label">${r.l}</span><span class="hist-val">${r.v}</span></div>`).join('');panel.classList.add('show');}
+function showHist(etapa){
+  const panel=document.getElementById('hist-panel');
+  let title='',rows=[];
+  if(etapa==='nursery'&&HIST_DATA.nursery){
+    const d=HIST_DATA.nursery;
+    title='Nursery (orden 1)';
+    const metodo=d.metodo_ingreso==='bandejas'?`Bandejas (${d.bandejas}×${d.alveolos})`:(d.metodo_ingreso||'—');
+    rows=[{l:'Fecha inicio',v:fmtDate(d.fecha_inicio)},{l:'Método de ingreso',v:metodo},{l:'Total plántulas',v:d.cantidad_ingreso||'—'},{l:'Fecha fin',v:fmtDate(d.fecha_fin)},{l:'Cantidad egreso',v:d.cantidad_egreso||'—'},{l:'Bajas',v:d.bajas||0}];
+  } else if(etapa==='vegetativa'&&HIST_DATA.vegetativa){
+    const d=HIST_DATA.vegetativa;
+    title='Vegetativa (orden 2)';
+    rows=[{l:'Fecha inicio (Trasplante)',v:fmtDate(d.fecha_inicio)},{l:'Fecha fin (Inicio inducción)',v:fmtDate(d.fecha_fin)},{l:'Cantidad ingreso',v:d.cantidad_ingreso||'—'},{l:'Cantidad egreso',v:d.cantidad_egreso||'—'},{l:'Bajas',v:d.bajas||0}];
+  } else if(etapa==='floracion'&&HIST_DATA.floracion){
+    const d=HIST_DATA.floracion;
+    title='Floración (orden 3)';
+    rows=[{l:'Fecha inicio (Inducción)',v:fmtDate(d.fecha_inicio)},{l:'Fecha fin (Cosecha)',v:fmtDate(d.fecha_fin)},{l:'Cantidad ingreso',v:d.cantidad_ingreso||'—'},{l:'Cantidad egreso',v:d.cantidad_egreso||'—'},{l:'Bajas',v:d.bajas||0}];
+  } else {return;}
+  document.getElementById('hist-title-text').textContent='Datos registrados — '+title;
+  document.getElementById('hist-content').innerHTML=rows.map(r=>`<div class="hist-row"><span class="hist-label">${r.l}</span><span class="hist-val">${r.v}</span></div>`).join('');
+  panel.classList.add('show');
+}
 function closeHist(){document.getElementById('hist-panel').classList.remove('show');}
 
 /* ── CONFIRMAR / AVANZAR ── */
 function confirmarAF(divId,btn){const div=document.getElementById(divId);div.classList.remove('pending');div.classList.add('confirmed');btn.outerHTML='<span class="af-done">✓ Confirmado</span>';}
-function guardarBorrador(){alert('Borrador guardado. Podés continuar cargando datos cuando quieras.');}
-function guardarAvanzar(){
-  const egreso=document.getElementById('flo-egreso').value;const bajas=document.getElementById('flo-bajas').value;const fechaFin=document.getElementById('flo-fecha-fin').value;const vbox=document.getElementById('flo-validacion');
-  if(!fechaFin||!egreso||!bajas){vbox.style.display='block';vbox.className='erb';vbox.textContent='Completá todos los campos obligatorios: Fecha fin, Cantidad egreso y Bajas.';return;}
-  const ingreso=195;const total=parseInt(egreso)+parseInt(bajas);
-  if(total!==ingreso){vbox.style.display='block';vbox.className='erb';vbox.textContent='La cantidad de ingreso ('+ingreso+') no coincide con egreso ('+egreso+') + bajas ('+bajas+') = '+total+'. Revisá los datos.';return;}
-  vbox.style.display='none';alert('¡Etapa Floración cerrada!\nAvanzando a Cosecha y Curado...');
+
+async function guardarBorrador(){
+  if(!LOTE_ACTIVO)return;
+  const et=LOTE_ACTIVO.etapaRaw;
+  let err;
+  if(et==='nursery'){
+    const d=HIST_DATA.nursery;
+    if(d){({error:err}=await sb.from('etapa_nursery').update({fecha_fin:document.getElementById('nur-fecha-fin').value||null,cantidad_egreso:parseInt(document.getElementById('nur-egreso').value)||null,bajas:parseInt(document.getElementById('nur-bajas').value)||0,notas:document.getElementById('nur-notas').value||null}).eq('id',d.id));}
+  } else if(et==='vegetativa'){
+    const d=HIST_DATA.vegetativa;
+    const fi=document.getElementById('veg-fecha-ini').value;const ci=parseInt(document.getElementById('veg-cant-ini').value)||null;
+    if(d){({error:err}=await sb.from('etapa_vegetativa').update({fecha_inicio:fi||null,cantidad_ingreso:ci,fecha_fin:document.getElementById('veg-fecha-fin').value||null,cantidad_egreso:parseInt(document.getElementById('veg-egreso').value)||null,bajas:parseInt(document.getElementById('veg-bajas').value)||0,notas:document.getElementById('veg-notas').value||null}).eq('id',d.id));}
+    else if(fi&&ci){({error:err}=await sb.from('etapa_vegetativa').insert({lote_id:LOTE_ACTIVO.id,fecha_inicio:fi,cantidad_ingreso:ci,fecha_fin:document.getElementById('veg-fecha-fin').value||null,cantidad_egreso:parseInt(document.getElementById('veg-egreso').value)||null,bajas:parseInt(document.getElementById('veg-bajas').value)||0,notas:document.getElementById('veg-notas').value||null}));}
+  } else if(et==='floracion'){
+    const d=HIST_DATA.floracion;
+    const fi=document.getElementById('flo-fecha-ini').value;const ci=parseInt(document.getElementById('flo-cant-ini').value)||null;
+    if(d){({error:err}=await sb.from('etapa_floracion').update({fecha_inicio:fi||null,cantidad_ingreso:ci,fecha_fin:document.getElementById('flo-fecha-fin').value||null,cantidad_egreso:parseInt(document.getElementById('flo-egreso').value)||null,bajas:parseInt(document.getElementById('flo-bajas').value)||0,notas:document.getElementById('flo-notas').value||null}).eq('id',d.id));}
+    else if(fi&&ci){({error:err}=await sb.from('etapa_floracion').insert({lote_id:LOTE_ACTIVO.id,fecha_inicio:fi,cantidad_ingreso:ci,fecha_fin:document.getElementById('flo-fecha-fin').value||null,cantidad_egreso:parseInt(document.getElementById('flo-egreso').value)||null,bajas:parseInt(document.getElementById('flo-bajas').value)||0,notas:document.getElementById('flo-notas').value||null}));}
+  } else if(et==='cosecha_curado'){
+    const d=HIST_DATA.cosecha_curado;
+    const fi=document.getElementById('cos-fecha-ini').value;const pi=parseFloat(document.getElementById('cos-peso-ini').value)||null;
+    if(d){({error:err}=await sb.from('etapa_cosecha_curado').update({fecha_inicio_cosecha:fi||null,peso_inicial_curado:pi,tiene_empaque:document.getElementById('cos-empaque').value==='true',tara_empaque:parseFloat(document.getElementById('cos-tara').value)||null,notas:document.getElementById('cos-notas').value||null}).eq('id',d.id));}
+    else if(fi&&pi){({error:err}=await sb.from('etapa_cosecha_curado').insert({lote_id:LOTE_ACTIVO.id,fecha_inicio_cosecha:fi,peso_inicial_curado:pi,tiene_empaque:document.getElementById('cos-empaque').value==='true',tara_empaque:parseFloat(document.getElementById('cos-tara').value)||null,notas:document.getElementById('cos-notas').value||null}));}
+  }
+  if(err){alert('Error al guardar: '+err.message);return;}
+  alert('Borrador guardado correctamente.');
+}
+
+async function guardarAvanzar(){
+  if(!LOTE_ACTIVO)return;
+  const et=LOTE_ACTIVO.etapaRaw;
+  const vbox=document.getElementById('det-validacion');
+  function showErr(msg){vbox.style.display='block';vbox.textContent=msg;}
+  vbox.style.display='none';
+  let dbErr;
+
+  if(et==='nursery'){
+    const fechaFin=document.getElementById('nur-fecha-fin').value;
+    const egreso=parseInt(document.getElementById('nur-egreso').value)||0;
+    const bajas=parseInt(document.getElementById('nur-bajas').value)||0;
+    const notas=document.getElementById('nur-notas').value||null;
+    if(!fechaFin||!egreso)return showErr('Completá Fecha fin y Cantidad egreso.');
+    const d=HIST_DATA.nursery;
+    if(d&&egreso+bajas!==d.cantidad_ingreso)return showErr(`Egreso (${egreso}) + Bajas (${bajas}) debe igualar el ingreso (${d.cantidad_ingreso}).`);
+    if(d){({error:dbErr}=await sb.from('etapa_nursery').update({fecha_fin:fechaFin,cantidad_egreso:egreso,bajas,notas}).eq('id',d.id));}
+    if(dbErr)return showErr('Error: '+dbErr.message);
+    ({error:dbErr}=await sb.from('lotes_produccion').update({etapa_actual:'vegetativa'}).eq('id',LOTE_ACTIVO.id));
+    if(dbErr)return showErr('Error actualizando etapa: '+dbErr.message);
+    await cargarLotes();rebuildSearchIndex();actualizarMetricasDash();
+    alert('¡Nursery cerrada! El lote avanzó a Vegetativa.');
+    await openLote(LOTE_ACTIVO.id);
+
+  } else if(et==='vegetativa'){
+    const fi=document.getElementById('veg-fecha-ini').value;
+    const ci=parseInt(document.getElementById('veg-cant-ini').value)||0;
+    const ff=document.getElementById('veg-fecha-fin').value;
+    const egreso=parseInt(document.getElementById('veg-egreso').value)||0;
+    const bajas=parseInt(document.getElementById('veg-bajas').value)||0;
+    const notas=document.getElementById('veg-notas').value||null;
+    if(!fi||!ci||!ff||!egreso)return showErr('Completá todos los campos obligatorios.');
+    if(egreso+bajas!==ci)return showErr(`Egreso (${egreso}) + Bajas (${bajas}) debe igualar el ingreso (${ci}).`);
+    const d=HIST_DATA.vegetativa;
+    if(d){({error:dbErr}=await sb.from('etapa_vegetativa').update({fecha_inicio:fi,cantidad_ingreso:ci,fecha_fin:ff,cantidad_egreso:egreso,bajas,notas}).eq('id',d.id));}
+    else{({error:dbErr}=await sb.from('etapa_vegetativa').insert({lote_id:LOTE_ACTIVO.id,fecha_inicio:fi,cantidad_ingreso:ci,fecha_fin:ff,cantidad_egreso:egreso,bajas,notas}));}
+    if(dbErr)return showErr('Error: '+dbErr.message);
+    ({error:dbErr}=await sb.from('lotes_produccion').update({etapa_actual:'floracion'}).eq('id',LOTE_ACTIVO.id));
+    if(dbErr)return showErr('Error actualizando etapa: '+dbErr.message);
+    await cargarLotes();rebuildSearchIndex();actualizarMetricasDash();
+    alert('¡Vegetativa cerrada! El lote avanzó a Floración.');
+    await openLote(LOTE_ACTIVO.id);
+
+  } else if(et==='floracion'){
+    const fi=document.getElementById('flo-fecha-ini').value;
+    const ci=parseInt(document.getElementById('flo-cant-ini').value)||0;
+    const ff=document.getElementById('flo-fecha-fin').value;
+    const egreso=parseInt(document.getElementById('flo-egreso').value)||0;
+    const bajas=parseInt(document.getElementById('flo-bajas').value)||0;
+    const notas=document.getElementById('flo-notas').value||null;
+    if(!fi||!ci||!ff||!egreso)return showErr('Completá todos los campos obligatorios.');
+    if(egreso+bajas!==ci)return showErr(`Egreso (${egreso}) + Bajas (${bajas}) debe igualar el ingreso (${ci}).`);
+    const d=HIST_DATA.floracion;
+    if(d){({error:dbErr}=await sb.from('etapa_floracion').update({fecha_inicio:fi,cantidad_ingreso:ci,fecha_fin:ff,cantidad_egreso:egreso,bajas,notas}).eq('id',d.id));}
+    else{({error:dbErr}=await sb.from('etapa_floracion').insert({lote_id:LOTE_ACTIVO.id,fecha_inicio:fi,cantidad_ingreso:ci,fecha_fin:ff,cantidad_egreso:egreso,bajas,notas}));}
+    if(dbErr)return showErr('Error: '+dbErr.message);
+    ({error:dbErr}=await sb.from('lotes_produccion').update({etapa_actual:'cosecha_curado'}).eq('id',LOTE_ACTIVO.id));
+    if(dbErr)return showErr('Error actualizando etapa: '+dbErr.message);
+    await cargarLotes();rebuildSearchIndex();actualizarMetricasDash();
+    alert('¡Floración cerrada! El lote avanzó a Cosecha y Curado.');
+    await openLote(LOTE_ACTIVO.id);
+
+  } else if(et==='cosecha_curado'){
+    const fi=document.getElementById('cos-fecha-ini').value;
+    const pi=parseFloat(document.getElementById('cos-peso-ini').value)||0;
+    const tieneEmp=document.getElementById('cos-empaque').value==='true';
+    const tara=parseFloat(document.getElementById('cos-tara').value)||0;
+    const notas=document.getElementById('cos-notas').value||null;
+    if(!fi||!pi)return showErr('Completá Fecha inicio cosecha y Peso inicial curado.');
+    const pesoSeco=tieneEmp?pi-tara:pi;
+    const d=HIST_DATA.cosecha_curado;
+    if(d){({error:dbErr}=await sb.from('etapa_cosecha_curado').update({fecha_inicio_cosecha:fi,peso_inicial_curado:pi,tiene_empaque:tieneEmp,tara_empaque:tieneEmp?tara:null,peso_seco_final:pesoSeco,notas}).eq('id',d.id));}
+    else{({error:dbErr}=await sb.from('etapa_cosecha_curado').insert({lote_id:LOTE_ACTIVO.id,fecha_inicio_cosecha:fi,peso_inicial_curado:pi,tiene_empaque:tieneEmp,tara_empaque:tieneEmp?tara:null,peso_seco_final:pesoSeco,notas}));}
+    if(dbErr)return showErr('Error: '+dbErr.message);
+    ({error:dbErr}=await sb.from('flores_cosechadas').insert({lote_id:LOTE_ACTIVO.id,stock_inicial:pesoSeco,stock_actual:pesoSeco}));
+    if(dbErr)return showErr('Error creando stock de flores: '+dbErr.message);
+    ({error:dbErr}=await sb.from('lotes_produccion').update({etapa_actual:'flores'}).eq('id',LOTE_ACTIVO.id));
+    if(dbErr)return showErr('Error actualizando etapa: '+dbErr.message);
+    await cargarLotes();rebuildSearchIndex();actualizarMetricasDash();
+    alert('¡Cosecha y Curado registrada! El lote avanzó a Flores Cosechadas.');
+    await openLote(LOTE_ACTIVO.id);
+  }
 }
 
 /* ── BÚSQUEDA ── */
@@ -1044,7 +1269,7 @@ function doSearch(q){
   let html='';
   if(filtered.length===0){html=`<div class="no-results-msg">No se encontraron lotes con el nombre "<strong>${q}</strong>".<br/><span style="font-size:0.75rem;">Probá con otra palabra o parte del nombre.</span></div>`;}
   else{
-    if(prod.length){html+=`<div class="search-group"><div class="search-group-title">Lotes productivos (${prod.length})</div>`;prod.forEach(l=>{html+=`<div class="search-result-item" onclick="openLote('${l.name}','${l.info}','${l.bc.replace('b-','')}')"><div><div class="sri-name">${highlight(l.name,ql)}</div><div class="sri-sub">${l.info}</div></div><div class="sri-right"><span class="eb ${l.bc}">${l.badge}</span><span class="sri-arrow">→</span></div></div>`;});html+=`</div>`;}
+    if(prod.length){html+=`<div class="search-group"><div class="search-group-title">Lotes productivos (${prod.length})</div>`;prod.forEach(l=>{html+=`<div class="search-result-item" onclick="openLote('${l.id}')"><div><div class="sri-name">${highlight(l.name,ql)}</div><div class="sri-sub">${l.info}</div></div><div class="sri-right"><span class="eb ${l.bc}">${l.badge}</span><span class="sri-arrow">→</span></div></div>`;});html+=`</div>`;}
     if(mat.length){html+=`<div class="search-group"><div class="search-group-title">Material básico (${mat.length})</div>`;mat.forEach(l=>{html+=`<div class="search-result-item" onclick="sv('stock')"><div><div class="sri-name">${highlight(l.name,ql)}</div><div class="sri-sub">${l.info}</div></div><div class="sri-right"><span class="eb ${l.bc}">${l.badge}</span><span class="sri-arrow">→</span></div></div>`;});html+=`</div>`;}
   }
   document.getElementById('search-results-container').innerHTML=html;sv('busqueda');
