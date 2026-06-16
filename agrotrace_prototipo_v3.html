@@ -1167,6 +1167,9 @@ async function guardarBorrador(){
     else if(fi&&pi){({error:err}=await sb.from('etapa_cosecha_curado').insert({lote_id:LOTE_ACTIVO.id,fecha_inicio_cosecha:fi,peso_inicial_curado:pi,tiene_empaque:document.getElementById('cos-empaque').value==='true',tara_empaque:parseFloat(document.getElementById('cos-tara').value)||null,notas:document.getElementById('cos-notas').value||null}));}
   }
   if(err){alert('Error al guardar: '+err.message);return;}
+  const tbl={nursery:'etapa_nursery',vegetativa:'etapa_vegetativa',floracion:'etapa_floracion',cosecha_curado:'etapa_cosecha_curado'}[et];
+  if(tbl){const{data}=await sb.from(tbl).select('*').eq('lote_id',LOTE_ACTIVO.id).maybeSingle();if(data)HIST_DATA[et]=data;}
+  renderPanelActivo();
   alert('Borrador guardado correctamente.');
 }
 
