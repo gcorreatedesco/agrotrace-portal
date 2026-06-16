@@ -911,7 +911,6 @@ async function openLote(id){
   const eEl=document.getElementById('det-etapa');
   eEl.textContent=emap[lote.et]||lote.et;
   eEl.className='eb '+(bmap[lote.et]||'b-nur');
-  closeHist();
   sv('detalle');
   document.getElementById('det-panel').innerHTML='<div style="padding:24px;text-align:center;color:var(--sage);font-size:0.78rem;">Cargando datos...</div>';
   const etIdx={nursery:1,vegetativa:2,floracion:3,cosecha_curado:4,flores:5}[lote.etapaRaw]||1;
@@ -1125,6 +1124,7 @@ function sv(id){
   if(mp[id]){document.getElementById('tt').textContent=mp[id][0];document.getElementById('ts').textContent=mp[id][1];document.getElementById('ta').innerHTML=mp[id][2];}
   if(id==='lotes')rAll('lotes-list','todos');
   if(id==='dashboard')rAll('dash-lotes','todos');
+  if(id==='lotes')rAll('lotes-list','todos');
   if(id==='stock')renderStock();
 }
 
