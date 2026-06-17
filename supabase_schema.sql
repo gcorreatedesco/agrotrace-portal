@@ -41,14 +41,18 @@ CREATE POLICY "productor ve sus semillas" ON public.lotes_semillas
 
 
 -- ── LOTES DE PLANTAS MADRE ───────────────────────
+-- origen_tipo:
+--   'externo'                → compra externa sin registro previo en el sistema
+--   'esqueje_produccion'     → esqueje extraído de un lote de producción propio (lote_origen_id → lotes_produccion.id)
+--   'esqueje_material_basico'→ esqueje de un lote de esquejes registrado como Material Básico (lote_origen_id → lotes_esquejes.id)
 CREATE TABLE IF NOT EXISTS public.lotes_plantas_madre (
   id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   usuario_id          UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   nombre_lote         TEXT NOT NULL,
   fecha_adquisicion   DATE NOT NULL,
-  origen_tipo         TEXT NOT NULL CHECK (origen_tipo IN ('externo','interno')),
-  proveedor           TEXT,
-  lote_origen_id      UUID REFERENCES public.lotes_plantas_madre(id),
+  origen_tipo         TEXT NOT NULL CHECK (origen_tipo IN ('externo','esqueje_produccion','esqueje_material_basico')),
+  proveedor           TEXT,                -- solo para origen 'externo'
+  lote_origen_id      UUID,               -- referencia flexible: lotes_produccion o lotes_esquejes según origen_tipo
   variedad            TEXT NOT NULL,
   cantidad_inicial    INTEGER NOT NULL CHECK (cantidad_inicial > 0),
   cantidad_actual     INTEGER NOT NULL,
@@ -269,3 +273,22 @@ CREATE POLICY "via flores entregas" ON public.entregas
       WHERE fc.id = flores_id AND lp.usuario_id = auth.uid()
     )
   );
+
+
+-- ================================================
+-- MIGRACIONES — ejecutar en Supabase > SQL Editor
+-- sobre una base ya existente (no recrear desde cero)
+-- ================================================
+
+-- ── MIGRACIÓN: lotes_plantas_madre ──────────────
+-- Amplía origen_tipo y corrige lote_origen_id
+ALTER TABLE public.lotes_plantas_madre
+  DROP CONSTRAINT IF EXISTS lotes_plantas_madre_origen_tipo_check;
+
+ALTER TABLE public.lotes_plantas_madre
+  ADD CONSTRAINT lotes_plantas_madre_origen_tipo_check
+    CHECK (origen_tipo IN ('externo','esqueje_produccion','esqueje_material_basico'));
+
+-- Elimina la FK auto-referencial incorrecta y deja lote_origen_id como UUID libre
+ALTER TABLE public.lotes_plantas_madre
+  DROP CONSTRAINT IF EXISTS lotes_plantas_madre_lote_origen_id_fkey;

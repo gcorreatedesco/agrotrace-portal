@@ -718,13 +718,13 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
     <div class="field"><label>Origen<span class="req">*</span></label>
       <select id="nm-origen" onchange="onNMOrigen(this.value)">
         <option value="">— Elegí el origen —</option>
-        <option value="externo">Externo — compra a tercero</option>
-        <option value="interno">Interno — derivado de lote propio</option>
+        <option value="externo">Externo — compra a tercero (sin registro en sistema)</option>
+        <option id="nm-opt-esq-prod" value="esqueje_produccion" style="display:none;">Interno — esqueje de lote en producción</option>
+        <option id="nm-opt-esq-mat" value="esqueje_material_basico" style="display:none;">Interno — desde lote de Esquejes (Material Básico)</option>
       </select>
     </div>
     <div id="nm-externo" style="display:none;">
-      <div class="field"><label>Proveedor<span class="req">*</span></label><input type="text" id="nm-proveedor" placeholder="Nombre del proveedor"/></div>
-      <div class="field"><label>Documentación<span class="opt">opcional · factura, estampilla de origen</span></label><input type="text" placeholder="Subir archivo (PDF, imagen)"/></div>
+      <div class="field"><label>Proveedor<span class="opt">opcional</span></label><input type="text" id="nm-proveedor" placeholder="Nombre del proveedor o procedencia"/></div>
     </div>
     <div id="nm-interno" style="display:none;">
       <div class="field"><label>Lote de origen<span class="req">*</span></label><select id="nm-lote-origen"><option value="">— Elegí el lote de origen —</option></select></div>
@@ -1423,22 +1423,32 @@ function selNM(t){
   if(t==='semillas'){uSel.innerHTML='<option value="">— Elegí unidad —</option><option value="gramos">Gramos</option><option value="semillas">Nº de semillas</option>';}
   else if(t==='esquejes'){uSel.innerHTML='<option value="esquejes">Nº de esquejes</option>';}
   else{uSel.innerHTML='<option value="plantas">Nº de plantas</option>';}
+  // mostrar opciones de origen según tipo
+  const optProd=document.getElementById('nm-opt-esq-prod');
+  const optMat=document.getElementById('nm-opt-esq-mat');
+  if(optProd)optProd.style.display=t==='pm'?'':'none';
+  if(optMat)optMat.style.display=t==='pm'?'':'none';
+  // reset origen
+  document.getElementById('nm-origen').value='';
+  document.getElementById('nm-externo').style.display='none';
+  document.getElementById('nm-interno').style.display='none';
 }
 function onNMOrigen(v){
   document.getElementById('nm-externo').style.display=v==='externo'?'block':'none';
-  document.getElementById('nm-interno').style.display=v==='interno'?'block':'none';
-  if(v==='interno'){
+  const esInterno=v==='esqueje_produccion'||v==='esqueje_material_basico';
+  document.getElementById('nm-interno').style.display=esInterno?'block':'none';
+  if(esInterno){
     const sel=document.getElementById('nm-lote-origen');
     sel.innerHTML='<option value="">— Elegí el lote de origen —</option>';
-    if(TIPO_NM==='pm'){
-      // Plantas Madre: origen en lotes de producción propios
-      LD.forEach(l=>sel.innerHTML+=`<option value="${l.id}">${l.n} (${l.bt})</option>`);
-    } else if(TIPO_NM==='esquejes'){
-      // Esquejes: origen en plantas madre propias
-      LM.pm.forEach(l=>sel.innerHTML+=`<option value="${l.v}">${l.l} (stock: ${l.stock} plantas)</option>`);
-    }
-    if(!sel.options.length||sel.options.length===1){
-      sel.innerHTML='<option value="">— Sin lotes disponibles —</option>';
+    if(v==='esqueje_produccion'){
+      // Esquejes de lotes de producción en curso
+      const activos=LD.filter(l=>['vegetativa','floracion'].includes(l.etapaRaw));
+      activos.forEach(l=>sel.innerHTML+=`<option value="${l.id}">${l.n} (${l.bt})</option>`);
+      if(activos.length===0)sel.innerHTML='<option value="">— Sin lotes en Vegetativa o Floración —</option>';
+    } else if(v==='esqueje_material_basico'){
+      // Lotes de esquejes registrados como Material Básico
+      LM.esquejes.forEach(l=>sel.innerHTML+=`<option value="${l.v}">${l.l} (stock: ${l.stock} esquejes)</option>`);
+      if(LM.esquejes.length===0)sel.innerHTML='<option value="">— Sin lotes de esquejes registrados —</option>';
     }
   }
 }
@@ -1457,7 +1467,10 @@ async function guardarMaterial(){
   let error;
   if(TIPO_NM==='semillas'){({error}=await sb.from('lotes_semillas').insert({usuario_id:CURRENT_USER.id,nombre_lote:nombre,fecha_adquisicion:fecha,origen_tipo:origen,proveedor:prov,variedad,stock_inicial:stockIni,stock_actual:stockIni,unidad,notas}));}
   else if(TIPO_NM==='esquejes'){({error}=await sb.from('lotes_esquejes').insert({usuario_id:CURRENT_USER.id,nombre_lote:nombre,fecha_adquisicion:fecha,origen_tipo:origen==='externo'?'externo':'plantas_madre_propio',proveedor:prov,variedad,stock_inicial:Math.round(stockIni),stock_actual:Math.round(stockIni),notas}));}
-  else if(TIPO_NM==='pm'){({error}=await sb.from('lotes_plantas_madre').insert({usuario_id:CURRENT_USER.id,nombre_lote:nombre,fecha_adquisicion:fecha,origen_tipo:origen,proveedor:prov,variedad,cantidad_inicial:Math.round(stockIni),cantidad_actual:Math.round(stockIni),notas}));}
+  else if(TIPO_NM==='pm'){
+    const loteOrigenId=document.getElementById('nm-lote-origen')?.value||null;
+    ({error}=await sb.from('lotes_plantas_madre').insert({usuario_id:CURRENT_USER.id,nombre_lote:nombre,fecha_adquisicion:fecha,origen_tipo:origen,proveedor:origen==='externo'?prov:null,lote_origen_id:loteOrigenId||null,variedad,cantidad_inicial:Math.round(stockIni),cantidad_actual:Math.round(stockIni),notas}));
+  }
   if(error){alert('Error al guardar: '+error.message);return;}
   alert('¡Lote de material básico creado exitosamente!');
   ['nm-nombre','nm-fecha','nm-variedad','nm-stock','nm-notas'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
