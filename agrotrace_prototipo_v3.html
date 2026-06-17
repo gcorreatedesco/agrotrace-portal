@@ -730,9 +730,9 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
       <div class="field"><label>Proveedor<span class="opt">opcional</span></label><input type="text" id="nm-proveedor" placeholder="Nombre del proveedor o procedencia"/></div>
     </div>
     <div id="nm-interno" style="display:none;">
-      <div class="field"><label>Lote de origen<span class="req">*</span></label><select id="nm-lote-origen"><option value="">— Elegí el lote de origen —</option></select></div>
+      <div class="field"><label>Lote de origen<span class="req">*</span></label><select id="nm-lote-origen" onchange="onLoteOrigenChange(this.value)"><option value="">— Elegí el lote de origen —</option></select></div>
     </div>
-    <div class="field"><label>Variedad<span class="req">*</span></label><input type="text" id="nm-variedad" placeholder="Ej: White Widow, OG Kush..."/></div>
+    <div class="field"><label>Variedad<span class="req">*</span></label><input type="text" id="nm-variedad" placeholder="Ej: White Widow, OG Kush..."/><div id="nm-variedad-hint" style="display:none;font-size:0.68rem;color:var(--accent);margin-top:4px;padding:5px 8px;background:var(--dew);border-radius:var(--radius);">↑ Variedad tomada automáticamente del lote de origen. Confirmá que es correcta antes de continuar.</div></div>
     <div class="g2">
       <div class="field"><label>Stock inicial<span class="req">*</span></label><input type="number" id="nm-stock" placeholder="Cantidad"/></div>
       <div class="field"><label>Unidad<span class="req">*</span></label>
@@ -1523,11 +1523,58 @@ function selNM(t){
   if(optProd)optProd.style.display=t==='pm'?'':'none';
   if(optMat)optMat.style.display=t==='pm'?'':'none';
   if(optProdEsq)optProdEsq.style.display=t==='esquejes'?'':'none';
-  // reset origen
+  // reset origen y variedad
   document.getElementById('nm-origen').value='';
   document.getElementById('nm-externo').style.display='none';
   document.getElementById('nm-interno').style.display='none';
+  const vInp=document.getElementById('nm-variedad');
+  vInp.value='';vInp.readOnly=false;vInp.style.background='';vInp.style.color='';
+  const hint=document.getElementById('nm-variedad-hint');
+  if(hint)hint.style.display='none';
 }
+function onLoteOrigenChange(id){
+  if(!id)return;
+  const origen=document.getElementById('nm-origen').value;
+  let variedad=null;
+  if(origen==='esqueje_produccion'||origen==='lote_produccion_propio'){
+    // buscar en LM.pm o en LD según tipo
+    const lote=LD.find(l=>l.id===id);
+    // variedad no está en LD (viene de material básico), buscar en LM
+    const enSem=LM.semillas.find(l=>l.v===id);
+    const enEsq=LM.esquejes.find(l=>l.v===id);
+    const enPm=LM.pm.find(l=>l.v===id);
+    if(enSem)variedad=enSem.var;
+    else if(enEsq)variedad=enEsq.var;
+    else if(enPm)variedad=enPm.var;
+    // para lotes de producción buscar variedad en Supabase async
+    if(!variedad&&lote){
+      // intentar obtener variedad del lote de producción vía origen
+      sb.from('lotes_produccion').select('origen_semilla_id,origen_esqueje_id,origen_pm_id').eq('id',id).single().then(({data})=>{
+        if(!data)return;
+        const oId=data.origen_semilla_id||data.origen_esqueje_id||data.origen_pm_id;
+        if(!oId)return;
+        const m=[...LM.semillas,...LM.esquejes,...LM.pm].find(x=>x.v===oId);
+        if(m)setVariedadOrigen(m.var);
+      });
+      return;
+    }
+  } else if(origen==='esqueje_material_basico'){
+    const lote=LM.esquejes.find(l=>l.v===id);
+    if(lote)variedad=lote.var;
+  }
+  if(variedad)setVariedadOrigen(variedad);
+}
+
+function setVariedadOrigen(variedad){
+  const inp=document.getElementById('nm-variedad');
+  const hint=document.getElementById('nm-variedad-hint');
+  inp.value=variedad;
+  inp.readOnly=true;
+  inp.style.background='var(--dew)';
+  inp.style.color='var(--accent)';
+  if(hint)hint.style.display='block';
+}
+
 function onNMOrigen(v){
   document.getElementById('nm-externo').style.display=v==='externo'?'block':'none';
   const esInterno=v==='esqueje_produccion'||v==='esqueje_material_basico'||v==='lote_produccion_propio';
