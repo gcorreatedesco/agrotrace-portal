@@ -328,6 +328,8 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
 .sri-right{display:flex;align-items:center;gap:8px;flex-shrink:0;}
 .sri-arrow{font-size:0.65rem;color:var(--sage);}
 .no-results-msg{text-align:center;padding:32px;color:var(--sage);font-size:0.82rem;}
+.sl{cursor:pointer;transition:background var(--trans);}
+.sl:hover{background:var(--dew);border-radius:var(--radius);}
 </style>
 </head>
 <body>
@@ -750,6 +752,17 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
   </div>
 </div>
 
+<!-- DETALLE MATERIAL BÁSICO -->
+<div class="view" id="view-detalle-material">
+  <div class="lhero">
+    <div><div class="lhn" id="dm-nombre">—</div><div class="lhs" id="dm-sub">—</div></div>
+    <div class="lhr"><div class="lhe">Tipo</div><span class="eb b-sem" id="dm-tipo">—</span></div>
+  </div>
+  <div class="panel" id="dm-panel">
+    <div style="padding:24px;text-align:center;color:var(--sage);font-size:0.78rem;">Cargando...</div>
+  </div>
+</div>
+
 <!-- BÚSQUEDA RESULTADOS -->
 <div class="view" id="view-busqueda">
   <div class="search-header">
@@ -865,16 +878,95 @@ function actualizarMetricasStock(){
 function renderStock(){
   const sEl=document.getElementById('scb-sem'),eEl=document.getElementById('scb-esq'),pEl=document.getElementById('scb-pm');
   if(!sEl)return;
-  function rl(r){const pct=r.stockI>0?Math.round((r.stock/r.stockI)*100):0;const low=pct<20?' low':'';return`<div class="sl"><div class="sln">${r.l}</div><div class="sbw"><div class="sbb"><div class="sbf${low}" style="width:${pct}%"></div></div><div class="sn">${r.stock}/${r.stockI} ${r.u}</div></div></div>`;}
+  function rl(r,tipo){const pct=r.stockI>0?Math.round((r.stock/r.stockI)*100):0;const low=pct<20?' low':'';return`<div class="sl" onclick="openMaterial('${r.v}','${tipo}')"><div class="sln">${r.l}</div><div class="sbw"><div class="sbb"><div class="sbf${low}" style="width:${pct}%"></div></div><div class="sn">${r.stock}/${r.stockI} ${r.u}</div></div></div>`;}
   const empty='<div style="font-size:0.75rem;color:var(--sage);padding:8px 0;">Sin lotes registrados.</div>';
-  sEl.innerHTML=LM.semillas.length?LM.semillas.map(rl).join(''):empty;
-  eEl.innerHTML=LM.esquejes.length?LM.esquejes.map(rl).join(''):empty;
-  pEl.innerHTML=LM.pm.length?LM.pm.map(rl).join(''):empty;
+  sEl.innerHTML=LM.semillas.length?LM.semillas.map(r=>rl(r,'semillas')).join(''):empty;
+  eEl.innerHTML=LM.esquejes.length?LM.esquejes.map(r=>rl(r,'esquejes')).join(''):empty;
+  pEl.innerHTML=LM.pm.length?LM.pm.map(r=>rl(r,'pm')).join(''):empty;
   const sel=document.getElementById('bl');
   sel.innerHTML='<option value="">— Elegí el lote —</option>';
   LM.semillas.forEach(r=>sel.innerHTML+=`<option value="${r.v}" data-tipo="semillas">${r.l} (stock: ${r.stock} ${r.u})</option>`);
   LM.esquejes.forEach(r=>sel.innerHTML+=`<option value="${r.v}" data-tipo="esquejes">${r.l} (stock: ${r.stock} ${r.u})</option>`);
   LM.pm.forEach(r=>sel.innerHTML+=`<option value="${r.v}" data-tipo="pm">${r.l} (stock: ${r.stock} ${r.u})</option>`);
+}
+
+/* ── DETALLE MATERIAL BÁSICO ── */
+let MAT_ACTIVO=null,MAT_TIPO=null;
+
+async function openMaterial(id,tipo){
+  MAT_TIPO=tipo;
+  const tbl={semillas:'lotes_semillas',esquejes:'lotes_esquejes',pm:'lotes_plantas_madre'}[tipo];
+  const{data,error}=await sb.from(tbl).select('*').eq('id',id).single();
+  if(error||!data){alert('Error al cargar el lote.');return;}
+  MAT_ACTIVO=data;
+  const tipoLabel={semillas:'Semillas',esquejes:'Esquejes',pm:'Plantas Madre'}[tipo];
+  const tipoBadge={semillas:'b-sem',esquejes:'b-esq',pm:'b-pm'}[tipo];
+  document.getElementById('dm-nombre').textContent=data.nombre_lote;
+  document.getElementById('dm-sub').textContent=(data.variedad||'')+(data.proveedor?' · '+data.proveedor:'');
+  const eEl=document.getElementById('dm-tipo');
+  eEl.textContent=tipoLabel;eEl.className='eb '+tipoBadge;
+  renderPanelMaterial(false);
+  sv('detalle-material');
+}
+
+function renderPanelMaterial(editando){
+  const d=MAT_ACTIVO;const tipo=MAT_TIPO;
+  const el=document.getElementById('dm-panel');
+  const stockActual=tipo==='pm'?d.cantidad_actual:d.stock_actual;
+  const stockInicial=tipo==='pm'?d.cantidad_inicial:d.stock_inicial;
+  const unidad=tipo==='pm'?'plantas':(d.unidad||'unidades');
+  const pct=stockInicial>0?Math.round((stockActual/stockInicial)*100):0;
+
+  let filas=`
+    <div class="g2">
+      <div class="field"><label>Nombre del lote</label>${editando?`<input type="text" id="dm-nombre-e" value="${d.nombre_lote||''}"/>`:`<div class="ro-val">${d.nombre_lote||'—'}</div>`}</div>
+      <div class="field"><label>Variedad</label>${editando?`<input type="text" id="dm-variedad-e" value="${d.variedad||''}"/>`:`<div class="ro-val">${d.variedad||'—'}</div>`}</div>
+    </div>
+    <div class="g2">
+      <div class="field"><label>Fecha adquisición</label>${editando?`<input type="date" id="dm-fecha-e" value="${d.fecha_adquisicion||''}"/>`:`<div class="ro-val">${fmtDate(d.fecha_adquisicion)}</div>`}</div>
+      <div class="field"><label>Proveedor</label>${editando?`<input type="text" id="dm-proveedor-e" value="${d.proveedor||''}"/>`:`<div class="ro-val">${d.proveedor||'—'}</div>`}</div>
+    </div>
+    <div class="g2">
+      <div class="field"><label>Stock inicial</label><div class="ro-val">${stockInicial} ${unidad}</div></div>
+      <div class="field"><label>Stock actual</label><div class="ro-val">${stockActual} ${unidad} (${pct}%)</div></div>
+    </div>`;
+
+  if(tipo==='pm'){filas+=`<div class="field"><label>Esquejes extraídos</label><div class="ro-val">${d.esquejes_extraidos||0}</div></div>`;}
+  if(d.notas){filas+=`<div class="field"><label>Notas</label>${editando?`<input type="text" id="dm-notas-e" value="${d.notas||''}"/>`:`<div class="ro-val">${d.notas}</div>`}</div>`;}
+  else if(editando){filas+=`<div class="field"><label>Notas<span class="opt">opcional</span></label><input type="text" id="dm-notas-e" value=""/></div>`;}
+
+  const botones=editando
+    ?`<button class="btn btn-secondary" onclick="renderPanelMaterial(false)">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarEdicionMaterial()">Guardar cambios</button>`
+    :`<button class="btn btn-secondary" onclick="sv('stock')">← Volver</button>
+      <button class="btn btn-advance" onclick="habilitarEdicionMaterial()">✏ Editar datos</button>`;
+
+  el.innerHTML=`<div class="pt">${editando?'Editar lote — modificando datos':'Datos del lote'}</div>${filas}<div class="ab">${botones}</div>`;
+}
+
+function habilitarEdicionMaterial(){
+  if(!confirm('¿Confirmás que querés modificar los datos de este lote?\n\nTené en cuenta que los cambios se guardan directamente en la base de datos.'))return;
+  renderPanelMaterial(true);
+}
+
+async function guardarEdicionMaterial(){
+  const tbl={semillas:'lotes_semillas',esquejes:'lotes_esquejes',pm:'lotes_plantas_madre'}[MAT_TIPO];
+  const cambios={
+    nombre_lote:document.getElementById('dm-nombre-e').value.trim(),
+    variedad:document.getElementById('dm-variedad-e').value.trim(),
+    fecha_adquisicion:document.getElementById('dm-fecha-e').value||null,
+    proveedor:document.getElementById('dm-proveedor-e').value.trim()||null,
+    notas:document.getElementById('dm-notas-e')?.value.trim()||null,
+  };
+  if(!cambios.nombre_lote||!cambios.variedad){alert('Nombre y variedad son obligatorios.');return;}
+  const{error}=await sb.from(tbl).update(cambios).eq('id',MAT_ACTIVO.id);
+  if(error){alert('Error al guardar: '+error.message);return;}
+  Object.assign(MAT_ACTIVO,cambios);
+  document.getElementById('dm-nombre').textContent=MAT_ACTIVO.nombre_lote;
+  document.getElementById('dm-sub').textContent=(MAT_ACTIVO.variedad||'')+(MAT_ACTIVO.proveedor?' · '+MAT_ACTIVO.proveedor:'');
+  await cargarMaterial();rebuildSearchIndex();
+  renderPanelMaterial(false);
+  alert('¡Datos actualizados correctamente!');
 }
 
 /* ── RENDER LOTES ── */
