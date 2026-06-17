@@ -727,7 +727,7 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
       <div class="field"><label>Documentación<span class="opt">opcional · factura, estampilla de origen</span></label><input type="text" placeholder="Subir archivo (PDF, imagen)"/></div>
     </div>
     <div id="nm-interno" style="display:none;">
-      <div class="field"><label>Lote de origen<span class="req">*</span></label><select><option>— Elegí el lote de origen —</option><option>PM Lote Principal — Purple Haze</option><option>Primavera 2024</option></select></div>
+      <div class="field"><label>Lote de origen<span class="req">*</span></label><select id="nm-lote-origen"><option value="">— Elegí el lote de origen —</option></select></div>
     </div>
     <div class="field"><label>Variedad<span class="req">*</span></label><input type="text" id="nm-variedad" placeholder="Ej: White Widow, OG Kush..."/></div>
     <div class="g2">
@@ -1424,7 +1424,24 @@ function selNM(t){
   else if(t==='esquejes'){uSel.innerHTML='<option value="esquejes">Nº de esquejes</option>';}
   else{uSel.innerHTML='<option value="plantas">Nº de plantas</option>';}
 }
-function onNMOrigen(v){document.getElementById('nm-externo').style.display=v==='externo'?'block':'none';document.getElementById('nm-interno').style.display=v==='interno'?'block':'none';}
+function onNMOrigen(v){
+  document.getElementById('nm-externo').style.display=v==='externo'?'block':'none';
+  document.getElementById('nm-interno').style.display=v==='interno'?'block':'none';
+  if(v==='interno'){
+    const sel=document.getElementById('nm-lote-origen');
+    sel.innerHTML='<option value="">— Elegí el lote de origen —</option>';
+    if(TIPO_NM==='pm'){
+      // Plantas Madre: origen en lotes de producción propios
+      LD.forEach(l=>sel.innerHTML+=`<option value="${l.id}">${l.n} (${l.bt})</option>`);
+    } else if(TIPO_NM==='esquejes'){
+      // Esquejes: origen en plantas madre propias
+      LM.pm.forEach(l=>sel.innerHTML+=`<option value="${l.v}">${l.l} (stock: ${l.stock} plantas)</option>`);
+    }
+    if(!sel.options.length||sel.options.length===1){
+      sel.innerHTML='<option value="">— Sin lotes disponibles —</option>';
+    }
+  }
+}
 
 async function guardarMaterial(){
   const nombre=document.getElementById('nm-nombre').value.trim();
