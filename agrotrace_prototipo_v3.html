@@ -1099,7 +1099,7 @@ async function guardarEtapaHist(key){
     if(d){({error:dbErr}=await sb.from('etapa_floracion').update({fecha_inicio:document.getElementById('flo-fecha-ini').value||null,cantidad_ingreso:parseInt(document.getElementById('flo-cant-ini').value)||null,fecha_fin:document.getElementById('flo-fecha-fin').value||null,cantidad_egreso:parseInt(document.getElementById('flo-egreso').value)||null,bajas:parseInt(document.getElementById('flo-bajas').value)||0,notas:document.getElementById('flo-notas').value||null}).eq('id',d.id));}
   } else if(key==='cosecha_curado'){
     const d=HIST_DATA.cosecha_curado;
-    if(d){({error:dbErr}=await sb.from('etapa_cosecha_curado').update({fecha_inicio_cosecha:document.getElementById('cos-fecha-ini').value||null,peso_inicial_curado:parseFloat(document.getElementById('cos-peso-ini').value)||null,tiene_empaque:document.getElementById('cos-empaque').value==='true',tara_empaque:parseFloat(document.getElementById('cos-tara').value)||null,notas:document.getElementById('cos-notas').value||null}).eq('id',d.id));}
+    if(d){({error:dbErr}=await sb.from('etapa_cosecha_curado').update({fecha_inicio_cosecha:document.getElementById('cos-fecha-ini').value||null,fecha_fin_cosecha:document.getElementById('cos-fecha-fin').value||null,peso_inicial_curado:parseFloat(document.getElementById('cos-peso-ini').value)||null,tiene_empaque:document.getElementById('cos-empaque').value==='true',tara_empaque:parseFloat(document.getElementById('cos-tara').value)||null,notas:document.getElementById('cos-notas').value||null}).eq('id',d.id));}
   }
   if(dbErr){alert('Error al guardar: '+dbErr.message);return;}
   const tbl={nursery:'etapa_nursery',vegetativa:'etapa_vegetativa',floracion:'etapa_floracion',cosecha_curado:'etapa_cosecha_curado'}[key];
@@ -1162,9 +1162,14 @@ async function guardarBorrador(){
     else if(fi&&ci){({error:err}=await sb.from('etapa_floracion').insert({lote_id:LOTE_ACTIVO.id,fecha_inicio:fi,cantidad_ingreso:ci,fecha_fin:document.getElementById('flo-fecha-fin').value||null,cantidad_egreso:parseInt(document.getElementById('flo-egreso').value)||null,bajas:parseInt(document.getElementById('flo-bajas').value)||0,notas:document.getElementById('flo-notas').value||null}));}
   } else if(et==='cosecha_curado'){
     const d=HIST_DATA.cosecha_curado;
-    const fi=document.getElementById('cos-fecha-ini').value;const pi=parseFloat(document.getElementById('cos-peso-ini').value)||null;
-    if(d){({error:err}=await sb.from('etapa_cosecha_curado').update({fecha_inicio_cosecha:fi||null,peso_inicial_curado:pi,tiene_empaque:document.getElementById('cos-empaque').value==='true',tara_empaque:parseFloat(document.getElementById('cos-tara').value)||null,notas:document.getElementById('cos-notas').value||null}).eq('id',d.id));}
-    else if(fi&&pi){({error:err}=await sb.from('etapa_cosecha_curado').insert({lote_id:LOTE_ACTIVO.id,fecha_inicio_cosecha:fi,peso_inicial_curado:pi,tiene_empaque:document.getElementById('cos-empaque').value==='true',tara_empaque:parseFloat(document.getElementById('cos-tara').value)||null,notas:document.getElementById('cos-notas').value||null}));}
+    const fi=document.getElementById('cos-fecha-ini').value||null;
+    const ff=document.getElementById('cos-fecha-fin').value||null;
+    const pi=parseFloat(document.getElementById('cos-peso-ini').value)||null;
+    const tieneEmpB=document.getElementById('cos-empaque').value==='true';
+    const taraB=parseFloat(document.getElementById('cos-tara').value)||null;
+    const notasB=document.getElementById('cos-notas').value||null;
+    if(d){({error:err}=await sb.from('etapa_cosecha_curado').update({fecha_inicio_cosecha:fi,fecha_fin_cosecha:ff,peso_inicial_curado:pi,tiene_empaque:tieneEmpB,tara_empaque:taraB,notas:notasB}).eq('id',d.id));}
+    else if(fi){({error:err}=await sb.from('etapa_cosecha_curado').insert({lote_id:LOTE_ACTIVO.id,fecha_inicio_cosecha:fi,fecha_fin_cosecha:ff,peso_inicial_curado:pi||0,tiene_empaque:tieneEmpB,tara_empaque:taraB,notas:notasB}));}
   }
   if(err){alert('Error al guardar: '+err.message);return;}
   const tbl={nursery:'etapa_nursery',vegetativa:'etapa_vegetativa',floracion:'etapa_floracion',cosecha_curado:'etapa_cosecha_curado'}[et];
@@ -1243,8 +1248,9 @@ async function guardarAvanzar(){
     if(!fi||!pi)return showErr('Completá Fecha inicio cosecha y Peso inicial curado.');
     const pesoSeco=tieneEmp?pi-tara:pi;
     const d=HIST_DATA.cosecha_curado;
-    if(d){({error:dbErr}=await sb.from('etapa_cosecha_curado').update({fecha_inicio_cosecha:fi,peso_inicial_curado:pi,tiene_empaque:tieneEmp,tara_empaque:tieneEmp?tara:null,peso_seco_final:pesoSeco,notas}).eq('id',d.id));}
-    else{({error:dbErr}=await sb.from('etapa_cosecha_curado').insert({lote_id:loteId,fecha_inicio_cosecha:fi,peso_inicial_curado:pi,tiene_empaque:tieneEmp,tara_empaque:tieneEmp?tara:null,peso_seco_final:pesoSeco,notas}));}
+    const ff=document.getElementById('cos-fecha-fin').value||null;
+    if(d){({error:dbErr}=await sb.from('etapa_cosecha_curado').update({fecha_inicio_cosecha:fi,fecha_fin_cosecha:ff,peso_inicial_curado:pi,tiene_empaque:tieneEmp,tara_empaque:tieneEmp?tara:null,peso_seco_final:pesoSeco,notas}).eq('id',d.id));}
+    else{({error:dbErr}=await sb.from('etapa_cosecha_curado').insert({lote_id:loteId,fecha_inicio_cosecha:fi,fecha_fin_cosecha:ff,peso_inicial_curado:pi,tiene_empaque:tieneEmp,tara_empaque:tieneEmp?tara:null,peso_seco_final:pesoSeco,notas}));}
     if(dbErr)return showErr('Error guardando cosecha: '+dbErr.message);
     ({error:dbErr}=await sb.from('flores_cosechadas').insert({lote_id:loteId,stock_inicial:pesoSeco,stock_actual:pesoSeco}));
     if(dbErr)return showErr('Error creando stock de flores: '+dbErr.message);
