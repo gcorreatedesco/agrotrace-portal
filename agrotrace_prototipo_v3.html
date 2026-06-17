@@ -723,6 +723,7 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
         <option value="externo">Externo — compra a tercero (sin registro en sistema)</option>
         <option id="nm-opt-esq-prod" value="esqueje_produccion" style="display:none;">Interno — esqueje de lote en producción</option>
         <option id="nm-opt-esq-mat" value="esqueje_material_basico" style="display:none;">Interno — desde lote de Esquejes (Material Básico)</option>
+        <option id="nm-opt-prod-esq" value="lote_produccion_propio" style="display:none;">Interno — esquejes extraídos de lote de producción</option>
       </select>
     </div>
     <div id="nm-externo" style="display:none;">
@@ -1518,8 +1519,10 @@ function selNM(t){
   // mostrar opciones de origen según tipo
   const optProd=document.getElementById('nm-opt-esq-prod');
   const optMat=document.getElementById('nm-opt-esq-mat');
+  const optProdEsq=document.getElementById('nm-opt-prod-esq');
   if(optProd)optProd.style.display=t==='pm'?'':'none';
   if(optMat)optMat.style.display=t==='pm'?'':'none';
+  if(optProdEsq)optProdEsq.style.display=t==='esquejes'?'':'none';
   // reset origen
   document.getElementById('nm-origen').value='';
   document.getElementById('nm-externo').style.display='none';
@@ -1527,13 +1530,13 @@ function selNM(t){
 }
 function onNMOrigen(v){
   document.getElementById('nm-externo').style.display=v==='externo'?'block':'none';
-  const esInterno=v==='esqueje_produccion'||v==='esqueje_material_basico';
+  const esInterno=v==='esqueje_produccion'||v==='esqueje_material_basico'||v==='lote_produccion_propio';
   document.getElementById('nm-interno').style.display=esInterno?'block':'none';
   if(esInterno){
     const sel=document.getElementById('nm-lote-origen');
     sel.innerHTML='<option value="">— Elegí el lote de origen —</option>';
-    if(v==='esqueje_produccion'){
-      // Esquejes de cualquier lote de producción activo
+    if(v==='esqueje_produccion'||v==='lote_produccion_propio'){
+      // Lotes de producción activos
       LD.forEach(l=>sel.innerHTML+=`<option value="${l.id}">${l.n} (${l.bt})</option>`);
       if(LD.length===0)sel.innerHTML='<option value="">— Sin lotes de producción registrados —</option>';
     } else if(v==='esqueje_material_basico'){
@@ -1557,7 +1560,11 @@ async function guardarMaterial(){
   if(!nombre||!fecha||!origen||!variedad||isNaN(stockIni)||stockIni<=0||!unidad){alert('Completá todos los campos obligatorios.');return;}
   let error;
   if(TIPO_NM==='semillas'){({error}=await sb.from('lotes_semillas').insert({usuario_id:CURRENT_USER.id,nombre_lote:nombre,fecha_adquisicion:fecha,origen_tipo:origen,proveedor:prov,variedad,stock_inicial:stockIni,stock_actual:stockIni,unidad,notas}));}
-  else if(TIPO_NM==='esquejes'){({error}=await sb.from('lotes_esquejes').insert({usuario_id:CURRENT_USER.id,nombre_lote:nombre,fecha_adquisicion:fecha,origen_tipo:origen==='externo'?'externo':'plantas_madre_propio',proveedor:prov,variedad,stock_inicial:Math.round(stockIni),stock_actual:Math.round(stockIni),notas}));}
+  else if(TIPO_NM==='esquejes'){
+    const loteOrigenIdEsq=document.getElementById('nm-lote-origen')?.value||null;
+    const origenTipoEsq=origen==='externo'?'externo':origen==='lote_produccion_propio'?'lote_produccion_propio':'plantas_madre_propio';
+    ({error}=await sb.from('lotes_esquejes').insert({usuario_id:CURRENT_USER.id,nombre_lote:nombre,fecha_adquisicion:fecha,origen_tipo:origenTipoEsq,proveedor:origen==='externo'?prov:null,lote_origen_id:loteOrigenIdEsq||null,variedad,stock_inicial:Math.round(stockIni),stock_actual:Math.round(stockIni),notas}));
+  }
   else if(TIPO_NM==='pm'){
     const loteOrigenId=document.getElementById('nm-lote-origen')?.value||null;
     ({error}=await sb.from('lotes_plantas_madre').insert({usuario_id:CURRENT_USER.id,nombre_lote:nombre,fecha_adquisicion:fecha,origen_tipo:origen,proveedor:origen==='externo'?prov:null,lote_origen_id:loteOrigenId||null,variedad,cantidad_inicial:Math.round(stockIni),cantidad_actual:Math.round(stockIni),notas}));
