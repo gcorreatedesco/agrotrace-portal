@@ -1441,10 +1441,9 @@ function onNMOrigen(v){
     const sel=document.getElementById('nm-lote-origen');
     sel.innerHTML='<option value="">— Elegí el lote de origen —</option>';
     if(v==='esqueje_produccion'){
-      // Esquejes de lotes de producción en curso
-      const activos=LD.filter(l=>['vegetativa','floracion'].includes(l.etapaRaw));
-      activos.forEach(l=>sel.innerHTML+=`<option value="${l.id}">${l.n} (${l.bt})</option>`);
-      if(activos.length===0)sel.innerHTML='<option value="">— Sin lotes en Vegetativa o Floración —</option>';
+      // Esquejes de cualquier lote de producción activo
+      LD.forEach(l=>sel.innerHTML+=`<option value="${l.id}">${l.n} (${l.bt})</option>`);
+      if(LD.length===0)sel.innerHTML='<option value="">— Sin lotes de producción registrados —</option>';
     } else if(v==='esqueje_material_basico'){
       // Lotes de esquejes registrados como Material Básico
       LM.esquejes.forEach(l=>sel.innerHTML+=`<option value="${l.v}">${l.l} (stock: ${l.stock} esquejes)</option>`);
