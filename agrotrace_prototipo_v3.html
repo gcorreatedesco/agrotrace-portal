@@ -940,7 +940,9 @@ function renderTimeline(etapa){
     let cls='tli future',ico=s.ord;
     if(s.ord<curIdx){cls='tli done';ico='✓';}
     else if(s.ord===curIdx){cls='tli active';}
-    const click=s.ord<curIdx?` onclick="openEtapaHist('${s.key}')" style="cursor:pointer;"`:' style="cursor:default;"';
+    let click=' style="cursor:default;"';
+    if(s.ord<curIdx)click=` onclick="openEtapaHist('${s.key}')" style="cursor:pointer;"`;
+    else if(s.ord===curIdx)click=` onclick="volverEtapaActual()" style="cursor:pointer;"` ;
     return`<div class="${cls}"${click}><div class="tln2">${ico}</div><div class="tll">${s.label}</div></div>`;
   }).join('');
 }
