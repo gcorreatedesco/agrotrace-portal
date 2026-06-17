@@ -813,7 +813,7 @@ async function cargarLotes(){
 }
 
 function mapLote(row){
-  const em={nursery:{b:'b-nur',bt:'Nursery',idx:1},vegetativa:{b:'b-veg',bt:'Vegetativa',idx:2},floracion:{b:'b-flo',bt:'Floración',idx:3},cosecha_curado:{b:'b-cos',bt:'Cosecha',idx:4},flores:{b:'b-fl2',bt:'Flores',idx:5}};
+  const em={nursery:{b:'b-nur',bt:'Nursery',idx:1},vegetativa:{b:'b-veg',bt:'Vegetativa',idx:2},floracion:{b:'b-flo',bt:'Floración',idx:3},cosecha_curado:{b:'b-cos',bt:'Cosecha y Curado',idx:4},flores:{b:'b-fl2',bt:'Flores Cosechadas',idx:5}};
   const info=em[row.etapa_actual]||{b:'b-nur',bt:row.etapa_actual,idx:1};
   const steps=[0,0,0,0,0];
   for(let i=0;i<info.idx-1;i++)steps[i]=1;
@@ -900,8 +900,14 @@ function rAll(cid,fe){
 }
 
 async function openLote(id){
-  const lote=LD.find(l=>l.id===id);
-  if(!lote)return;
+  let lote=LD.find(l=>l.id===id);
+  if(!lote){
+    const{data}=await sb.from('lotes_produccion').select('*').eq('id',id).single();
+    if(!data)return;
+    lote=mapLote(data);
+    const idx=LD.findIndex(l=>l.id===id);
+    if(idx>=0)LD[idx]=lote;else LD.push(lote);
+  }
   LOTE_ACTIVO=lote;
   HIST_DATA={};
   const emap={nursery:'Nursery · orden 1',vegetativa:'Vegetativa · orden 2',floracion:'Floración · orden 3',cosecha:'Cosecha y Curado · orden 4',cosecha_curado:'Cosecha y Curado · orden 4',flores:'Flores Cosechadas · orden 5'};
@@ -928,7 +934,7 @@ async function openLote(id){
 }
 
 function renderTimeline(etapa){
-  const stages=[{key:'nursery',label:'Nursery',ord:1},{key:'vegetativa',label:'Vegetativa',ord:2},{key:'floracion',label:'Floración',ord:3},{key:'cosecha_curado',label:'Cosecha',ord:4},{key:'flores',label:'Flores',ord:5}];
+  const stages=[{key:'nursery',label:'Nursery',ord:1},{key:'vegetativa',label:'Vegetativa',ord:2},{key:'floracion',label:'Floración',ord:3},{key:'cosecha_curado',label:'Cosecha y Curado',ord:4},{key:'flores',label:'Flores Cosechadas',ord:5}];
   const curIdx={nursery:1,vegetativa:2,floracion:3,cosecha_curado:4,flores:5}[etapa]||1;
   document.getElementById('det-timeline').innerHTML=stages.map(s=>{
     let cls='tli future',ico=s.ord;
