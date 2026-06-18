@@ -1442,6 +1442,7 @@ async function cargarHistorialEntregas(){
           ${corrRows}${origRow}
         </div>
       </div>`:'';
+    const fcId='fc-'+e.id.replace(/-/g,'');
     return`<div style="padding:8px 0;border-bottom:1px solid rgba(0,0,0,0.06);">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;">
         <div>
@@ -1451,27 +1452,26 @@ async function cargarHistorialEntregas(){
         <div style="text-align:right;flex-shrink:0;margin-left:10px;">
           <div style="font-weight:500;color:var(--soil);">${e.cantidad_otorgada} g</div>
           <div style="font-size:0.65rem;color:var(--sage);">${fmtDate(e.fecha_entrega)}</div>
-          <button onclick="abrirFormCorreccion('${e.id}')" style="font-size:0.6rem;color:var(--accent);background:none;border:1px solid var(--accent);border-radius:4px;padding:1px 6px;cursor:pointer;margin-top:3px;">Corregir</button>
+          <button onclick="abrirFormCorreccion('${e.id}','${fcId}')" style="font-size:0.6rem;color:var(--accent);background:none;border:1px solid var(--accent);border-radius:4px;padding:1px 6px;cursor:pointer;margin-top:3px;">Corregir</button>
         </div>
       </div>
       ${desplegable}
+      <div id="${fcId}" style="display:none;margin-top:10px;padding:12px;background:var(--amber-bg);border-radius:var(--radius-lg);">
+        <div style="font-size:0.68rem;font-weight:500;color:var(--amber);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.06em;">Corrección de entrega</div>
+        <div class="field"><label>Nro. REPROCANN<span class="req">*</span></label><input type="text" id="corr-reprocann-${fcId}" value="${e.nro_reprocann}"/></div>
+        <div class="g2">
+          <div class="field"><label>Cantidad (gramos)<span class="req">*</span></label><input type="number" id="corr-cantidad-${fcId}" value="${e.cantidad_otorgada}" min="0.1" step="0.1"/></div>
+          <div class="field"><label>Corregido por<span class="opt">opcional</span></label><input type="text" id="corr-por-${fcId}" placeholder="Nombre del responsable"/></div>
+        </div>
+        <div class="field"><label>Notas<span class="opt">opcional</span></label><input type="text" id="corr-notas-${fcId}" placeholder="Motivo de la corrección..."/></div>
+        <div class="ab">
+          <button class="btn btn-secondary" onclick="document.getElementById('${fcId}').style.display='none'">Cancelar</button>
+          <button class="btn btn-primary" onclick="guardarCorreccion('${e.id}','${fcId}')">Guardar corrección</button>
+        </div>
+      </div>
     </div>`;
   }).join('')+`<div style="display:flex;justify-content:space-between;padding:8px 0 2px;border-top:1px solid rgba(0,0,0,0.08);margin-top:4px;font-size:0.72rem;font-weight:500;color:var(--soil);">
     <span>Total entregado</span><span>${Math.round(total*100)/100} g</span>
-  </div>
-  <div id="form-correccion" style="display:none;margin-top:12px;padding:12px;background:var(--amber-bg);border-radius:var(--radius-lg);">
-    <div style="font-size:0.68rem;font-weight:500;color:var(--amber);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.06em;">Corregir entrega</div>
-    <input type="hidden" id="corr-entrega-id"/>
-    <div class="field"><label>Nro. REPROCANN<span class="req">*</span></label><input type="text" id="corr-reprocann"/></div>
-    <div class="g2">
-      <div class="field"><label>Cantidad (gramos)<span class="req">*</span></label><input type="number" id="corr-cantidad" min="0.1" step="0.1"/></div>
-      <div class="field"><label>Corregido por<span class="opt">opcional</span></label><input type="text" id="corr-por" placeholder="Nombre del responsable"/></div>
-    </div>
-    <div class="field"><label>Notas<span class="opt">opcional</span></label><input type="text" id="corr-notas" placeholder="Motivo de la corrección..."/></div>
-    <div class="ab">
-      <button class="btn btn-secondary" onclick="cerrarFormCorreccion()">Cancelar</button>
-      <button class="btn btn-primary" onclick="guardarCorreccion()">Guardar corrección</button>
-    </div>
   </div>`;
   el.dataset.cargado='1';
 }
@@ -1485,30 +1485,22 @@ function toggleCorrecciones(id){
   if(arrow)arrow.textContent=open?'▼':'▶';
 }
 
-function abrirFormCorreccion(entregaId){
-  // buscar datos actuales de la entrega en el DOM no es fiable; los guardamos en HIST_DATA
-  const entregas=HIST_DATA._entregas||[];
-  const e=entregas.find(x=>x.id===entregaId);
-  document.getElementById('corr-entrega-id').value=entregaId;
-  document.getElementById('corr-reprocann').value=e?.nro_reprocann||'';
-  document.getElementById('corr-cantidad').value=e?.cantidad_otorgada||'';
-  document.getElementById('corr-notas').value='';
-  document.getElementById('corr-por').value='';
-  const fc=document.getElementById('form-correccion');
-  if(fc){fc.style.display='block';fc.scrollIntoView({behavior:'smooth',block:'nearest'});}
+function abrirFormCorreccion(entregaId,fcId){
+  // cerrar cualquier otro formulario abierto
+  document.querySelectorAll('[id^="fc-"]').forEach(el=>{if(el.id!==fcId)el.style.display='none';});
+  const fc=document.getElementById(fcId);
+  if(fc){fc.style.display=fc.style.display==='none'?'block':'none';if(fc.style.display==='block')fc.scrollIntoView({behavior:'smooth',block:'nearest'});}
 }
 
 function cerrarFormCorreccion(){
-  const fc=document.getElementById('form-correccion');
-  if(fc)fc.style.display='none';
+  document.querySelectorAll('[id^="fc-"]').forEach(el=>el.style.display='none');
 }
 
-async function guardarCorreccion(){
-  const entregaId=document.getElementById('corr-entrega-id')?.value;
-  const nuevoReprocann=document.getElementById('corr-reprocann')?.value.trim();
-  const nuevaCantStr=document.getElementById('corr-cantidad')?.value;
-  const corregidoPor=document.getElementById('corr-por')?.value.trim()||null;
-  const notas=document.getElementById('corr-notas')?.value.trim()||null;
+async function guardarCorreccion(entregaId,fcId){
+  const nuevoReprocann=document.getElementById('corr-reprocann-'+fcId)?.value.trim();
+  const nuevaCantStr=document.getElementById('corr-cantidad-'+fcId)?.value;
+  const corregidoPor=document.getElementById('corr-por-'+fcId)?.value.trim()||null;
+  const notas=document.getElementById('corr-notas-'+fcId)?.value.trim()||null;
   if(!nuevoReprocann){alert('El Nro. REPROCANN es obligatorio.');return;}
   const nuevaCant=parseFloat(nuevaCantStr);
   if(!nuevaCant||nuevaCant<=0){alert('La cantidad debe ser mayor a 0.');return;}
@@ -1537,7 +1529,7 @@ async function guardarCorreccion(){
   }
   // actualizar entrega en cache local
   e.nro_reprocann=nuevoReprocann;e.cantidad_otorgada=nuevaCant;if(notas)e.notas=notas;
-  cerrarFormCorreccion();
+  document.getElementById(fcId).style.display='none';
   await cargarHistorialEntregas();
   const el=document.getElementById('det-panel');
   if(el)el.innerHTML=panelFlores();
