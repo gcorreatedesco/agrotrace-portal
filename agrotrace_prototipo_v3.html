@@ -1407,25 +1407,140 @@ function panelFlores(){
 
 async function cargarHistorialEntregas(){
   const el=document.getElementById('hist-entregas');
-  if(!el||el.dataset.cargado)return;
+  if(!el)return;
+  el.dataset.cargado='0'; // siempre recarga para reflejar correcciones nuevas
   const floresId=HIST_DATA.flores?.id;
   if(!floresId){el.innerHTML='<div class="hist-empty">Sin datos de flores disponibles.</div>';return;}
   const{data,error}=await sb.from('entregas').select('*').eq('flores_id',floresId).order('fecha_entrega',{ascending:false});
   if(error||!data||data.length===0){el.innerHTML='<div class="hist-empty">Sin entregas registradas para este lote.</div>';el.dataset.cargado='1';return;}
+  HIST_DATA._entregas=data; // cache para correcciones
+  // cargar correcciones de todas las entregas en paralelo
+  const corrs=await Promise.all(data.map(e=>sb.from('entregas_correcciones').select('*').eq('entrega_id',e.id).order('fecha_correccion',{ascending:false})));
   const total=data.reduce((s,e)=>s+(e.cantidad_otorgada||0),0);
-  el.innerHTML=data.map(e=>`<div class="hist-item">
-    <div class="hist-item-desc">
-      <strong>REPROCANN: ${e.nro_reprocann}</strong><br>
-      <span style="color:var(--sage);">${e.notas||''}</span>
-    </div>
-    <div style="text-align:right;">
-      <div style="font-weight:500;color:var(--soil);">${e.cantidad_otorgada} g</div>
-      <div class="hist-item-meta">${fmtDate(e.fecha_entrega)}</div>
-    </div>
-  </div>`).join('')+`<div style="display:flex;justify-content:space-between;padding:8px 0 2px;border-top:1px solid rgba(0,0,0,0.08);margin-top:4px;font-size:0.72rem;font-weight:500;color:var(--soil);">
+  el.innerHTML=data.map((e,i)=>{
+    const cc=corrs[i]?.data||[];
+    const tieneCorrecciones=cc.length>0;
+    const corrId='corr-'+e.id.replace(/-/g,'');
+    const corrRows=cc.map((c,ci)=>`
+      <div style="padding:6px 0 4px;border-bottom:1px solid rgba(0,0,0,0.04);font-size:0.68rem;">
+        <div style="color:var(--amber);font-weight:500;margin-bottom:3px;">↳ Corrección ${cc.length-ci} — ${fmtDate(c.fecha_correccion?.split('T')[0])}${c.corregido_por?' — '+c.corregido_por:''}</div>
+        ${c.nro_reprocann_ant!==c.nro_reprocann_nvo?`<div style="color:var(--sage);">REPROCANN: <span style="text-decoration:line-through;">${c.nro_reprocann_ant}</span> → <strong>${c.nro_reprocann_nvo}</strong></div>`:''}
+        ${c.cantidad_ant!==c.cantidad_nvo?`<div style="color:var(--sage);">Cantidad: <span style="text-decoration:line-through;">${c.cantidad_ant} g</span> → <strong>${c.cantidad_nvo} g</strong></div>`:''}
+        ${c.notas_nvo&&c.notas_nvo!==c.notas_ant?`<div style="color:var(--sage);">Notas: ${c.notas_nvo}</div>`:''}
+      </div>`).join('');
+    const origRow=`
+      <div style="padding:6px 0 2px;font-size:0.68rem;">
+        <div style="color:var(--sage);font-weight:500;margin-bottom:3px;">↳ Registro original</div>
+        <div style="color:var(--sage);">REPROCANN: ${tieneCorrecciones?cc[cc.length-1].nro_reprocann_ant:e.nro_reprocann} · ${tieneCorrecciones?cc[cc.length-1].cantidad_ant:e.cantidad_otorgada} g${e.registrado_por?' · Cargado por: '+e.registrado_por:' · Cargado por: —'}</div>
+      </div>`;
+    const desplegable=tieneCorrecciones?`
+      <div style="margin-top:4px;">
+        <div onclick="toggleCorrecciones('${corrId}')" style="font-size:0.65rem;color:var(--amber);cursor:pointer;display:flex;align-items:center;gap:4px;">
+          <span id="${corrId}-arrow">▶</span> Correcciones (${cc.length})
+        </div>
+        <div id="${corrId}" style="display:none;margin-top:6px;padding:6px 10px;background:var(--cream);border-radius:var(--radius);">
+          ${corrRows}${origRow}
+        </div>
+      </div>`:'';
+    return`<div style="padding:8px 0;border-bottom:1px solid rgba(0,0,0,0.06);">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div>
+          <div style="font-size:0.78rem;font-weight:500;color:var(--soil);">REPROCANN: ${e.nro_reprocann}</div>
+          <div style="font-size:0.68rem;color:var(--sage);margin-top:1px;">${e.registrado_por?'Entregado por: '+e.registrado_por:''}${e.notas?'<br>'+e.notas:''}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;margin-left:10px;">
+          <div style="font-weight:500;color:var(--soil);">${e.cantidad_otorgada} g</div>
+          <div style="font-size:0.65rem;color:var(--sage);">${fmtDate(e.fecha_entrega)}</div>
+          <button onclick="abrirFormCorreccion('${e.id}')" style="font-size:0.6rem;color:var(--accent);background:none;border:1px solid var(--accent);border-radius:4px;padding:1px 6px;cursor:pointer;margin-top:3px;">Corregir</button>
+        </div>
+      </div>
+      ${desplegable}
+    </div>`;
+  }).join('')+`<div style="display:flex;justify-content:space-between;padding:8px 0 2px;border-top:1px solid rgba(0,0,0,0.08);margin-top:4px;font-size:0.72rem;font-weight:500;color:var(--soil);">
     <span>Total entregado</span><span>${Math.round(total*100)/100} g</span>
+  </div>
+  <div id="form-correccion" style="display:none;margin-top:12px;padding:12px;background:var(--amber-bg);border-radius:var(--radius-lg);">
+    <div style="font-size:0.68rem;font-weight:500;color:var(--amber);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.06em;">Corregir entrega</div>
+    <input type="hidden" id="corr-entrega-id"/>
+    <div class="field"><label>Nro. REPROCANN<span class="req">*</span></label><input type="text" id="corr-reprocann"/></div>
+    <div class="g2">
+      <div class="field"><label>Cantidad (gramos)<span class="req">*</span></label><input type="number" id="corr-cantidad" min="0.1" step="0.1"/></div>
+      <div class="field"><label>Corregido por<span class="opt">opcional</span></label><input type="text" id="corr-por" placeholder="Nombre del responsable"/></div>
+    </div>
+    <div class="field"><label>Notas<span class="opt">opcional</span></label><input type="text" id="corr-notas" placeholder="Motivo de la corrección..."/></div>
+    <div class="ab">
+      <button class="btn btn-secondary" onclick="cerrarFormCorreccion()">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarCorreccion()">Guardar corrección</button>
+    </div>
   </div>`;
   el.dataset.cargado='1';
+}
+
+function toggleCorrecciones(id){
+  const el=document.getElementById(id);
+  const arrow=document.getElementById(id+'-arrow');
+  if(!el)return;
+  const open=el.style.display==='none';
+  el.style.display=open?'block':'none';
+  if(arrow)arrow.textContent=open?'▼':'▶';
+}
+
+function abrirFormCorreccion(entregaId){
+  // buscar datos actuales de la entrega en el DOM no es fiable; los guardamos en HIST_DATA
+  const entregas=HIST_DATA._entregas||[];
+  const e=entregas.find(x=>x.id===entregaId);
+  document.getElementById('corr-entrega-id').value=entregaId;
+  document.getElementById('corr-reprocann').value=e?.nro_reprocann||'';
+  document.getElementById('corr-cantidad').value=e?.cantidad_otorgada||'';
+  document.getElementById('corr-notas').value='';
+  document.getElementById('corr-por').value='';
+  const fc=document.getElementById('form-correccion');
+  if(fc){fc.style.display='block';fc.scrollIntoView({behavior:'smooth',block:'nearest'});}
+}
+
+function cerrarFormCorreccion(){
+  const fc=document.getElementById('form-correccion');
+  if(fc)fc.style.display='none';
+}
+
+async function guardarCorreccion(){
+  const entregaId=document.getElementById('corr-entrega-id')?.value;
+  const nuevoReprocann=document.getElementById('corr-reprocann')?.value.trim();
+  const nuevaCantStr=document.getElementById('corr-cantidad')?.value;
+  const corregidoPor=document.getElementById('corr-por')?.value.trim()||null;
+  const notas=document.getElementById('corr-notas')?.value.trim()||null;
+  if(!nuevoReprocann){alert('El Nro. REPROCANN es obligatorio.');return;}
+  const nuevaCant=parseFloat(nuevaCantStr);
+  if(!nuevaCant||nuevaCant<=0){alert('La cantidad debe ser mayor a 0.');return;}
+  const entregas=HIST_DATA._entregas||[];
+  const e=entregas.find(x=>x.id===entregaId);
+  if(!e){alert('Error: no se encontró la entrega original.');return;}
+  const diff=nuevaCant-e.cantidad_otorgada;
+  const nuevoStock=Math.round((HIST_DATA.flores.stock_actual-diff)*100)/100;
+  if(nuevoStock<0){alert(`La corrección dejaría el stock en ${nuevoStock} g. No es posible.`);return;}
+  // guardar corrección
+  const{error:corrErr}=await sb.from('entregas_correcciones').insert({
+    entrega_id:entregaId,
+    nro_reprocann_ant:e.nro_reprocann,cantidad_ant:e.cantidad_otorgada,notas_ant:e.notas,registrado_por_ant:e.registrado_por,
+    nro_reprocann_nvo:nuevoReprocann,cantidad_nvo:nuevaCant,notas_nvo:notas,
+    corregido_por:corregidoPor
+  });
+  if(corrErr){alert('Error al guardar la corrección: '+corrErr.message);return;}
+  // actualizar entrega
+  const{error:entErr}=await sb.from('entregas').update({nro_reprocann:nuevoReprocann,cantidad_otorgada:nuevaCant,notas:notas??e.notas}).eq('id',entregaId);
+  if(entErr){alert('Error al actualizar la entrega: '+entErr.message);return;}
+  // actualizar stock si cambió la cantidad
+  if(diff!==0){
+    const{error:stockErr}=await sb.from('flores_cosechadas').update({stock_actual:nuevoStock}).eq('id',HIST_DATA.flores.id);
+    if(stockErr){alert('Error al actualizar el stock: '+stockErr.message);return;}
+    HIST_DATA.flores.stock_actual=nuevoStock;
+  }
+  // actualizar entrega en cache local
+  e.nro_reprocann=nuevoReprocann;e.cantidad_otorgada=nuevaCant;if(notas)e.notas=notas;
+  cerrarFormCorreccion();
+  await cargarHistorialEntregas();
+  const el=document.getElementById('det-panel');
+  if(el)el.innerHTML=panelFlores();
 }
 
 function abrirFormEntrega(){
@@ -1465,7 +1580,8 @@ async function guardarEntrega(){
     nro_reprocann:reprocann,
     fecha_entrega:fecha,
     cantidad_otorgada:cantidad,
-    notas:entregador?`Entregado por: ${entregador}${notas?' — '+notas:''}`:notas||null
+    registrado_por:entregador||null,
+    notas:notas||null
   });
   if(entErr){alert('Error al registrar la entrega: '+entErr.message);return;}
   const nuevoStock=Math.round((stockActual-cantidad)*100)/100;
