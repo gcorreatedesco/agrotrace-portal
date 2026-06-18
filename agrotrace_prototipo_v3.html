@@ -57,6 +57,9 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);c
 .topbar-title{font-size:0.95rem;font-weight:500;color:var(--soil);}
 .topbar-sub{font-size:0.72rem;color:var(--sage);margin-top:1px;}
 .topbar-actions{display:flex;gap:8px;}
+.topbar-back{display:flex;align-items:center;gap:6px;padding:5px 10px;border-radius:var(--radius);font-size:0.75rem;color:var(--sage);cursor:pointer;border:1px solid rgba(0,0,0,0.1);background:transparent;transition:all var(--trans);white-space:nowrap;font-family:'DM Sans',sans-serif;}
+.topbar-back:hover{color:var(--soil);border-color:var(--soil);background:var(--cream);}
+.topbar-back svg{width:12px;height:12px;fill:currentColor;}
 .btn{padding:7px 14px;border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:0.78rem;font-weight:500;cursor:pointer;transition:all var(--trans);border:none;}
 .btn-primary{background:var(--accent);color:white;}
 .btn-primary:hover{background:#3d6230;}
@@ -417,7 +420,10 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
 <!-- ══ MAIN ══ -->
 <div class="main">
 <div class="topbar">
-  <div><div class="topbar-title" id="tt">Dashboard</div><div class="topbar-sub" id="ts">Resumen de tu producción</div></div>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <button class="topbar-back" id="tb-back" style="display:none;" onclick="volverDesdePantalla()"><svg viewBox="0 0 16 16"><path d="M10 3L5 8l5 5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg> <span id="tb-back-label">Volver</span></button>
+    <div><div class="topbar-title" id="tt">Dashboard</div><div class="topbar-sub" id="ts">Resumen de tu producción</div></div>
+  </div>
   <div class="topbar-actions" id="ta"></div>
 </div>
 <div class="content">
@@ -1365,17 +1371,82 @@ function panelFlores(){
   const agotado=d.stock_actual!=null&&d.stock_actual<=0;
   const yaCompletado=LOTE_ACTIVO?.etapaRaw==='completado';
   const cerrarBanner=agotado&&!yaCompletado?`<div class="cerrar-banner"><div class="cerrar-banner-txt"><strong>Existencias agotadas</strong><br>Todas las flores de este lote fueron entregadas. Podés cerrar el lote y moverlo al historial.</div><button class="btn btn-primary" onclick="cerrarLoteAgotado()">Cerrar lote →</button></div>`:'';
-  const botones=yaCompletado?'':`<div class="ab" style="margin-top:12px;"><button class="btn btn-primary" onclick="alert('Función: registrar entrega a paciente — en desarrollo')">+ Registrar entrega</button></div>`;
+  const botones=yaCompletado||agotado?'':`<div class="ab" style="margin-top:12px;"><button class="btn btn-primary" onclick="abrirFormEntrega()">+ Registrar entrega</button></div>`;
   return`<div class="panel">
     <div class="pt">Flores Cosechadas${yaCompletado?' <span style="font-size:0.65rem;color:var(--accent);font-weight:400;text-transform:none;">— lote completado</span>':''}</div>
     <div class="g2">
       <div class="field"><label>Stock inicial</label><div class="ro-val">${d.stock_inicial!=null?d.stock_inicial+' g':'—'}</div></div>
-      <div class="field"><label>Stock actual</label><div class="ro-val">${d.stock_actual!=null?d.stock_actual+' g':'—'}</div></div>
+      <div class="field"><label>Stock actual</label><div class="ro-val" id="flores-stock-actual">${d.stock_actual!=null?d.stock_actual+' g':'—'}</div></div>
     </div>
     ${d.fecha_disponible?`<div class="field"><label>Fecha disponible</label><div class="ro-val">${fmtDate(d.fecha_disponible)}</div></div>`:''}
     ${botones}
+    <div id="form-entrega" style="display:none;margin-top:14px;border-top:1px solid rgba(0,0,0,0.07);padding-top:14px;">
+      <div class="pt" style="margin-bottom:10px;">Nueva entrega a paciente</div>
+      <div class="field"><label>Nro. REPROCANN del paciente<span class="req">*</span></label><input type="text" id="ent-reprocann" placeholder="Ej: 0001-2024-RPC"/></div>
+      <div class="g2">
+        <div class="field"><label>Fecha de entrega<span class="req">*</span></label><input type="date" id="ent-fecha"/></div>
+        <div class="field"><label>Cantidad (gramos)<span class="req">*</span></label><input type="number" id="ent-cantidad" placeholder="0" min="0.1" step="0.1"/></div>
+      </div>
+      <div class="field"><label>Nombre de quien entrega<span class="opt">opcional</span></label><input type="text" id="ent-entregador" placeholder="Nombre del responsable de la entrega"/></div>
+      <div class="field"><label>Notas<span class="opt">opcional</span></label><input type="text" id="ent-notas" placeholder="Observaciones..."/></div>
+      <div class="ib" style="margin-bottom:10px;">Stock disponible: <strong id="ent-stock-disp">—</strong> g</div>
+      <div class="ab">
+        <button class="btn btn-secondary" onclick="cerrarFormEntrega()">Cancelar</button>
+        <button class="btn btn-primary" onclick="guardarEntrega()">Registrar entrega</button>
+      </div>
+    </div>
     ${cerrarBanner}
   </div>`;
+}
+
+function abrirFormEntrega(){
+  const form=document.getElementById('form-entrega');
+  if(!form)return;
+  form.style.display='block';
+  const stock=HIST_DATA.flores?.stock_actual||0;
+  const disp=document.getElementById('ent-stock-disp');
+  if(disp)disp.textContent=stock;
+  const fechaEl=document.getElementById('ent-fecha');
+  if(fechaEl)fechaEl.value=new Date().toISOString().split('T')[0];
+  document.getElementById('ent-reprocann')?.focus();
+}
+
+function cerrarFormEntrega(){
+  const form=document.getElementById('form-entrega');
+  if(form)form.style.display='none';
+  ['ent-reprocann','ent-fecha','ent-cantidad','ent-entregador','ent-notas'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+}
+
+async function guardarEntrega(){
+  const reprocann=document.getElementById('ent-reprocann')?.value.trim();
+  const fecha=document.getElementById('ent-fecha')?.value;
+  const cantStr=document.getElementById('ent-cantidad')?.value;
+  const entregador=document.getElementById('ent-entregador')?.value.trim()||null;
+  const notas=document.getElementById('ent-notas')?.value.trim()||null;
+  if(!reprocann){alert('El Nro. REPROCANN del paciente es obligatorio.');return;}
+  if(!fecha){alert('La fecha de entrega es obligatoria.');return;}
+  const cantidad=parseFloat(cantStr);
+  if(!cantidad||cantidad<=0){alert('La cantidad debe ser mayor a 0.');return;}
+  const stockActual=HIST_DATA.flores?.stock_actual||0;
+  if(cantidad>stockActual){alert(`La cantidad (${cantidad} g) supera el stock disponible (${stockActual} g).`);return;}
+  const floresId=HIST_DATA.flores?.id;
+  if(!floresId){alert('Error: no se encontró el registro de flores cosechadas.');return;}
+  const{error:entErr}=await sb.from('entregas').insert({
+    flores_id:floresId,
+    nro_reprocann:reprocann,
+    fecha_entrega:fecha,
+    cantidad_otorgada:cantidad,
+    notas:entregador?`Entregado por: ${entregador}${notas?' — '+notas:''}`:notas||null
+  });
+  if(entErr){alert('Error al registrar la entrega: '+entErr.message);return;}
+  const nuevoStock=Math.round((stockActual-cantidad)*100)/100;
+  const{error:stockErr}=await sb.from('flores_cosechadas').update({stock_actual:nuevoStock}).eq('id',floresId);
+  if(stockErr){alert('Error al actualizar el stock: '+stockErr.message);return;}
+  HIST_DATA.flores.stock_actual=nuevoStock;
+  cerrarFormEntrega();
+  const el=document.getElementById('det-panel');
+  if(el)el.innerHTML=panelFlores();
+  alert(`Entrega registrada correctamente.\nStock restante: ${nuevoStock} g`);
 }
 
 function openEtapaHist(key){
@@ -1410,6 +1481,7 @@ async function guardarEtapaHist(key){
 }
 
 /* ── NAVIGATION ── */
+let PREV_VIEW='lotes';
 function sv(id){
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.getElementById('view-'+id).classList.add('active');
@@ -1418,17 +1490,27 @@ function sv(id){
     dashboard:['Dashboard','Resumen de tu producción','<button class="btn btn-primary" onclick="sv(\'nuevo-lote\')">+ Nuevo lote</button>'],
     lotes:['Mis lotes productivos','Gestión de lotes de producción','<button class="btn btn-primary" onclick="sv(\'nuevo-lote\')">+ Nuevo lote</button>'],
     detalle:['Detalle de lote','Etapa activa · gestión y carga de datos',''],
+    'detalle-material':['Detalle de material básico','Datos del lote de material',''],
     'nuevo-lote':['Nuevo lote','Crear un lote de producción',''],
     stock:['Stock de material básico','Semillas · Esquejes · Plantas Madre','<button class="btn btn-primary" onclick="sv(\'nuevo-material\')">+ Nuevo lote de material básico</button>'],
     'nuevo-material':['Nuevo lote de material básico','Registrar ingreso de material',''],
     busqueda:['Búsqueda de lotes','Resultados de búsqueda por nombre',''],
   };
   if(mp[id]){document.getElementById('tt').textContent=mp[id][0];document.getElementById('ts').textContent=mp[id][1];document.getElementById('ta').innerHTML=mp[id][2];}
-  if(id==='lotes')rAll('lotes-list','todos');
+  // botón de retorno
+  const backBtn=document.getElementById('tb-back');
+  const backLabel=document.getElementById('tb-back-label');
+  const conBack=['detalle','detalle-material'];
+  if(backBtn){
+    if(id==='detalle'){PREV_VIEW='lotes';backBtn.style.display='flex';backLabel.textContent='Mis Lotes';}
+    else if(id==='detalle-material'){PREV_VIEW='stock';backBtn.style.display='flex';backLabel.textContent='Stock';}
+    else{backBtn.style.display='none';}
+  }
+  if(id==='lotes'){rAll('lotes-list','todos');}
   if(id==='dashboard')rAll('dash-lotes','todos');
-  if(id==='lotes')rAll('lotes-list','todos');
   if(id==='stock')renderStock();
 }
+function volverDesdePantalla(){sv(PREV_VIEW);}
 
 function fD(el,et){document.querySelectorAll('#view-dashboard .pill').forEach(p=>p.classList.remove('active'));el.classList.add('active');rAll('dash-lotes',et);}
 function fL(el,et){
