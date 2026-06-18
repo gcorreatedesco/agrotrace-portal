@@ -330,6 +330,20 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
 .no-results-msg{text-align:center;padding:32px;color:var(--sage);font-size:0.82rem;}
 .sl{cursor:pointer;transition:background var(--trans);}
 .sl:hover{background:var(--dew);border-radius:var(--radius);}
+.hist-section{margin-top:10px;border:1px solid rgba(0,0,0,0.08);border-radius:var(--radius-lg);overflow:hidden;}
+.hist-section-header{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--cream);cursor:pointer;font-size:0.75rem;font-weight:500;color:var(--bark);user-select:none;}
+.hist-section-header:hover{background:var(--dew);}
+.hist-section-header .hs-arrow{font-size:0.65rem;color:var(--sage);transition:transform 0.2s ease;}
+.hist-section-header.open .hs-arrow{transform:rotate(180deg);}
+.hist-section-body{display:none;padding:10px 14px;background:var(--white);}
+.hist-section-body.open{display:block;}
+.hist-item{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(0,0,0,0.05);font-size:0.72rem;}
+.hist-item:last-child{border-bottom:none;}
+.hist-item-desc{color:var(--bark);}
+.hist-item-meta{color:var(--sage);text-align:right;}
+.hist-empty{font-size:0.72rem;color:var(--sage);padding:6px 0;font-style:italic;}
+.btn-danger{background:var(--error);color:white;}
+.btn-danger:hover{background:#a03020;}
 </style>
 </head>
 <body>
@@ -695,9 +709,12 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
       <div class="field"><label>Fecha<span class="req">*</span></label><input type="date" id="b-fecha"/></div>
       <div class="field"><label>Motivo<span class="req">*</span></label><input type="text" id="b-motivo" placeholder="Ej: deterioro, vencimiento, pérdida, error de conteo..."/></div>
     </div>
-    <div class="ab">
-      <button class="btn btn-secondary">Cancelar</button>
-      <button class="btn btn-primary" onclick="guardarBaja()">Registrar baja</button>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:14px;">
+      <button class="btn btn-danger" onclick="eliminarTotalidadLote()" style="flex-shrink:0;">⚠ Eliminar totalidad</button>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-secondary">Cancelar</button>
+        <button class="btn btn-primary" onclick="guardarBaja()">Registrar baja</button>
+      </div>
     </div>
   </div>
 </div>
@@ -942,7 +959,72 @@ function renderPanelMaterial(editando){
     :`<button class="btn btn-secondary" onclick="sv('stock')">← Volver</button>
       <button class="btn btn-advance" onclick="habilitarEdicionMaterial()">✏ Editar datos</button>`;
 
-  el.innerHTML=`<div class="pt">${editando?'Editar lote — modificando datos':'Datos del lote'}</div>${filas}<div class="ab">${botones}</div>`;
+  const historial=editando?'':`
+    <div class="hist-section" style="margin-top:14px;">
+      <div class="hist-section-header" onclick="toggleHistSection(this,'hist-uso')">
+        Historial de uso en Lotes de Producción <span class="hs-arrow">▼</span>
+      </div>
+      <div class="hist-section-body" id="hist-uso">
+        <div class="hist-empty">Cargando...</div>
+      </div>
+    </div>
+    <div class="hist-section" style="margin-top:6px;">
+      <div class="hist-section-header" onclick="toggleHistSection(this,'hist-bajas')">
+        Registro de bajas de stock <span class="hs-arrow">▼</span>
+      </div>
+      <div class="hist-section-body" id="hist-bajas">
+        <div class="hist-empty">Cargando...</div>
+      </div>
+    </div>`;
+
+  el.innerHTML=`<div class="pt">${editando?'Editar lote — modificando datos':'Datos del lote'}</div>${filas}<div class="ab">${botones}</div>${historial}`;
+
+  if(!editando)cargarHistorialMaterial();
+}
+
+function toggleHistSection(header,bodyId){
+  header.classList.toggle('open');
+  document.getElementById(bodyId).classList.toggle('open');
+}
+
+async function cargarHistorialMaterial(){
+  const id=MAT_ACTIVO.id;const tipo=MAT_TIPO;
+
+  // ── HISTORIAL DE USO EN LOTES DE PRODUCCIÓN ──
+  const usoEl=document.getElementById('hist-uso');
+  let lotesFiltrados=[];
+  if(tipo==='semillas'){const{data}=await sb.from('lotes_produccion').select('id,nombre_completo,creado_en,etapa_actual').eq('origen_semilla_id',id).order('creado_en');lotesFiltrados=data||[];}
+  else if(tipo==='esquejes'){const{data}=await sb.from('lotes_produccion').select('id,nombre_completo,creado_en,etapa_actual').eq('origen_esqueje_id',id).order('creado_en');lotesFiltrados=data||[];}
+  else if(tipo==='pm'){const{data}=await sb.from('lotes_produccion').select('id,nombre_completo,creado_en,etapa_actual').eq('origen_pm_id',id).order('creado_en');lotesFiltrados=data||[];}
+
+  // cantidades usadas desde etapa_nursery
+  let usoHtml='';
+  if(lotesFiltrados.length===0){
+    usoHtml='<div class="hist-empty">Sin uso registrado en lotes de producción.</div>';
+  } else {
+    for(const lote of lotesFiltrados){
+      let cant='—';
+      if(tipo==='semillas'||tipo==='esquejes'){
+        const{data:nur}=await sb.from('etapa_nursery').select('cantidad_ingreso,material_utilizado,fecha_inicio').eq('lote_id',lote.id??'').maybeSingle();
+        if(nur)cant=(tipo==='semillas'?(nur.material_utilizado||nur.cantidad_ingreso):nur.cantidad_ingreso)+' '+( tipo==='semillas'?'unidades':'esquejes');
+      }
+      const em={nursery:'Nursery',vegetativa:'Vegetativa',floracion:'Floración',cosecha_curado:'Cosecha',flores:'Flores Cosechadas'};
+      usoHtml+=`<div class="hist-item"><div class="hist-item-desc"><strong>${lote.nombre_completo}</strong><br><span style="color:var(--sage);">Etapa actual: ${em[lote.etapa_actual]||lote.etapa_actual} · Usado: ${cant}</span></div><div class="hist-item-meta">${fmtDate(lote.creado_en?.split('T')[0])}</div></div>`;
+    }
+  }
+  if(usoEl)usoEl.innerHTML=usoHtml;
+
+  // ── REGISTRO DE BAJAS ──
+  const bajasEl=document.getElementById('hist-bajas');
+  const tipoTbl={semillas:'semillas',esquejes:'esquejes',pm:'plantas_madre'}[tipo];
+  const{data:bajas}=await sb.from('bajas_material').select('cantidad_baja,motivo_baja,fecha_baja').eq('lote_id',id).eq('lote_tipo',tipoTbl).order('fecha_baja',{ascending:false});
+  let bajasHtml='';
+  if(!bajas||bajas.length===0){
+    bajasHtml='<div class="hist-empty">Sin bajas registradas para este lote.</div>';
+  } else {
+    bajas.forEach(b=>{bajasHtml+=`<div class="hist-item"><div class="hist-item-desc">− ${b.cantidad_baja} unidades<br><span style="color:var(--sage);">${b.motivo_baja}</span></div><div class="hist-item-meta">${fmtDate(b.fecha_baja)}</div></div>`;});
+  }
+  if(bajasEl)bajasEl.innerHTML=bajasHtml;
 }
 
 function habilitarEdicionMaterial(){
@@ -1480,6 +1562,31 @@ function onBL(v){
   const tipo=sel.options[sel.selectedIndex]?.dataset.tipo;
   if(tipo==='semillas'){document.getElementById('bs').style.display='block';const l=LM.semillas.find(x=>x.v===v);if(l)document.getElementById('bsu').value=l.u;}
   else{document.getElementById('bn').style.display='block';const l=[...LM.esquejes,...LM.pm].find(x=>x.v===v);document.getElementById('bu').value=l?l.u:'unidades';}
+}
+
+async function eliminarTotalidadLote(){
+  const sel=document.getElementById('bl');const loteId=sel.value;
+  if(!loteId){alert('Primero elegí el lote que querés eliminar.');return;}
+  const tipoOpt=sel.options[sel.selectedIndex];
+  const tipo=tipoOpt?.dataset.tipo;
+  const nombre=tipoOpt?.text?.split(' (')[0]||'este lote';
+  if(!confirm(`⚠ ATENCIÓN\n\nEstás por eliminar la totalidad del stock de:\n"${nombre}"\n\nSe registrará una baja total y el stock quedará en 0.\n\n¿Confirmás?`))return;
+  const fecha=new Date().toISOString().split('T')[0];
+  const lote=[...LM.semillas,...LM.esquejes,...LM.pm].find(x=>x.v===loteId);
+  const stock=lote?.stock??0;
+  if(stock<=0){alert('El stock de este lote ya es 0.');return;}
+  const{error:bajaErr}=await sb.from('bajas_material').insert({
+    usuario_id:CURRENT_USER.id,lote_id:loteId,
+    lote_tipo:tipo==='pm'?'plantas_madre':tipo,
+    fecha_baja:fecha,cantidad_baja:stock,motivo_baja:'Eliminación total del lote'
+  });
+  if(bajaErr){alert('Error al registrar la baja: '+bajaErr.message);return;}
+  if(tipo==='semillas')await sb.from('lotes_semillas').update({stock_actual:0}).eq('id',loteId);
+  else if(tipo==='esquejes')await sb.from('lotes_esquejes').update({stock_actual:0}).eq('id',loteId);
+  else if(tipo==='pm')await sb.from('lotes_plantas_madre').update({cantidad_actual:0}).eq('id',loteId);
+  alert(`El lote "${nombre}" fue eliminado del stock. Stock registrado en 0.`);
+  sel.value='';document.getElementById('bn').style.display='none';document.getElementById('bs').style.display='none';
+  await cargarMaterial();rebuildSearchIndex();
 }
 
 async function guardarBaja(){
