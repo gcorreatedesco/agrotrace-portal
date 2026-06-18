@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<title>AgroTrace — Léxico de Interfaz</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap');
+
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'DM Sans',sans-serif;background:#F7F4EF;color:#2C1F0E;font-size:13px;padding:40px;}
+
+  .page{max-width:820px;margin:0 auto;}
+
+  /* HEADER */
+  .header{background:#2C1F0E;border-radius:12px;padding:32px 36px;margin-bottom:32px;display:flex;justify-content:space-between;align-items:flex-end;}
+  .header-left h1{font-family:'DM Serif Display',serif;font-size:2rem;color:#EDF2E8;margin-bottom:4px;}
+  .header-left p{font-size:0.75rem;color:#C8D9BC;font-weight:300;letter-spacing:0.06em;text-transform:uppercase;}
+  .header-right{text-align:right;}
+  .header-right .doc-label{font-size:0.6rem;color:#8EAA7B;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px;}
+  .header-right .doc-version{font-family:'DM Serif Display',serif;font-size:1.1rem;color:#EDF2E8;}
+  .header-right .doc-date{font-size:0.65rem;color:#8EAA7B;margin-top:2px;}
+
+  /* INTRO */
+  .intro{background:white;border:1px solid rgba(0,0,0,0.07);border-radius:10px;padding:18px 22px;margin-bottom:28px;font-size:0.8rem;color:#4A3520;line-height:1.7;}
+  .intro strong{color:#2C1F0E;}
+
+  /* SECTION */
+  .section-title{font-size:0.6rem;font-weight:500;text-transform:uppercase;letter-spacing:0.14em;color:#6B7F5E;margin-bottom:10px;padding-left:2px;}
+
+  /* JERARQUÍA */
+  .hierarchy{display:flex;flex-direction:column;gap:8px;margin-bottom:28px;}
+  .level{display:flex;align-items:stretch;border-radius:10px;overflow:hidden;border:1px solid rgba(0,0,0,0.07);}
+  .level-num{width:48px;display:flex;align-items:center;justify-content:center;font-family:'DM Serif Display',serif;font-size:1.6rem;flex-shrink:0;}
+  .level-1 .level-num{background:#2C1F0E;color:#EDF2E8;}
+  .level-2 .level-num{background:#4A3520;color:#EDF2E8;}
+  .level-3 .level-num{background:#4E7C3F;color:white;}
+  .level-4 .level-num{background:#6B7F5E;color:white;}
+  .level-body{background:white;padding:14px 18px;flex:1;}
+  .level-term{font-size:0.95rem;font-weight:500;color:#2C1F0E;margin-bottom:3px;}
+  .level-def{font-size:0.75rem;color:#6B7F5E;line-height:1.5;margin-bottom:4px;}
+  .level-ex{font-size:0.68rem;color:#4E7C3F;background:#EDF2E8;display:inline-block;padding:2px 8px;border-radius:100px;}
+
+  /* DIAGRAMA VISUAL */
+  .diagram{background:white;border:1px solid rgba(0,0,0,0.07);border-radius:10px;padding:22px;margin-bottom:28px;}
+  .diagram-title{font-size:0.68rem;font-weight:500;color:#4A3520;margin-bottom:16px;text-align:center;text-transform:uppercase;letter-spacing:0.08em;}
+  .screen-mock{border:2px solid #2C1F0E;border-radius:8px;display:flex;overflow:hidden;height:260px;}
+  .mock-sidebar{width:130px;background:#2C1F0E;flex-shrink:0;padding:12px 0;display:flex;flex-direction:column;gap:2px;}
+  .mock-sidebar-label{font-size:0.5rem;color:#8EAA7B;text-transform:uppercase;letter-spacing:0.1em;padding:4px 10px 2px;}
+  .mock-nav-item{padding:5px 10px;font-size:0.58rem;color:rgba(255,255,255,0.5);border-left:2px solid transparent;}
+  .mock-nav-item.active{color:#8EAA7B;border-left-color:#8EAA7B;background:rgba(142,170,123,0.1);}
+  .mock-main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+  .mock-topbar{background:white;border-bottom:1px solid rgba(0,0,0,0.08);padding:8px 12px;font-size:0.6rem;font-weight:500;color:#2C1F0E;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;}
+  .mock-topbar-btn{background:#4E7C3F;color:white;padding:2px 8px;border-radius:4px;font-size:0.5rem;}
+  .mock-content{padding:10px 12px;background:#F7F4EF;flex:1;overflow:hidden;}
+  .mock-tabs{display:flex;gap:0;border-bottom:2px solid rgba(0,0,0,0.08);margin-bottom:8px;}
+  .mock-tab{padding:4px 10px;font-size:0.52rem;color:#6B7F5E;border-bottom:2px solid transparent;margin-bottom:-2px;}
+  .mock-tab.active{color:#4E7C3F;border-bottom-color:#4E7C3F;font-weight:500;}
+  .mock-pills{display:flex;gap:4px;margin-bottom:8px;}
+  .mock-pill{padding:2px 7px;border-radius:100px;font-size:0.48rem;border:1px solid rgba(0,0,0,0.12);color:#4A3520;background:white;}
+  .mock-pill.active{background:#2C1F0E;color:#EDF2E8;border-color:#2C1F0E;}
+  .mock-cards{display:flex;flex-direction:column;gap:4px;}
+  .mock-card{background:white;border:1px solid rgba(0,0,0,0.07);border-radius:6px;padding:6px 8px;font-size:0.52rem;display:flex;justify-content:space-between;align-items:center;}
+  .mock-badge{padding:1px 6px;border-radius:100px;font-size:0.45rem;font-weight:500;}
+  .b-nur{background:#EAF3DE;color:#27500A;}
+  .b-flo{background:#FAEEDA;color:#854F0B;}
+  .b-fl2{background:#EEEDFE;color:#534AB7;}
+
+  /* ANOTACIONES */
+  .annotations{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px;}
+  .ann{display:flex;align-items:flex-start;gap:8px;background:#F7F4EF;border-radius:6px;padding:8px 10px;}
+  .ann-num{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.55rem;font-weight:500;flex-shrink:0;}
+  .ann-1{background:#2C1F0E;color:#EDF2E8;}
+  .ann-2{background:#4A3520;color:#EDF2E8;}
+  .ann-3{background:#4E7C3F;color:white;}
+  .ann-4{background:#6B7F5E;color:white;}
+  .ann-5{background:#C8D9BC;color:#2C1F0E;}
+  .ann-6{background:#EDF2E8;color:#4E7C3F;}
+  .ann-body{}
+  .ann-term{font-size:0.65rem;font-weight:500;color:#2C1F0E;}
+  .ann-desc{font-size:0.6rem;color:#6B7F5E;margin-top:1px;}
+
+  /* TABLA SECUNDARIA */
+  .table-wrap{background:white;border:1px solid rgba(0,0,0,0.07);border-radius:10px;overflow:hidden;margin-bottom:28px;}
+  .table-wrap table{width:100%;border-collapse:collapse;}
+  .table-wrap th{background:#2C1F0E;color:#C8D9BC;font-size:0.6rem;font-weight:500;text-transform:uppercase;letter-spacing:0.08em;padding:10px 14px;text-align:left;}
+  .table-wrap td{padding:10px 14px;font-size:0.75rem;border-bottom:1px solid rgba(0,0,0,0.05);vertical-align:top;}
+  .table-wrap tr:last-child td{border-bottom:none;}
+  .table-wrap tr:nth-child(even) td{background:#FAFAF8;}
+  .term-cell{font-weight:500;color:#2C1F0E;white-space:nowrap;}
+  .def-cell{color:#4A3520;line-height:1.5;}
+  .ex-cell{color:#4E7C3F;font-style:italic;font-size:0.68rem;}
+
+  /* FOOTER */
+  .footer{text-align:center;font-size:0.6rem;color:#C8D9BC;margin-top:32px;padding-top:16px;border-top:1px solid rgba(0,0,0,0.07);}
+
+  /* PRINT */
+  @media print{
+    body{background:white;padding:20px;}
+    .page{max-width:100%;}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-left">
+      <h1>AgroTrace</h1>
+      <p>Léxico común de interfaz de usuario</p>
+    </div>
+    <div class="header-right">
+      <div class="doc-label">Documento</div>
+      <div class="doc-version">Léxico UI v1.0</div>
+      <div class="doc-date">Junio 2026</div>
+    </div>
+  </div>
+
+  <!-- INTRO -->
+  <div class="intro">
+    Este documento define los <strong>términos exactos</strong> para nombrar cada elemento visual de AgroTrace. Su propósito es que productores, desarrolladores e inspectores puedan comunicarse sin ambigüedad sobre qué parte de la pantalla están mirando o describiendo.
+  </div>
+
+  <!-- JERARQUÍA DE NIVELES -->
+  <div class="section-title">Jerarquía de elementos — de mayor a menor</div>
+  <div class="hierarchy">
+
+    <div class="level level-1">
+      <div class="level-num">1</div>
+      <div class="level-body">
+        <div class="level-term">Módulo</div>
+        <div class="level-def">Sección principal del sistema, accesible desde el Sidebar. Cada ítem del menú lateral corresponde a un Módulo.</div>
+        <span class="level-ex">Módulo de Lotes · Módulo de Stock · Módulo de Dashboard</span>
+      </div>
+    </div>
+
+    <div class="level level-2">
+      <div class="level-num">2</div>
+      <div class="level-body">
+        <div class="level-term">Pantalla</div>
+        <div class="level-def">Vista completa que ocupa el área principal de trabajo. Al hacer click en un Módulo, se abre su Pantalla correspondiente.</div>
+        <span class="level-ex">Pantalla "Mis Lotes Productivos" · Pantalla "Detalle de Lote"</span>
+      </div>
+    </div>
+
+    <div class="level level-3">
+      <div class="level-num">3</div>
+      <div class="level-body">
+        <div class="level-term">Pestaña</div>
+        <div class="level-def">Tab dentro de una Pantalla que divide el contenido en categorías. Cambiar de Pestaña no cambia de Pantalla.</div>
+        <span class="level-ex">Pestaña "Activos" · Pestaña "Terminados" · Pestaña "Stock Activo"</span>
+      </div>
+    </div>
+
+    <div class="level level-4">
+      <div class="level-num">4</div>
+      <div class="level-body">
+        <div class="level-term">Panel</div>
+        <div class="level-def">Bloque blanco con borde dentro de una Pantalla o Pestaña. Contiene formularios, datos de etapa o acciones específicas.</div>
+        <span class="level-ex">Panel de Nursery · Panel de Flores Cosechadas · Panel de Baja de Material</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- DIAGRAMA VISUAL -->
+  <div class="diagram">
+    <div class="diagram-title">Diagrama visual — dónde está cada elemento en la pantalla</div>
+    <div class="screen-mock">
+      <div class="mock-sidebar">
+        <div class="mock-sidebar-label">① Sidebar</div>
+        <div class="mock-nav-item">Dashboard</div>
+        <div class="mock-nav-item active">② Mis Lotes</div>
+        <div class="mock-nav-item">Stock</div>
+        <div class="mock-nav-item">Reportes</div>
+      </div>
+      <div class="mock-main">
+        <div class="mock-topbar">
+          <div>
+            <div style="font-weight:500;">Mis Lotes Productivos</div>
+            <div style="font-size:0.5rem;color:#6B7F5E;">② Pantalla</div>
+          </div>
+          <div class="mock-topbar-btn">+ Nuevo lote</div>
+        </div>
+        <div class="mock-content">
+          <div class="mock-tabs">
+            <div class="mock-tab active">Activos &nbsp;③</div>
+            <div class="mock-tab">Terminados</div>
+            <div class="mock-tab">Cerrados</div>
+          </div>
+          <div class="mock-pills">
+            <div class="mock-pill active">Todos ④</div>
+            <div class="mock-pill">Nursery</div>
+            <div class="mock-pill">Vegetativa</div>
+            <div class="mock-pill">Floración</div>
+          </div>
+          <div class="mock-cards">
+            <div class="mock-card">
+              <span style="font-weight:500;">Junio 2026 &nbsp;<span style="font-size:0.45rem;color:#6B7F5E;font-weight:300;">⑤ Card</span></span>
+              <span class="mock-badge b-nur">Nursery</span>
+            </div>
+            <div class="mock-card">
+              <span style="font-weight:500;">Otoño 2025</span>
+              <span class="mock-badge b-flo">Floración</span>
+            </div>
+            <div class="mock-card">
+              <span style="font-weight:500;">Primavera 2024</span>
+              <span class="mock-badge b-fl2">Flores</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="annotations">
+      <div class="ann"><div class="ann-num ann-1">①</div><div class="ann-body"><div class="ann-term">Sidebar</div><div class="ann-desc">Menú lateral siempre visible. Contiene los accesos a cada Módulo.</div></div></div>
+      <div class="ann"><div class="ann-num ann-2">②</div><div class="ann-body"><div class="ann-term">Pantalla + Topbar</div><div class="ann-desc">Área principal. La Topbar muestra el nombre de la Pantalla activa y sus acciones.</div></div></div>
+      <div class="ann"><div class="ann-num ann-3">③</div><div class="ann-body"><div class="ann-term">Pestañas</div><div class="ann-desc">Dividen el contenido de la Pantalla en categorías sin cambiar de vista.</div></div></div>
+      <div class="ann"><div class="ann-num ann-4">④</div><div class="ann-body"><div class="ann-term">Filtros</div><div class="ann-desc">Pills que filtran las Cards visibles sin cambiar de Pestaña.</div></div></div>
+      <div class="ann"><div class="ann-num ann-5">⑤</div><div class="ann-body"><div class="ann-term">Cards</div><div class="ann-desc">Tarjetas clickeables que representan un lote o elemento de stock.</div></div></div>
+      <div class="ann"><div class="ann-num ann-6">⑥</div><div class="ann-body"><div class="ann-term">Panel (no visible aquí)</div><div class="ann-desc">Aparece al abrir el Detalle de Lote. Contiene los datos de cada etapa.</div></div></div>
+    </div>
+  </div>
+
+  <!-- TABLA ELEMENTOS SECUNDARIOS -->
+  <div class="section-title">Elementos de navegación y acción</div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Término</th>
+          <th>Definición</th>
+          <th>Ejemplo en AgroTrace</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="term-cell">Sidebar</td>
+          <td class="def-cell">Menú lateral izquierdo, siempre visible. Contiene la navegación entre Módulos, el buscador y los datos del usuario.</td>
+          <td class="ex-cell">El Sidebar muestra "Mis Lotes", "Stock", "Dashboard"</td>
+        </tr>
+        <tr>
+          <td class="term-cell">Topbar</td>
+          <td class="def-cell">Barra horizontal fija en la parte superior del área de trabajo. Muestra el título de la Pantalla activa y los botones de acción principales.</td>
+          <td class="ex-cell">La Topbar tiene el botón "+ Nuevo lote"</td>
+        </tr>
+        <tr>
+          <td class="term-cell">Filtro</td>
+          <td class="def-cell">Pill (botón redondeado) que filtra el contenido visible dentro de una Pestaña sin cambiar de Pantalla ni de Pestaña.</td>
+          <td class="ex-cell">Filtro "Floración" en la Pestaña Activos</td>
+        </tr>
+        <tr>
+          <td class="term-cell">Card</td>
+          <td class="def-cell">Tarjeta clickeable que representa un lote o elemento de stock en un listado. Al clickear abre la Pantalla de Detalle.</td>
+          <td class="ex-cell">Card del lote "Junio 2026"</td>
+        </tr>
+        <tr>
+          <td class="term-cell">Timeline</td>
+          <td class="def-cell">Barra horizontal de 5 etapas del ciclo productivo visible en la Pantalla de Detalle de Lote. Muestra etapas completadas, activa y futuras.</td>
+          <td class="ex-cell">Timeline: Nursery ✓ → Vegetativa ✓ → Floración (activa) → Cosecha → Flores</td>
+        </tr>
+        <tr>
+          <td class="term-cell">Hero</td>
+          <td class="def-cell">Cabecera oscura en la parte superior de la Pantalla de Detalle. Muestra el nombre del lote, su origen y la etapa activa.</td>
+          <td class="ex-cell">Hero del lote "Otoño 2025 · Semillas · Floración"</td>
+        </tr>
+        <tr>
+          <td class="term-cell">Formulario</td>
+          <td class="def-cell">Conjunto de campos de entrada para registrar datos. Aparece dentro de un Panel. Se guarda con un botón de acción.</td>
+          <td class="ex-cell">Formulario de Baja de Material · Formulario de Nursery</td>
+        </tr>
+        <tr>
+          <td class="term-cell">Wizard</td>
+          <td class="def-cell">Formulario dividido en pasos secuenciales numerados. El usuario avanza paso a paso y no puede saltear etapas.</td>
+          <td class="ex-cell">Wizard de Nuevo Lote (4 pasos: Identificación → Origen → Nursery → Confirmar)</td>
+        </tr>
+        <tr>
+          <td class="term-cell">Banner</td>
+          <td class="def-cell">Alerta destacada dentro de un Panel que comunica un estado importante y ofrece una acción directa.</td>
+          <td class="ex-cell">Banner "Existencias agotadas — Cerrar lote →" en el Panel de Flores</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    AgroTrace · Documento interno · Léxico de Interfaz v1.0 · Junio 2026 · Uso exclusivo del equipo de desarrollo y operaciones
+  </div>
+
+</div>
+</body>
+</html>
