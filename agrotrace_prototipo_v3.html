@@ -865,9 +865,9 @@ async function cargarMaterial(){
     sb.from('lotes_esquejes').select('*').order('creado_en'),
     sb.from('lotes_plantas_madre').select('*').order('creado_en'),
   ]);
-  LM.semillas=(semR.data||[]).map(r=>({v:r.id,l:r.nombre_lote+' — '+r.variedad,stock:r.stock_actual,stockI:r.stock_inicial,u:r.unidad,var:r.variedad}));
-  LM.esquejes=(esqR.data||[]).map(r=>({v:r.id,l:r.nombre_lote+' — '+r.variedad,stock:r.stock_actual,stockI:r.stock_inicial,u:'esquejes',var:r.variedad}));
-  LM.pm=(pmR.data||[]).map(r=>({v:r.id,l:r.nombre_lote+' — '+r.variedad,stock:r.cantidad_actual,stockI:r.cantidad_inicial,u:'plantas',var:r.variedad}));
+  LM.semillas=(semR.data||[]).filter(r=>r.stock_actual>0).map(r=>({v:r.id,l:r.nombre_lote+' — '+r.variedad,stock:r.stock_actual,stockI:r.stock_inicial,u:r.unidad,var:r.variedad}));
+  LM.esquejes=(esqR.data||[]).filter(r=>r.stock_actual>0).map(r=>({v:r.id,l:r.nombre_lote+' — '+r.variedad,stock:r.stock_actual,stockI:r.stock_inicial,u:'esquejes',var:r.variedad}));
+  LM.pm=(pmR.data||[]).filter(r=>r.cantidad_actual>0).map(r=>({v:r.id,l:r.nombre_lote+' — '+r.variedad,stock:r.cantidad_actual,stockI:r.cantidad_inicial,u:'plantas',var:r.variedad}));
   renderStock();
   actualizarMetricasStock();
 }
