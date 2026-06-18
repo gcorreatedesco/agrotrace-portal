@@ -85,6 +85,22 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);c
 .pill:hover{border-color:var(--accent);color:var(--accent);}
 .pill.active{background:var(--soil);color:var(--dew);border-color:var(--soil);}
 
+/* ── SECTION TABS ── */
+.sec-tabs{display:flex;gap:0;margin-bottom:16px;border-bottom:2px solid rgba(0,0,0,0.08);}
+.sec-tab{padding:8px 16px;font-size:0.78rem;font-weight:500;color:var(--sage);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all var(--trans);white-space:nowrap;}
+.sec-tab:hover{color:var(--soil);}
+.sec-tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.tab-count{font-size:0.6rem;background:rgba(0,0,0,0.08);color:var(--sage);padding:1px 5px;border-radius:10px;margin-left:4px;vertical-align:middle;}
+.sec-tab.active .tab-count{background:rgba(78,124,63,0.15);color:var(--accent);}
+.b-com{background:#e8f5e9;color:#2e7d32;}
+.b-cia{background:#f5f0e8;color:#795548;}
+.lote-card.lc-hist{opacity:0.85;border-style:dashed;}
+.lote-card.lc-hist:hover{border-color:var(--sage);border-style:dashed;}
+.hist-motivo{font-size:0.68rem;color:var(--sage);margin-top:3px;font-style:italic;}
+.cerrar-banner{background:#2e2e2e;border-radius:var(--radius-lg);padding:14px 16px;margin-top:14px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;}
+.cerrar-banner-txt{color:var(--mist);font-size:0.78rem;line-height:1.5;}
+.cerrar-banner-txt strong{color:white;}
+
 /* ── LOTE CARDS ── */
 .lotes-grid{display:flex;flex-direction:column;gap:8px;}
 .lote-card{background:var(--white);border:1px solid rgba(0,0,0,0.07);border-radius:var(--radius-lg);padding:12px 14px;cursor:pointer;transition:all var(--trans);}
@@ -445,44 +461,32 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
 
 <!-- MIS LOTES PRODUCTIVOS -->
 <div class="view" id="view-lotes">
-  <div class="filters">
-    <div class="pill active" onclick="fL(this,'todos')">Todos</div>
-    <div class="pill" onclick="fL(this,'nursery')">Nursery</div>
-    <div class="pill" onclick="fL(this,'vegetativa')">Vegetativa</div>
-    <div class="pill" onclick="fL(this,'floracion')">Floración</div>
-    <div class="pill" onclick="fL(this,'cosecha')">Cosecha</div>
-    <div class="pill" onclick="fL(this,'flores')">Flores</div>
-    <div class="pill" onclick="fL(this,'sublotes')">Sublotes</div>
+  <div class="sec-tabs">
+    <div class="sec-tab active" onclick="switchLotesTab('activos',this)">Lotes Productivos Activos <span class="tab-count" id="tc-activos">0</span></div>
+    <div class="sec-tab" onclick="switchLotesTab('terminados',this)">Lotes Productivos Terminados <span class="tab-count" id="tc-terminados">0</span></div>
+    <div class="sec-tab" onclick="switchLotesTab('cerrados',this)">Lotes Cerrados Sin Terminar <span class="tab-count" id="tc-cerrados">0</span></div>
   </div>
-  <div id="lotes-normal"><div class="lotes-grid" id="lotes-list"></div></div>
-  <div id="lotes-sub" style="display:none;">
-    <div style="font-size:11px;color:var(--sage);margin-bottom:12px;padding:7px 12px;background:var(--cream);border-radius:8px;">Sublotes activos — clickeá <strong>+</strong> para ver el lote padre</div>
-    <div class="ps2" id="ps-sub">
-      <div class="lote-card lc-padre" style="margin-bottom:5px;">
-        <div class="lote-header"><div><div class="lote-name">Primavera 2025<span class="b-pad">lote padre</span></div><div class="lote-orig">Esquejes externos · var. White Widow · dividido en Floración</div></div><span class="eb b-cer">Cerrado</span></div>
-        <div class="pb"><div class="steps"><div class="step done"></div><div class="step done"></div><div class="step spl"></div><div class="step fut"></div><div class="step fut"></div></div><div class="sc">div.</div></div>
-        <div class="lm"><div class="mi">Inicio <b>12/01/2025</b></div><div class="mi">División <b>Floración</b></div><div class="mi">Plantas <b>195</b></div></div>
-      </div>
+  <div id="stab-activos">
+    <div class="filters">
+      <div class="pill active" onclick="fL(this,'todos')">Todos</div>
+      <div class="pill" onclick="fL(this,'nursery')">Nursery</div>
+      <div class="pill" onclick="fL(this,'vegetativa')">Vegetativa</div>
+      <div class="pill" onclick="fL(this,'floracion')">Floración</div>
+      <div class="pill" onclick="fL(this,'cosecha')">Cosecha</div>
+      <div class="pill" onclick="fL(this,'flores')">Flores</div>
+      <div class="pill" onclick="fL(this,'sublotes')">Sublotes</div>
     </div>
-    <div class="tw">
-      <div class="tl2">
-        <div class="vs" id="vs-top" style="height:14px;"></div>
-        <div class="ob" id="ob-sub" onclick="togSubOr()">+</div>
-        <div class="vs" style="flex:1;"></div>
-      </div>
-      <div class="tr2" style="padding-top:6px;">
-        <div class="str"><div class="ah"></div><div class="scw"><div class="lote-card lc-suba" onclick="openLote('Primavera 2025 — Invernadero Norte','Sublote A · White Widow','floracion')">
-          <div class="lote-header"><div><div class="lote-name">Primavera 2025 — Invernadero Norte<span class="b-sub">sublote A</span></div><div class="lote-orig">120 plantas · desde Floración</div></div><span class="eb b-flo">Floración</span></div>
-          <div class="pb"><div class="steps"><div class="step done"></div><div class="step done"></div><div class="step act"></div><div class="step fut"></div><div class="step fut"></div></div><div class="sc">3/5</div></div>
-          <div class="lm"><div class="mi">Plantas <b>120</b></div><div class="mi">Días <b>22</b></div></div>
-        </div></div></div>
-        <div class="str"><div class="ah"></div><div class="scw"><div class="lote-card lc-subb" onclick="openLote('Primavera 2025 — Invernadero Sur','Sublote B · White Widow','floracion')">
-          <div class="lote-header"><div><div class="lote-name">Primavera 2025 — Invernadero Sur<span class="b-sub">sublote B</span></div><div class="lote-orig">75 plantas · desde Floración</div></div><span class="eb b-flo">Floración</span></div>
-          <div class="pb"><div class="steps"><div class="step done"></div><div class="step done"></div><div class="step act2"></div><div class="step fut"></div><div class="step fut"></div></div><div class="sc">3/5</div></div>
-          <div class="lm"><div class="mi">Plantas <b>75</b></div><div class="mi">Días <b>22</b></div></div>
-        </div></div></div>
-      </div>
+    <div id="lotes-normal"><div class="lotes-grid" id="lotes-list"></div></div>
+    <div id="lotes-sub" style="display:none;">
+      <div style="font-size:11px;color:var(--sage);margin-bottom:12px;padding:7px 12px;background:var(--cream);border-radius:8px;">Sublotes activos — clickeá <strong>+</strong> para ver el lote padre</div>
+      <div class="ps2" id="ps-sub"></div>
     </div>
+  </div>
+  <div id="stab-terminados" style="display:none;">
+    <div class="lotes-grid" id="lotes-term-list"><div style="color:var(--sage);font-size:0.78rem;padding:24px 0;text-align:center;">Sin lotes terminados aún.</div></div>
+  </div>
+  <div id="stab-cerrados" style="display:none;">
+    <div class="lotes-grid" id="lotes-cerr-list"><div style="color:var(--sage);font-size:0.78rem;padding:24px 0;text-align:center;">Sin lotes cerrados anticipadamente.</div></div>
   </div>
 </div>
 
@@ -491,6 +495,9 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
   <div class="lhero">
     <div><div class="lhn" id="det-nombre">—</div><div class="lhs" id="det-sub">—</div></div>
     <div class="lhr"><div class="lhe">Etapa activa</div><span class="eb b-nur" id="det-etapa">—</span></div>
+  </div>
+  <div id="det-cerrar-wrap" style="display:none;text-align:right;margin-bottom:8px;">
+    <button class="btn btn-secondary" style="font-size:0.72rem;color:var(--error);border-color:var(--error);" onclick="cerrarLoteAnticipado()">Cerrar lote anticipadamente</button>
   </div>
   <div class="tln" id="det-timeline"></div>
   <div id="det-panel"><div style="padding:24px;text-align:center;color:var(--sage);font-size:0.78rem;">Cargando...</div></div>
@@ -666,55 +673,55 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
 
 <!-- STOCK MATERIAL BÁSICO -->
 <div class="view" id="view-stock">
-  <div class="metrics" style="grid-template-columns:repeat(3,1fr);">
-    <div class="metric"><div class="metric-label">Lotes semillas</div><div class="metric-val" id="m-sem">—</div></div>
-    <div class="metric"><div class="metric-label">Lotes esquejes</div><div class="metric-val" id="m-esq">—</div></div>
-    <div class="metric"><div class="metric-label">Lotes plantas madre</div><div class="metric-val" id="m-pm">—</div></div>
+  <div class="sec-tabs">
+    <div class="sec-tab active" onclick="switchStockTab('activo',this)">Stock Activo</div>
+    <div class="sec-tab" onclick="switchStockTab('historico',this)">Material Agotado / Descartado</div>
   </div>
-  <div class="sgrid">
-    <div class="scard"><div class="sch s1">Lotes de Semillas</div><div class="scb" id="scb-sem">
-      <div class="sl"><div class="sln">Semillas Batch Enero 2025 — OG Kush</div><div class="sbw"><div class="sbb"><div class="sbf" style="width:45%"></div></div><div class="sn">450/1000 g</div></div></div>
-      <div class="sl"><div class="sln">Semillas Ext. Feb 2025 — Blue Dream</div><div class="sbw"><div class="sbb"><div class="sbf low" style="width:12%"></div></div><div class="sn">60/500 g</div></div></div>
-    </div></div>
-    <div class="scard"><div class="sch s3">Lotes de Esquejes</div><div class="scb" id="scb-esq">
-      <div class="sl"><div class="sln">Esquejes Batch Marzo 2025 — White Widow</div><div class="sbw"><div class="sbb"><div class="sbf" style="width:37%"></div></div><div class="sn">120/320 u.</div></div></div>
-      <div class="sl"><div class="sln">Esquejes Lote Feb 2025 — OG Kush</div><div class="sbw"><div class="sbb"><div class="sbf" style="width:72%"></div></div><div class="sn">130/180 u.</div></div></div>
-    </div></div>
-    <div class="scard"><div class="sch s2">Lotes de Plantas Madre</div><div class="scb" id="scb-pm">
-      <div class="sl"><div class="sln">PM Lote Principal — Purple Haze</div><div class="sbw"><div class="sbb"><div class="sbf" style="width:80%"></div></div><div class="sn">8/10 plantas</div></div><div style="font-size:0.65rem;color:var(--sage);margin-top:3px;">Esquejes extraídos: 45</div></div>
-    </div></div>
-  </div>
-  <div class="panel">
-    <div class="fst">Registrar baja de material básico</div>
-    <div style="font-size:0.72rem;color:var(--sage);margin-bottom:12px;">Eliminá unidades del stock de un lote de material básico. Ej: deterioro, vencimiento, pérdida, error de conteo.</div>
-    <div class="field"><label>Lote de material básico<span class="req">*</span></label>
-      <select id="bl" onchange="onBL(this.value)">
-        <option value="">— Elegí el lote —</option>
-        <option value="sem1">Semillas Batch Enero 2025 — OG Kush (stock: 450 g)</option>
-        <option value="sem2">Semillas Ext. Feb 2025 — Blue Dream (stock: 60 g)</option>
-        <option value="esq1">Esquejes Batch Marzo 2025 — White Widow (stock: 120 u.)</option>
-        <option value="esq2">Esquejes Lote Feb 2025 — OG Kush (stock: 130 u.)</option>
-        <option value="pm1">PM Lote Principal — Purple Haze (stock: 8 plantas)</option>
-      </select>
+  <div id="stab-stock-activo">
+    <div class="metrics" style="grid-template-columns:repeat(3,1fr);">
+      <div class="metric"><div class="metric-label">Lotes semillas</div><div class="metric-val" id="m-sem">—</div></div>
+      <div class="metric"><div class="metric-label">Lotes esquejes</div><div class="metric-val" id="m-esq">—</div></div>
+      <div class="metric"><div class="metric-label">Lotes plantas madre</div><div class="metric-val" id="m-pm">—</div></div>
     </div>
-    <div id="bn" style="display:none;"><div class="g2">
-      <div class="field"><label>Cantidad<span class="req">*</span></label><input type="number" id="b-cant-n" placeholder="Cantidad"/></div>
-      <div class="field"><label>Unidad</label><input type="text" id="bu" readonly/></div>
-    </div></div>
-    <div id="bs" style="display:none;"><div class="g2">
-      <div class="field"><label>Cantidad<span class="req">*</span></label><input type="number" id="b-cant-s" placeholder="Cantidad"/></div>
-      <div class="field"><label>Unidad<span class="opt">automática del lote</span></label><input type="text" id="bsu" readonly/></div>
-    </div></div>
-    <div class="g2" style="margin-top:4px;">
-      <div class="field"><label>Fecha<span class="req">*</span></label><input type="date" id="b-fecha"/></div>
-      <div class="field"><label>Motivo<span class="req">*</span></label><input type="text" id="b-motivo" placeholder="Ej: deterioro, vencimiento, pérdida, error de conteo..."/></div>
+    <div class="sgrid">
+      <div class="scard"><div class="sch s1">Lotes de Semillas</div><div class="scb" id="scb-sem"></div></div>
+      <div class="scard"><div class="sch s3">Lotes de Esquejes</div><div class="scb" id="scb-esq"></div></div>
+      <div class="scard"><div class="sch s2">Lotes de Plantas Madre</div><div class="scb" id="scb-pm"></div></div>
     </div>
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:14px;">
-      <button class="btn btn-danger" onclick="eliminarTotalidadLote()" style="flex-shrink:0;">⚠ Eliminar totalidad</button>
-      <div style="display:flex;gap:8px;">
-        <button class="btn btn-secondary">Cancelar</button>
-        <button class="btn btn-primary" onclick="guardarBaja()">Registrar baja</button>
+    <div class="panel">
+      <div class="fst">Registrar baja de material básico</div>
+      <div style="font-size:0.72rem;color:var(--sage);margin-bottom:12px;">Eliminá unidades del stock de un lote de material básico. Ej: deterioro, vencimiento, pérdida, error de conteo.</div>
+      <div class="field"><label>Lote de material básico<span class="req">*</span></label>
+        <select id="bl" onchange="onBL(this.value)">
+          <option value="">— Elegí el lote —</option>
+        </select>
       </div>
+      <div id="bn" style="display:none;"><div class="g2">
+        <div class="field"><label>Cantidad<span class="req">*</span></label><input type="number" id="b-cant-n" placeholder="Cantidad"/></div>
+        <div class="field"><label>Unidad</label><input type="text" id="bu" readonly/></div>
+      </div></div>
+      <div id="bs" style="display:none;"><div class="g2">
+        <div class="field"><label>Cantidad<span class="req">*</span></label><input type="number" id="b-cant-s" placeholder="Cantidad"/></div>
+        <div class="field"><label>Unidad<span class="opt">automática del lote</span></label><input type="text" id="bsu" readonly/></div>
+      </div></div>
+      <div class="g2" style="margin-top:4px;">
+        <div class="field"><label>Fecha<span class="req">*</span></label><input type="date" id="b-fecha"/></div>
+        <div class="field"><label>Motivo<span class="req">*</span></label><input type="text" id="b-motivo" placeholder="Ej: deterioro, vencimiento, pérdida, error de conteo..."/></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:14px;">
+        <button class="btn btn-danger" onclick="eliminarTotalidadLote()" style="flex-shrink:0;">⚠ Eliminar totalidad</button>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-secondary">Cancelar</button>
+          <button class="btn btn-primary" onclick="guardarBaja()">Registrar baja</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="stab-stock-hist" style="display:none;">
+    <div class="sgrid">
+      <div class="scard"><div class="sch s1" style="opacity:0.7;">Semillas agotadas/descartadas</div><div class="scb" id="scb-sem-hist"><div class="hist-empty">Sin lotes agotados.</div></div></div>
+      <div class="scard"><div class="sch s3" style="opacity:0.7;">Esquejes agotados/descartados</div><div class="scb" id="scb-esq-hist"><div class="hist-empty">Sin lotes agotados.</div></div></div>
+      <div class="scard"><div class="sch s2" style="opacity:0.7;">Plantas Madre agotadas/descartadas</div><div class="scb" id="scb-pm-hist"><div class="hist-empty">Sin lotes agotados.</div></div></div>
     </div>
   </div>
 </div>
@@ -814,6 +821,7 @@ let TIPO_NM = null;
 let LD = [];
 let SD = [];
 let LM = { semillas:[], esquejes:[], pm:[] };
+let LD_TERM=[],LD_CERR=[],LM_HIST={semillas:[],esquejes:[],pm:[]};
 let ALL_LOTES = [];
 
 let LOTE_ACTIVO=null;
@@ -838,22 +846,30 @@ async function initApp(){
 
 /* ── CARGA LOTES ── */
 async function cargarLotes(){
-  const {data,error}=await sb.from('lotes_produccion').select('*').is('lote_padre_id',null).order('creado_en',{ascending:false});
+  const{data,error}=await sb.from('lotes_produccion').select('*').is('lote_padre_id',null).order('creado_en',{ascending:false});
   if(error){console.error('Error cargando lotes:',error);return;}
-  LD=(data||[]).map(mapLote);
+  const todos=(data||[]).map(mapLote);
+  LD=todos.filter(l=>l.etapaRaw!=='completado'&&l.etapaRaw!=='cerrado');
+  LD_TERM=todos.filter(l=>l.etapaRaw==='completado');
+  LD_CERR=todos.filter(l=>l.etapaRaw==='cerrado');
+  const tcA=document.getElementById('tc-activos');if(tcA)tcA.textContent=LD.length;
+  const tcT=document.getElementById('tc-terminados');if(tcT)tcT.textContent=LD_TERM.length;
+  const tcC=document.getElementById('tc-cerrados');if(tcC)tcC.textContent=LD_CERR.length;
+  renderLotesHistorico('terminados');
+  renderLotesHistorico('cerrados');
 }
 
 function mapLote(row){
-  const em={nursery:{b:'b-nur',bt:'Nursery',idx:1},vegetativa:{b:'b-veg',bt:'Vegetativa',idx:2},floracion:{b:'b-flo',bt:'Floración',idx:3},cosecha_curado:{b:'b-cos',bt:'Cosecha y Curado',idx:4},flores:{b:'b-fl2',bt:'Flores Cosechadas',idx:5}};
+  const em={nursery:{b:'b-nur',bt:'Nursery',idx:1},vegetativa:{b:'b-veg',bt:'Vegetativa',idx:2},floracion:{b:'b-flo',bt:'Floración',idx:3},cosecha_curado:{b:'b-cos',bt:'Cosecha y Curado',idx:4},flores:{b:'b-fl2',bt:'Flores Cosechadas',idx:5},completado:{b:'b-com',bt:'Completado',idx:5},cerrado:{b:'b-cia',bt:'Cerrado anticipadamente',idx:0}};
   const info=em[row.etapa_actual]||{b:'b-nur',bt:row.etapa_actual,idx:1};
   const steps=[0,0,0,0,0];
-  for(let i=0;i<info.idx-1;i++)steps[i]=1;
-  steps[info.idx-1]=2;
+  if(row.etapa_actual==='completado'){for(let i=0;i<5;i++)steps[i]=1;}
+  else if(row.etapa_actual!=='cerrado'){for(let i=0;i<info.idx-1;i++)steps[i]=1;if(info.idx>0)steps[info.idx-1]=2;}
   let o='—';
   if(row.origen_semilla_id)o='Semillas';
   else if(row.origen_esqueje_id)o='Esquejes externos';
   else if(row.origen_pm_id)o='Plantas Madre';
-  return{id:row.id,n:row.nombre_completo,o,et:row.etapa_actual==='cosecha_curado'?'cosecha':row.etapa_actual,etapaRaw:row.etapa_actual,b:info.b,bt:info.bt,hs:false,s:steps,sc:info.idx+'/5',m:[{l:'Inicio',v:fmtDate(row.fecha_inicio)}]};
+  return{id:row.id,n:row.nombre_completo,o,et:row.etapa_actual==='cosecha_curado'?'cosecha':row.etapa_actual,etapaRaw:row.etapa_actual,b:info.b,bt:info.bt,hs:false,s:steps,sc:row.etapa_actual==='completado'?'5/5':row.etapa_actual==='cerrado'?'—':info.idx+'/5',m:[{l:'Inicio',v:fmtDate(row.fecha_inicio)}],fecha_cierre:row.fecha_cierre||null,motivo_cierre:row.motivo_cierre||null};
 }
 
 function fmtDate(iso){if(!iso)return'—';const[y,m,d]=iso.split('-');return d+'/'+m+'/'+y;}
@@ -868,7 +884,11 @@ async function cargarMaterial(){
   LM.semillas=(semR.data||[]).filter(r=>r.stock_actual>0).map(r=>({v:r.id,l:r.nombre_lote+' — '+r.variedad,stock:r.stock_actual,stockI:r.stock_inicial,u:r.unidad,var:r.variedad}));
   LM.esquejes=(esqR.data||[]).filter(r=>r.stock_actual>0).map(r=>({v:r.id,l:r.nombre_lote+' — '+r.variedad,stock:r.stock_actual,stockI:r.stock_inicial,u:'esquejes',var:r.variedad}));
   LM.pm=(pmR.data||[]).filter(r=>r.cantidad_actual>0).map(r=>({v:r.id,l:r.nombre_lote+' — '+r.variedad,stock:r.cantidad_actual,stockI:r.cantidad_inicial,u:'plantas',var:r.variedad}));
+  LM_HIST.semillas=(semR.data||[]).filter(r=>r.stock_actual<=0).map(r=>({v:r.id,l:r.nombre_lote+' — '+r.variedad,stockI:r.stock_inicial,u:r.unidad,var:r.variedad,creado_en:r.creado_en}));
+  LM_HIST.esquejes=(esqR.data||[]).filter(r=>r.stock_actual<=0).map(r=>({v:r.id,l:r.nombre_lote+' — '+r.variedad,stockI:r.stock_inicial,u:'esquejes',var:r.variedad,creado_en:r.creado_en}));
+  LM_HIST.pm=(pmR.data||[]).filter(r=>r.cantidad_actual<=0).map(r=>({v:r.id,l:r.nombre_lote+' — '+r.variedad,stockI:r.cantidad_inicial,u:'plantas',var:r.variedad,creado_en:r.creado_en}));
   renderStock();
+  renderStockHistorico();
   actualizarMetricasStock();
 }
 
@@ -1075,26 +1095,26 @@ function rAll(cid,fe){
 }
 
 async function openLote(id){
-  let lote=LD.find(l=>l.id===id);
+  let lote=LD.find(l=>l.id===id)||LD_TERM.find(l=>l.id===id)||LD_CERR.find(l=>l.id===id);
   if(!lote){
     const{data}=await sb.from('lotes_produccion').select('*').eq('id',id).single();
     if(!data)return;
     lote=mapLote(data);
-    const idx=LD.findIndex(l=>l.id===id);
-    if(idx>=0)LD[idx]=lote;else LD.push(lote);
   }
   LOTE_ACTIVO=lote;
   HIST_DATA={};
-  const emap={nursery:'Nursery · orden 1',vegetativa:'Vegetativa · orden 2',floracion:'Floración · orden 3',cosecha:'Cosecha y Curado · orden 4',cosecha_curado:'Cosecha y Curado · orden 4',flores:'Flores Cosechadas · orden 5'};
-  const bmap={nursery:'b-nur',vegetativa:'b-veg',floracion:'b-flo',cosecha:'b-cos',cosecha_curado:'b-cos',flores:'b-fl2'};
+  const emap={nursery:'Nursery · orden 1',vegetativa:'Vegetativa · orden 2',floracion:'Floración · orden 3',cosecha:'Cosecha y Curado · orden 4',cosecha_curado:'Cosecha y Curado · orden 4',flores:'Flores Cosechadas · orden 5',completado:'Ciclo completado',cerrado:'Cerrado anticipadamente'};
+  const bmap={nursery:'b-nur',vegetativa:'b-veg',floracion:'b-flo',cosecha:'b-cos',cosecha_curado:'b-cos',flores:'b-fl2',completado:'b-com',cerrado:'b-cia'};
   document.getElementById('det-nombre').textContent=lote.n;
   document.getElementById('det-sub').textContent=lote.o;
   const eEl=document.getElementById('det-etapa');
-  eEl.textContent=emap[lote.et]||lote.et;
-  eEl.className='eb '+(bmap[lote.et]||'b-nur');
+  eEl.textContent=emap[lote.et]||emap[lote.etapaRaw]||lote.et;
+  eEl.className='eb '+(bmap[lote.etapaRaw]||bmap[lote.et]||'b-nur');
+  const cw=document.getElementById('det-cerrar-wrap');
+  if(cw)cw.style.display=(lote.etapaRaw==='completado'||lote.etapaRaw==='cerrado')?'none':'block';
   sv('detalle');
   document.getElementById('det-panel').innerHTML='<div style="padding:24px;text-align:center;color:var(--sage);font-size:0.78rem;">Cargando datos...</div>';
-  const etIdx={nursery:1,vegetativa:2,floracion:3,cosecha_curado:4,flores:5}[lote.etapaRaw]||1;
+  const etIdx={nursery:1,vegetativa:2,floracion:3,cosecha_curado:4,flores:5,completado:5,cerrado:5}[lote.etapaRaw]||1;
   const reqs=[];
   if(etIdx>=1)reqs.push(sb.from('etapa_nursery').select('*').eq('lote_id',id).maybeSingle());
   if(etIdx>=2)reqs.push(sb.from('etapa_vegetativa').select('*').eq('lote_id',id).maybeSingle());
@@ -1110,14 +1130,17 @@ async function openLote(id){
 
 function renderTimeline(etapa){
   const stages=[{key:'nursery',label:'Nursery',ord:1},{key:'vegetativa',label:'Vegetativa',ord:2},{key:'floracion',label:'Floración',ord:3},{key:'cosecha_curado',label:'Cosecha y Curado',ord:4},{key:'flores',label:'Flores Cosechadas',ord:5}];
-  const curIdx={nursery:1,vegetativa:2,floracion:3,cosecha_curado:4,flores:5}[etapa]||1;
+  const esHist=etapa==='completado'||etapa==='cerrado';
+  const curIdx=esHist?5:({nursery:1,vegetativa:2,floracion:3,cosecha_curado:4,flores:5}[etapa]||1);
   document.getElementById('det-timeline').innerHTML=stages.map(s=>{
     let cls='tli future',ico=s.ord;
-    if(s.ord<curIdx){cls='tli done';ico='✓';}
-    else if(s.ord===curIdx){cls='tli active';}
+    if(etapa==='completado'){cls='tli done';ico='✓';}
+    else if(s.ord<curIdx){cls='tli done';ico='✓';}
+    else if(s.ord===curIdx&&!esHist){cls='tli active';}
     let click=' style="cursor:default;"';
-    if(s.ord<curIdx)click=` onclick="openEtapaHist('${s.key}')" style="cursor:pointer;"`;
-    else if(s.ord===curIdx)click=` onclick="volverEtapaActual()" style="cursor:pointer;"` ;
+    if(!esHist&&s.ord<curIdx)click=` onclick="openEtapaHist('${s.key}')" style="cursor:pointer;"`;
+    else if(!esHist&&s.ord===curIdx)click=` onclick="volverEtapaActual()" style="cursor:pointer;"`;
+    else if(esHist)click=` onclick="openEtapaHist('${s.key}')" style="cursor:pointer;"`;
     return`<div class="${cls}"${click}><div class="tln2">${ico}</div><div class="tll">${s.label}</div></div>`;
   }).join('');
 }
@@ -1130,7 +1153,100 @@ function renderPanelActivo(){
   else if(et==='floracion')el.innerHTML=panelFloracion();
   else if(et==='cosecha_curado')el.innerHTML=panelCosecha();
   else if(et==='flores')el.innerHTML=panelFlores();
-  else el.innerHTML='<div class="panel"><div class="pt">Lote completado</div></div>';
+  else if(et==='completado')el.innerHTML=panelFlores();
+  else if(et==='cerrado')el.innerHTML=panelCerrado();
+  else el.innerHTML='<div class="panel"><div class="pt">Estado desconocido</div></div>';
+}
+
+function panelCerrado(){
+  const motivo=LOTE_ACTIVO?.motivo_cierre||'No especificado';
+  const fecha=LOTE_ACTIVO?.fecha_cierre?fmtDate(LOTE_ACTIVO.fecha_cierre):'—';
+  return`<div class="panel">
+    <div class="pt">Lote cerrado anticipadamente</div>
+    <div class="field"><label>Fecha de cierre</label><div class="ro-val">${fecha}</div></div>
+    <div class="field"><label>Motivo de cierre</label><div class="ro-val">${motivo}</div></div>
+    <div style="margin-top:10px;font-size:0.72rem;color:var(--sage);">Este lote fue cerrado antes de completar su ciclo productivo. Los datos de las etapas completadas son consultables en la línea de tiempo.</div>
+  </div>`;
+}
+
+function switchLotesTab(tab,el){
+  document.querySelectorAll('#view-lotes .sec-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  ['activos','terminados','cerrados'].forEach(t=>{
+    const s=document.getElementById('stab-'+t);if(s)s.style.display=t===tab?'block':'none';
+  });
+}
+
+function switchStockTab(tab,el){
+  document.querySelectorAll('#view-stock .sec-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  const sa=document.getElementById('stab-stock-activo');const sh=document.getElementById('stab-stock-hist');
+  if(sa)sa.style.display=tab==='activo'?'block':'none';
+  if(sh)sh.style.display=tab==='historico'?'block':'none';
+}
+
+function renderLotesHistorico(tipo){
+  const arr=tipo==='terminados'?LD_TERM:LD_CERR;
+  const elId=tipo==='terminados'?'lotes-term-list':'lotes-cerr-list';
+  const el=document.getElementById(elId);if(!el)return;
+  const tcId=tipo==='terminados'?'tc-terminados':'tc-cerrados';
+  const tc=document.getElementById(tcId);if(tc)tc.textContent=arr.length;
+  if(arr.length===0){
+    el.innerHTML=`<div style="color:var(--sage);font-size:0.78rem;padding:24px 0;text-align:center;">${tipo==='terminados'?'Sin lotes terminados aún.':'Sin lotes cerrados anticipadamente.'}</div>`;
+    return;
+  }
+  el.innerHTML=arr.map(l=>rLCHist(l)).join('');
+}
+
+function rLCHist(l){
+  const sc2=l.s.map(s=>s===1?'done':s===2?'act':'fut');
+  const extra=l.motivo_cierre?`<div class="hist-motivo">Motivo: ${l.motivo_cierre}</div>`:'';
+  const fechaCierre=l.fecha_cierre?`<div class="mi">Cierre <b>${fmtDate(l.fecha_cierre)}</b></div>`:'';
+  return`<div class="lote-card lc-hist" onclick="openLote('${l.id}')">
+    <div class="lote-header">
+      <div><div class="lote-name">${l.n}</div><div class="lote-orig">${l.o}</div>${extra}</div>
+      <span class="eb ${l.b}">${l.bt}</span>
+    </div>
+    <div class="pb"><div class="steps">${sc2.map(c=>`<div class="step ${c}"></div>`).join('')}</div><div class="sc">${l.sc}</div></div>
+    <div class="lm"><div class="mi">Inicio <b>${l.m[0]?.v||'—'}</b></div>${fechaCierre}</div>
+  </div>`;
+}
+
+function renderStockHistorico(){
+  function rlh(r,tipo){return`<div class="sl" onclick="openMaterial('${r.v}','${tipo}')"><div class="sln">${r.l}</div><div style="font-size:0.65rem;color:var(--sage);margin-top:2px;">Stock inicial: ${r.stockI} ${r.u} · agotado/descartado</div></div>`;}
+  const semEl=document.getElementById('scb-sem-hist');
+  const esqEl=document.getElementById('scb-esq-hist');
+  const pmEl=document.getElementById('scb-pm-hist');
+  if(semEl)semEl.innerHTML=LM_HIST.semillas.length?LM_HIST.semillas.map(r=>rlh(r,'semillas')).join(''):'<div class="hist-empty">Sin lotes agotados.</div>';
+  if(esqEl)esqEl.innerHTML=LM_HIST.esquejes.length?LM_HIST.esquejes.map(r=>rlh(r,'esquejes')).join(''):'<div class="hist-empty">Sin lotes agotados.</div>';
+  if(pmEl)pmEl.innerHTML=LM_HIST.pm.length?LM_HIST.pm.map(r=>rlh(r,'pm')).join(''):'<div class="hist-empty">Sin lotes agotados.</div>';
+}
+
+async function cerrarLoteAgotado(){
+  if(!confirm('¿Confirmás que querés cerrar este lote?\n\nSe moverá a "Lotes Productivos Terminados" en el historial.'))return;
+  const fecha=new Date().toISOString().split('T')[0];
+  const{error}=await sb.from('lotes_produccion').update({etapa_actual:'completado',fecha_cierre:fecha}).eq('id',LOTE_ACTIVO.id);
+  if(error){alert('Error al cerrar el lote: '+error.message);return;}
+  LOTE_ACTIVO.etapaRaw='completado';
+  LOTE_ACTIVO.fecha_cierre=fecha;
+  await cargarLotes();
+  alert('Lote cerrado y movido al historial de lotes terminados.');
+  sv('lotes');
+}
+
+async function cerrarLoteAnticipado(){
+  const motivo=prompt('Motivo de cierre anticipado:\n(Ej: pérdida por plaga, decisión del productor, accidente)');
+  if(!motivo||!motivo.trim()){alert('El motivo de cierre es obligatorio.');return;}
+  if(!confirm(`¿Confirmás el cierre anticipado de "${LOTE_ACTIVO.n}"?\n\nMotivo: ${motivo}\n\nEl lote se moverá a "Lotes Cerrados Sin Terminar".`))return;
+  const fecha=new Date().toISOString().split('T')[0];
+  const{error}=await sb.from('lotes_produccion').update({etapa_actual:'cerrado',fecha_cierre:fecha,motivo_cierre:motivo.trim()}).eq('id',LOTE_ACTIVO.id);
+  if(error){alert('Error al cerrar el lote: '+error.message);return;}
+  LOTE_ACTIVO.etapaRaw='cerrado';
+  LOTE_ACTIVO.fecha_cierre=fecha;
+  LOTE_ACTIVO.motivo_cierre=motivo.trim();
+  await cargarLotes();
+  alert('Lote cerrado y movido al historial.');
+  sv('lotes');
 }
 
 function panelNursery(hist=false){
@@ -1246,16 +1362,19 @@ function panelCosecha(hist=false){
 
 function panelFlores(){
   const d=HIST_DATA.flores||{};
+  const agotado=d.stock_actual!=null&&d.stock_actual<=0;
+  const yaCompletado=LOTE_ACTIVO?.etapaRaw==='completado';
+  const cerrarBanner=agotado&&!yaCompletado?`<div class="cerrar-banner"><div class="cerrar-banner-txt"><strong>Existencias agotadas</strong><br>Todas las flores de este lote fueron entregadas. Podés cerrar el lote y moverlo al historial.</div><button class="btn btn-primary" onclick="cerrarLoteAgotado()">Cerrar lote →</button></div>`:'';
+  const botones=yaCompletado?'':`<div class="ab" style="margin-top:12px;"><button class="btn btn-primary" onclick="alert('Función: registrar entrega a paciente — en desarrollo')">+ Registrar entrega</button></div>`;
   return`<div class="panel">
-    <div class="pt">Flores Cosechadas</div>
+    <div class="pt">Flores Cosechadas${yaCompletado?' <span style="font-size:0.65rem;color:var(--accent);font-weight:400;text-transform:none;">— lote completado</span>':''}</div>
     <div class="g2">
       <div class="field"><label>Stock inicial</label><div class="ro-val">${d.stock_inicial!=null?d.stock_inicial+' g':'—'}</div></div>
       <div class="field"><label>Stock actual</label><div class="ro-val">${d.stock_actual!=null?d.stock_actual+' g':'—'}</div></div>
     </div>
     ${d.fecha_disponible?`<div class="field"><label>Fecha disponible</label><div class="ro-val">${fmtDate(d.fecha_disponible)}</div></div>`:''}
-    <div class="ab" style="margin-top:12px;">
-      <button class="btn btn-primary" onclick="alert('Función: registrar entrega a paciente — en desarrollo')">+ Registrar entrega</button>
-    </div>
+    ${botones}
+    ${cerrarBanner}
   </div>`;
 }
 

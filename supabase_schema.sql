@@ -292,3 +292,8 @@ ALTER TABLE public.lotes_plantas_madre
 -- Elimina la FK auto-referencial incorrecta y deja lote_origen_id como UUID libre
 ALTER TABLE public.lotes_plantas_madre
   DROP CONSTRAINT IF EXISTS lotes_plantas_madre_lote_origen_id_fkey;
+
+-- ── MIGRACIÓN: lotes_produccion — campos de cierre ──
+ALTER TABLE public.lotes_produccion
+  ADD COLUMN IF NOT EXISTS fecha_cierre DATE,
+  ADD COLUMN IF NOT EXISTS motivo_cierre TEXT;
