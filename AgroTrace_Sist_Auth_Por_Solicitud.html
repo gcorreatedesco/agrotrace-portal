@@ -155,7 +155,7 @@ tr:hover td{background:var(--cream);}
     <p>Diseño y procedimiento del flujo de registro de nuevos usuarios en AgroTrace: el usuario solicita acceso, el administrador aprueba, y el sistema envía las credenciales automáticamente.</p>
     <div class="doc-meta">
       <div class="doc-meta-item">Documento: <span>AgroTrace_Sist_Auth_Por_Solicitud</span></div>
-      <div class="doc-meta-item">Versión: <span>v1.0</span></div>
+      <div class="doc-meta-item">Versión: <span>v1.1</span></div>
       <div class="doc-meta-item">Fecha: <span>Junio 2026</span></div>
     </div>
   </div>
@@ -555,21 +555,216 @@ CREATE OR REPLACE TRIGGER on_auth_user_created
   </table>
 
   <!-- CHECKLIST -->
-  <h2>9. Checklist de implementación — Opción A (próximo paso)</h2>
+  <h2>9. Estado de implementación — Opción A</h2>
 
-  <ul class="checklist">
-    <li><div class="check-box"></div>Agregar opción "Solicitar acceso" en <span class="code-inline">index.html</span></li>
-    <li><div class="check-box"></div>Diseñar y construir formulario de solicitud con los campos definidos en sección 4</li>
-    <li><div class="check-box"></div>Configurar envío de email al administrador al enviar la solicitud (EmailJS u otro)</li>
-    <li><div class="check-box"></div>Configurar SMTP en Supabase (ver documento AgroTrace_Guia_SMTP_Email)</li>
-    <li><div class="check-box"></div>Personalizar template "Invite user" en Supabase en español</li>
-    <li><div class="check-box"></div>Crear trigger <span class="code-inline">on_auth_user_created</span> en Supabase SQL Editor</li>
-    <li><div class="check-box"></div>Probar flujo completo: solicitud → email admin → creación usuario → activación → login</li>
+  <p>Lo siguiente refleja el estado actual de cada componente al momento de escribir este documento:</p>
+
+  <table>
+    <tr>
+      <th>Componente</th>
+      <th>Archivo</th>
+      <th>Estado</th>
+    </tr>
+    <tr>
+      <td>Formulario de solicitud en el portal de acceso</td>
+      <td><span class="code-inline">index.html</span></td>
+      <td><span class="tag-ok">Implementado</span></td>
+    </tr>
+    <tr>
+      <td>Edge Function <span class="code-inline">solicitar-acceso</span> (envío de email al admin)</td>
+      <td><span class="code-inline">supabase/functions/solicitar-acceso/index.ts</span></td>
+      <td><span class="tag-ok">Código listo — pendiente deploy en Supabase</span></td>
+    </tr>
+    <tr>
+      <td>Secrets configurados en Supabase (RESEND_API_KEY, ADMIN_EMAIL, FROM_EMAIL)</td>
+      <td>Supabase Dashboard → Project Settings → Secrets</td>
+      <td><span class="tag-warn">Pendiente</span></td>
+    </tr>
+    <tr>
+      <td>Deploy de la Edge Function en Supabase</td>
+      <td>Supabase Dashboard → Edge Functions</td>
+      <td><span class="tag-warn">Pendiente</span></td>
+    </tr>
+    <tr>
+      <td>Cuenta Resend creada y API Key obtenida</td>
+      <td>resend.com</td>
+      <td><span class="tag-warn">Pendiente</span></td>
+    </tr>
+    <tr>
+      <td>Template "Invite user" personalizado en español en Supabase</td>
+      <td>Supabase Dashboard → Authentication → Email Templates</td>
+      <td><span class="tag-warn">Pendiente</span></td>
+    </tr>
+    <tr>
+      <td>Trigger <span class="code-inline">on_auth_user_created</span> para auto-crear perfiles</td>
+      <td>Supabase Dashboard → SQL Editor</td>
+      <td><span class="tag-warn">Pendiente</span></td>
+    </tr>
+    <tr>
+      <td>Prueba completa del flujo end-to-end</td>
+      <td>—</td>
+      <td><span class="tag-warn">Pendiente</span></td>
+    </tr>
+  </table>
+
+  <!-- DEPLOY EDGE FUNCTION -->
+  <h2>10. Procedimiento de deploy de la Edge Function</h2>
+
+  <p>La Edge Function es el componente que recibe los datos del formulario y envía el email al administrador. El código vive en <span class="code-inline">supabase/functions/solicitar-acceso/index.ts</span> dentro del repositorio. Para que funcione, debe estar desplegado en los servidores de Supabase.</p>
+
+  <h3>Parte A — Crear cuenta en Resend y obtener API Key</h3>
+  <ul class="steps-list">
+    <li>
+      <div class="step-num step-num-a">1</div>
+      <div class="step-body">
+        <div class="step-title">Registrarse en Resend</div>
+        <div class="step-desc">Ir a <strong>resend.com</strong> → Sign up. Plan gratuito: 3.000 emails/mes — más que suficiente para solicitudes de acceso.</div>
+      </div>
+    </li>
+    <li>
+      <div class="step-num step-num-a">2</div>
+      <div class="step-body">
+        <div class="step-title">Obtener API Key</div>
+        <div class="step-desc">En el dashboard de Resend: <strong>API Keys → Create API Key</strong>. Copiar la clave generada (empieza con <span class="code-inline">re_</span>). Guardarla — solo se muestra una vez.</div>
+      </div>
+    </li>
   </ul>
+
+  <h3>Parte B — Configurar Secrets en Supabase</h3>
+  <p>Los secrets son variables de entorno seguras — nunca quedan visibles en el código del repositorio.</p>
+  <ul class="steps-list">
+    <li>
+      <div class="step-num step-num-a">3</div>
+      <div class="step-body">
+        <div class="step-title">Ir a Secrets en Supabase</div>
+        <div class="step-desc"><strong>Supabase Dashboard → Project Settings → Edge Functions → Secrets</strong></div>
+      </div>
+    </li>
+    <li>
+      <div class="step-num step-num-a">4</div>
+      <div class="step-body">
+        <div class="step-title">Agregar los tres secrets</div>
+        <div class="step-desc">
+          <table style="margin-top:8px;">
+            <tr>
+              <th>Nombre del secret</th>
+              <th>Valor</th>
+            </tr>
+            <tr>
+              <td><span class="code-inline">RESEND_API_KEY</span></td>
+              <td>La clave <span class="code-inline">re_...</span> obtenida en el paso 2</td>
+            </tr>
+            <tr>
+              <td><span class="code-inline">ADMIN_EMAIL</span></td>
+              <td>El email del administrador que recibirá las solicitudes</td>
+            </tr>
+            <tr>
+              <td><span class="code-inline">FROM_EMAIL</span></td>
+              <td><span class="code-inline">AgroTrace &lt;onboarding@resend.dev&gt;</span> (hasta verificar dominio propio)</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+    </li>
+  </ul>
+
+  <h3>Parte C — Deploy de la Edge Function</h3>
+  <ul class="steps-list">
+    <li>
+      <div class="step-num step-num-a">5</div>
+      <div class="step-body">
+        <div class="step-title">Ir a Edge Functions en Supabase</div>
+        <div class="step-desc"><strong>Supabase Dashboard → Edge Functions → Deploy a new function</strong></div>
+      </div>
+    </li>
+    <li>
+      <div class="step-num step-num-a">6</div>
+      <div class="step-body">
+        <div class="step-title">Crear la función</div>
+        <div class="step-desc">
+          Nombre: <span class="code-inline">solicitar-acceso</span> (debe coincidir exactamente con este nombre).<br/>
+          Abrir el archivo <span class="code-inline">supabase/functions/solicitar-acceso/index.ts</span> del repositorio, copiar todo el contenido y pegarlo en el editor de Supabase.
+        </div>
+      </div>
+    </li>
+    <li>
+      <div class="step-num step-num-a">7</div>
+      <div class="step-body">
+        <div class="step-title">Guardar y verificar el deploy</div>
+        <div class="step-desc">Hacer clic en <strong>Deploy</strong>. Supabase mostrará la URL de la función, similar a:<br/>
+        <span class="code-inline">https://jqkyifuyaxxwugrnjfnq.supabase.co/functions/v1/solicitar-acceso</span><br/>
+        Esa URL ya está configurada en <span class="code-inline">index.html</span> — no hay nada más que cambiar en el código.</div>
+      </div>
+    </li>
+  </ul>
+
+  <h3>Parte D — Personalizar el template de invitación</h3>
+  <ul class="steps-list">
+    <li>
+      <div class="step-num step-num-a">8</div>
+      <div class="step-body">
+        <div class="step-title">Ir a Email Templates en Supabase</div>
+        <div class="step-desc"><strong>Supabase Dashboard → Authentication → Email Templates → Invite user</strong></div>
+      </div>
+    </li>
+    <li>
+      <div class="step-num step-num-a">9</div>
+      <div class="step-body">
+        <div class="step-title">Reemplazar el contenido por el template en español</div>
+        <div class="step-desc">
+          <div class="code-block"><code>&lt;h2&gt;Bienvenido a AgroTrace&lt;/h2&gt;
+&lt;p&gt;Su solicitud de acceso fue aprobada.&lt;/p&gt;
+&lt;p&gt;Haga clic en el siguiente enlace para crear su contraseña
+y activar su cuenta:&lt;/p&gt;
+&lt;a href="{{ .ConfirmationURL }}"&gt;Activar mi cuenta&lt;/a&gt;
+&lt;p&gt;Este enlace expira en 24 horas.&lt;/p&gt;
+&lt;p&gt;Si no solicitó acceso a AgroTrace, ignore este email.&lt;/p&gt;</code></div>
+        </div>
+      </div>
+    </li>
+  </ul>
+
+  <h3>Parte E — Trigger para creación automática de perfiles</h3>
+  <ul class="steps-list">
+    <li>
+      <div class="step-num step-num-a">10</div>
+      <div class="step-body">
+        <div class="step-title">Ejecutar en Supabase SQL Editor</div>
+        <div class="step-desc">
+          <strong>Supabase Dashboard → SQL Editor → New query</strong> — pegar y ejecutar:
+          <div class="code-block"><code>CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.perfiles (id, nombre, rol)
+  VALUES (
+    NEW.id,
+    COALESCE(NEW.raw_user_meta_data->>'nombre', NEW.email),
+    COALESCE(NEW.raw_user_meta_data->>'rol', 'ong')
+  );
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();</code></div>
+          Con este trigger activo, al crear un usuario en Supabase el perfil se genera automáticamente — sin inserción manual.
+        </div>
+      </div>
+    </li>
+  </ul>
+
+  <div class="callout callout-info">
+    <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+    <div class="callout-body">
+      <strong>Flujo completo una vez todo desplegado</strong>
+      Usuario llena formulario → Edge Function envía email al admin → Admin crea usuario en Supabase Dashboard → Trigger crea el perfil automáticamente → Supabase envía link de activación vía Resend → Usuario activa su cuenta y define contraseña → Puede ingresar al sistema.
+    </div>
+  </div>
 
   <div class="doc-footer">
     <span>AgroTrace — Sistema de Trazabilidad REPROCANN</span>
-    <span>v1.0 · Junio 2026</span>
+    <span>v1.1 · Junio 2026</span>
   </div>
 
 </div>

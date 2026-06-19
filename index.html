@@ -724,20 +724,40 @@
     }
   }
 
-  function enviarSolicitud() {
-    const nombre  = document.getElementById('sol-nombre').value.trim();
-    const email   = document.getElementById('sol-email').value.trim();
-    const ong     = document.getElementById('sol-ong').value.trim();
-    const perfil  = document.getElementById('sol-perfil').value;
-    const err     = document.getElementById('error-solicitud');
+  async function enviarSolicitud() {
+    const nombre   = document.getElementById('sol-nombre').value.trim();
+    const email    = document.getElementById('sol-email').value.trim();
+    const ong      = document.getElementById('sol-ong').value.trim();
+    const perfil   = document.getElementById('sol-perfil').value;
+    const reprocann= document.getElementById('sol-reprocann').value.trim();
+    const notas    = document.getElementById('sol-notas').value.trim();
+    const err      = document.getElementById('error-solicitud');
+    const btn      = document.querySelector('#view-solicitud .btn-primary');
+
     if (!nombre || !email || !ong || !perfil) {
+      err.textContent = 'Complete los campos obligatorios (*).';
       err.classList.add('show');
       return;
     }
     err.classList.remove('show');
-    // Banco de prueba: muestra confirmación sin enviar email real
-    // Al implementar auth real: enviar datos a Supabase o EmailJS
-    showView('view-solicitud-ok');
+    btn.textContent = 'Enviando...';
+    btn.disabled = true;
+
+    try {
+      const SUPABASE_URL = 'https://jqkyifuyaxxwugrnjfnq.supabase.co';
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/solicitar-acceso`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nombre, email, ong, perfil, reprocann, notas }),
+      });
+      if (!res.ok) throw new Error('Error del servidor');
+      showView('view-solicitud-ok');
+    } catch (e) {
+      err.textContent = 'No se pudo enviar la solicitud. Intente nuevamente.';
+      err.classList.add('show');
+      btn.textContent = 'Enviar solicitud';
+      btn.disabled = false;
+    }
   }
 
   function doRecover() {
