@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AgroTrace — Guía SMTP y Email Transaccional</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --soil:#2C1F0E;--bark:#4A3520;--sage:#6B7F5E;--leaf:#8EAA7B;
+  --mist:#C8D9BC;--dew:#EDF2E8;--cream:#F7F4EF;--white:#FFFFFF;
+  --accent:#4E7C3F;--amber:#854F0B;--amber-bg:#FAEEDA;
+  --purple:#534AB7;--purple-bg:#EEEDFE;
+  --error:#B94A3A;--error-bg:#FAECE7;
+  --radius:6px;
+}
+body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--soil);font-size:14px;line-height:1.7;}
+.page{max-width:860px;margin:0 auto;padding:48px 32px;}
+
+/* ── HEADER ── */
+.doc-header{background:var(--soil);border-radius:10px;padding:36px 40px;margin-bottom:36px;position:relative;overflow:hidden;}
+.doc-header::after{content:'';position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");opacity:0.03;pointer-events:none;}
+.doc-badge{display:inline-block;background:rgba(142,170,123,0.2);border:1px solid rgba(142,170,123,0.3);color:var(--leaf);font-size:0.65rem;font-weight:500;letter-spacing:0.12em;text-transform:uppercase;padding:4px 10px;border-radius:20px;margin-bottom:14px;}
+.doc-header h1{font-family:'DM Serif Display',serif;font-size:2rem;color:var(--cream);line-height:1.2;margin-bottom:10px;}
+.doc-header p{font-size:0.85rem;font-weight:300;color:var(--mist);max-width:560px;line-height:1.7;}
+.doc-meta{margin-top:20px;display:flex;gap:24px;flex-wrap:wrap;}
+.doc-meta-item{font-size:0.72rem;color:rgba(255,255,255,0.35);display:flex;align-items:center;gap:5px;}
+.doc-meta-item span{color:rgba(255,255,255,0.55);}
+
+/* ── SECCIONES ── */
+h2{font-family:'DM Serif Display',serif;font-size:1.4rem;color:var(--soil);margin:36px 0 14px;padding-bottom:8px;border-bottom:2px solid var(--dew);}
+h3{font-size:0.9rem;font-weight:500;color:var(--bark);margin:22px 0 10px;}
+p{margin-bottom:12px;font-size:0.88rem;color:var(--bark);}
+
+/* ── CALLOUTS ── */
+.callout{border-radius:var(--radius);padding:14px 16px;margin:16px 0;display:flex;gap:12px;}
+.callout svg{width:18px;height:18px;flex-shrink:0;margin-top:1px;}
+.callout-body{font-size:0.83rem;line-height:1.6;}
+.callout-body strong{display:block;margin-bottom:4px;font-size:0.8rem;text-transform:uppercase;letter-spacing:0.06em;}
+.callout-info{background:var(--dew);border-left:3px solid var(--accent);}
+.callout-info svg{fill:var(--accent);}
+.callout-info .callout-body{color:var(--bark);}
+.callout-info .callout-body strong{color:var(--accent);}
+.callout-warn{background:var(--amber-bg);border-left:3px solid var(--amber);}
+.callout-warn svg{fill:var(--amber);}
+.callout-warn .callout-body{color:var(--amber);}
+.callout-warn .callout-body strong{color:var(--amber);}
+.callout-purple{background:var(--purple-bg);border-left:3px solid var(--purple);}
+.callout-purple svg{fill:var(--purple);}
+.callout-purple .callout-body{color:var(--purple);}
+.callout-purple .callout-body strong{color:var(--purple);}
+
+/* ── TABLA ── */
+table{width:100%;border-collapse:collapse;margin:16px 0;font-size:0.83rem;}
+th{background:var(--soil);color:var(--mist);font-weight:500;font-size:0.72rem;letter-spacing:0.06em;text-transform:uppercase;padding:10px 14px;text-align:left;}
+td{padding:10px 14px;border-bottom:1px solid var(--dew);color:var(--bark);vertical-align:top;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:var(--cream);}
+.tag-ok{background:var(--dew);color:var(--accent);font-size:0.7rem;padding:2px 7px;border-radius:10px;font-weight:500;}
+.tag-warn{background:var(--amber-bg);color:var(--amber);font-size:0.7rem;padding:2px 7px;border-radius:10px;font-weight:500;}
+
+/* ── PASOS ── */
+.steps-list{list-style:none;margin:16px 0;}
+.steps-list li{display:flex;gap:14px;margin-bottom:20px;}
+.step-num{width:28px;height:28px;border-radius:50%;background:var(--accent);color:white;font-size:0.75rem;font-weight:500;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
+.step-body{flex:1;}
+.step-title{font-weight:500;color:var(--soil);margin-bottom:4px;font-size:0.88rem;}
+.step-desc{font-size:0.83rem;color:var(--bark);line-height:1.6;}
+
+/* ── CÓDIGO ── */
+.code-block{background:var(--soil);border-radius:var(--radius);padding:16px 18px;margin:12px 0;overflow-x:auto;}
+.code-block code{font-family:'Courier New',monospace;font-size:0.8rem;color:var(--mist);white-space:pre;}
+.code-inline{font-family:'Courier New',monospace;font-size:0.8rem;background:var(--dew);color:var(--accent);padding:1px 5px;border-radius:3px;}
+
+/* ── DIAGRAMA DE FLUJO ── */
+.flow{display:flex;align-items:center;gap:0;margin:20px 0;flex-wrap:wrap;}
+.flow-step{background:var(--white);border:1px solid rgba(0,0,0,0.1);border-radius:var(--radius);padding:10px 14px;font-size:0.78rem;color:var(--bark);text-align:center;min-width:120px;}
+.flow-step strong{display:block;font-size:0.72rem;color:var(--soil);margin-bottom:2px;}
+.flow-arrow{color:var(--sage);font-size:1.2rem;padding:0 6px;}
+.flow-step.highlight{background:var(--dew);border-color:var(--accent);}
+.flow-step.highlight strong{color:var(--accent);}
+
+/* ── FOOTER ── */
+.doc-footer{margin-top:48px;padding-top:20px;border-top:1px solid var(--dew);display:flex;justify-content:space-between;align-items:center;font-size:0.72rem;color:var(--sage);}
+
+@media print{
+  body{background:white;}
+  .page{padding:20px;}
+  .doc-header{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  th{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ENCABEZADO -->
+  <div class="doc-header">
+    <div class="doc-badge">Guía de Procedimiento</div>
+    <h1>Configuración de Email<br/>Transaccional en AgroTrace</h1>
+    <p>Cómo configurar el envío de emails de autenticación (invitaciones, recuperación de contraseña, confirmaciones) usando Supabase y un servicio SMTP externo.</p>
+    <div class="doc-meta">
+      <div class="doc-meta-item">Documento: <span>AgroTrace_Guia_SMTP_Email</span></div>
+      <div class="doc-meta-item">Versión: <span>v1.0</span></div>
+      <div class="doc-meta-item">Fecha: <span>Junio 2026</span></div>
+    </div>
+  </div>
+
+  <!-- CONCEPTO -->
+  <h2>1. Concepto general</h2>
+
+  <p>Cuando un usuario se registra, recibe una invitación o pide recuperar su contraseña, el sistema necesita enviarle un email automático. Este proceso se llama <strong>email transaccional</strong> — a diferencia del email de marketing, es uno a uno, disparado por una acción concreta del usuario.</p>
+
+  <div class="callout callout-info">
+    <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+    <div class="callout-body">
+      <strong>No necesitás servidor propio</strong>
+      Supabase actúa como intermediario entre tu aplicación y el servicio de email. Vos configurás las credenciales una sola vez en el dashboard de Supabase, y el sistema se encarga del resto. No hay infraestructura que mantener.
+    </div>
+  </div>
+
+  <h3>Diagrama del flujo</h3>
+  <div class="flow">
+    <div class="flow-step"><strong>Usuario</strong>Pide invitación o reset</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step highlight"><strong>AgroTrace</strong>Llama a Supabase SDK</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step highlight"><strong>Supabase Auth</strong>Genera el link</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step"><strong>Resend / SendGrid</strong>Entrega el email</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step"><strong>Usuario</strong>Recibe en su casilla</div>
+  </div>
+
+  <!-- ETAPAS -->
+  <h2>2. Dos etapas de uso</h2>
+
+  <table>
+    <tr>
+      <th>Etapa</th>
+      <th>Servidor de email</th>
+      <th>Límite</th>
+      <th>Configuración</th>
+      <th>Estado AgroTrace</th>
+    </tr>
+    <tr>
+      <td><strong>Desarrollo / banco de prueba</strong></td>
+      <td>SMTP interno de Supabase</td>
+      <td>2 emails / hora</td>
+      <td>Ninguna — funciona solo</td>
+      <td><span class="tag-ok">Etapa actual</span></td>
+    </tr>
+    <tr>
+      <td><strong>Producción con usuarios reales</strong></td>
+      <td>Resend, SendGrid, Mailgun, Brevo</td>
+      <td>Según plan del servicio</td>
+      <td>Pegar credenciales en Supabase</td>
+      <td><span class="tag-warn">Futuro</span></td>
+    </tr>
+  </table>
+
+  <div class="callout callout-warn">
+    <svg viewBox="0 0 24 24"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
+    <div class="callout-body">
+      <strong>Importante sobre el límite de desarrollo</strong>
+      El límite de 2 emails/hora es por proyecto de Supabase, no por usuario. En desarrollo esto es suficiente para probar flujos. Si necesitás probar muchos emails seguidos, usá la consola de Supabase para confirmar usuarios manualmente.
+    </div>
+  </div>
+
+  <!-- SERVICIOS DISPONIBLES -->
+  <h2>3. Servicios SMTP recomendados</h2>
+
+  <p>Todos los servicios listados son SaaS — te registrás, obtenés credenciales, y las pegás en Supabase. No hay nada que instalar ni mantener.</p>
+
+  <table>
+    <tr>
+      <th>Servicio</th>
+      <th>Plan gratuito</th>
+      <th>Dominio propio</th>
+      <th>Recomendado para</th>
+    </tr>
+    <tr>
+      <td><strong>Resend</strong> — resend.com</td>
+      <td>3.000 emails/mes</td>
+      <td>Sí</td>
+      <td>Primera opción. API moderna, fácil de configurar con Supabase, soporte en español.</td>
+    </tr>
+    <tr>
+      <td><strong>SendGrid</strong> — sendgrid.com</td>
+      <td>100 emails/día</td>
+      <td>Sí</td>
+      <td>Muy establecido. Más complejo de configurar pero ampliamente documentado.</td>
+    </tr>
+    <tr>
+      <td><strong>Brevo</strong> (ex Sendinblue)</td>
+      <td>300 emails/día</td>
+      <td>Sí</td>
+      <td>Buena opción si querés también envíos de marketing en el futuro.</td>
+    </tr>
+    <tr>
+      <td><strong>Mailgun</strong> — mailgun.com</td>
+      <td>1.000 emails/mes (3 meses)</td>
+      <td>Sí</td>
+      <td>Robusto para volúmenes medios. Requiere tarjeta de crédito para registrarse.</td>
+    </tr>
+  </table>
+
+  <!-- PASOS CON RESEND -->
+  <h2>4. Procedimiento paso a paso (con Resend)</h2>
+
+  <p>Se usa Resend como ejemplo por ser la opción más simple de integrar con Supabase. El procedimiento con los otros servicios es equivalente.</p>
+
+  <h3>Parte A — Configurar Resend</h3>
+  <ul class="steps-list">
+    <li>
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <div class="step-title">Crear cuenta en Resend</div>
+        <div class="step-desc">Ir a <strong>resend.com</strong> → Sign up con tu email de Gmail o institucional. No requiere tarjeta de crédito.</div>
+      </div>
+    </li>
+    <li>
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <div class="step-title">Obtener API Key</div>
+        <div class="step-desc">En el dashboard de Resend: <strong>API Keys → Create API Key</strong>. Copiar la clave generada (empieza con <span class="code-inline">re_</span>). Guardarla en un lugar seguro — solo se muestra una vez.</div>
+      </div>
+    </li>
+    <li>
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <div class="step-title">Verificar dominio (opcional pero recomendado)</div>
+        <div class="step-desc">Si tenés un dominio propio (ej: <span class="code-inline">agrotrace.com.ar</span>), podés verificarlo en Resend para enviar desde <span class="code-inline">noreply@agrotrace.com.ar</span>. Sin dominio propio, los emails salen desde el dominio de Resend, lo cual está bien para empezar.</div>
+      </div>
+    </li>
+  </ul>
+
+  <h3>Parte B — Configurar Supabase</h3>
+  <ul class="steps-list">
+    <li>
+      <div class="step-num">4</div>
+      <div class="step-body">
+        <div class="step-title">Ir a configuración SMTP en Supabase</div>
+        <div class="step-desc">
+          En el dashboard de Supabase:<br/>
+          <strong>Project Settings → Authentication → SMTP Settings</strong><br/>
+          Activar el toggle <strong>"Enable Custom SMTP"</strong>.
+        </div>
+      </div>
+    </li>
+    <li>
+      <div class="step-num">5</div>
+      <div class="step-body">
+        <div class="step-title">Completar los campos SMTP</div>
+        <div class="step-desc">
+          Con los datos de Resend, completar:
+          <div class="code-block"><code>Host:          smtp.resend.com
+Port:          465
+Username:      resend
+Password:      [tu API Key que empieza con re_]
+Sender email:  noreply@tudominio.com (o el que te dé Resend)
+Sender name:   AgroTrace</code></div>
+        </div>
+      </div>
+    </li>
+    <li>
+      <div class="step-num">6</div>
+      <div class="step-body">
+        <div class="step-title">Guardar y enviar email de prueba</div>
+        <div class="step-desc">Hacer clic en <strong>"Save"</strong>. Supabase ofrece un botón <strong>"Send test email"</strong> — usarlo para confirmar que la conexión funciona antes de seguir.</div>
+      </div>
+    </li>
+  </ul>
+
+  <h3>Parte C — Personalizar los templates de email</h3>
+  <ul class="steps-list">
+    <li>
+      <div class="step-num">7</div>
+      <div class="step-body">
+        <div class="step-title">Ir a Email Templates</div>
+        <div class="step-desc">En Supabase: <strong>Authentication → Email Templates</strong>. Hay 4 templates editables.</div>
+      </div>
+    </li>
+    <li>
+      <div class="step-num">8</div>
+      <div class="step-body">
+        <div class="step-title">Editar cada template en español</div>
+        <div class="step-desc">
+          Templates disponibles y su uso en AgroTrace:
+          <table style="margin-top:10px;">
+            <tr>
+              <th>Template</th>
+              <th>Cuándo se envía</th>
+            </tr>
+            <tr>
+              <td><strong>Confirm signup</strong></td>
+              <td>Cuando un usuario nuevo se registra y debe confirmar su email</td>
+            </tr>
+            <tr>
+              <td><strong>Invite user</strong></td>
+              <td>Cuando el RT invita a un operador con <span class="code-inline">inviteUserByEmail()</span></td>
+            </tr>
+            <tr>
+              <td><strong>Magic Link</strong></td>
+              <td>Login sin contraseña (opcional — no usamos por ahora)</td>
+            </tr>
+            <tr>
+              <td><strong>Reset password</strong></td>
+              <td>Cuando el usuario hace clic en "Olvidé mi contraseña"</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+    </li>
+    <li>
+      <div class="step-num">9</div>
+      <div class="step-body">
+        <div class="step-title">Ejemplo de template "Invite user" en español</div>
+        <div class="step-desc">
+          Reemplazar el contenido por defecto con algo similar a:
+          <div class="code-block"><code>&lt;h2&gt;Bienvenido a AgroTrace&lt;/h2&gt;
+&lt;p&gt;Fuiste invitado a unirte al sistema de trazabilidad AgroTrace.&lt;/p&gt;
+&lt;p&gt;Hacé clic en el siguiente botón para crear tu contraseña y activar tu cuenta:&lt;/p&gt;
+&lt;a href="{{ .ConfirmationURL }}"&gt;Activar mi cuenta&lt;/a&gt;
+&lt;p&gt;Este enlace expira en 24 horas.&lt;/p&gt;
+&lt;p&gt;Si no esperabas este email, podés ignorarlo.&lt;/p&gt;</code></div>
+          La variable <span class="code-inline">&#123;&#123; .ConfirmationURL &#125;&#125;</span> es reemplazada automáticamente por Supabase con el link real.
+        </div>
+      </div>
+    </li>
+  </ul>
+
+  <!-- VARIABLES DISPONIBLES -->
+  <h2>5. Variables disponibles en los templates</h2>
+
+  <table>
+    <tr>
+      <th>Variable</th>
+      <th>Contenido</th>
+    </tr>
+    <tr>
+      <td><span class="code-inline">&#123;&#123; .ConfirmationURL &#125;&#125;</span></td>
+      <td>Link de confirmación o activación generado por Supabase</td>
+    </tr>
+    <tr>
+      <td><span class="code-inline">&#123;&#123; .Email &#125;&#125;</span></td>
+      <td>Email del destinatario</td>
+    </tr>
+    <tr>
+      <td><span class="code-inline">&#123;&#123; .SiteURL &#125;&#125;</span></td>
+      <td>URL base del proyecto (configurada en Supabase)</td>
+    </tr>
+    <tr>
+      <td><span class="code-inline">&#123;&#123; .Token &#125;&#125;</span></td>
+      <td>Token OTP de 6 dígitos (para flujos sin link)</td>
+    </tr>
+  </table>
+
+  <!-- FLUJO EN AGROTRACE -->
+  <h2>6. Flujo de invitación de usuarios en AgroTrace</h2>
+
+  <p>Cuando el sistema de gestión de usuarios esté implementado, el flujo de invitación será:</p>
+
+  <ul class="steps-list">
+    <li>
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <div class="step-title">RT invita a un operador desde el portal</div>
+        <div class="step-desc">Ingresa el email del nuevo usuario y selecciona su rol. El sistema ejecuta:
+          <div class="code-block"><code>const { data, error } = await sb.auth.admin.inviteUserByEmail(
+  'operador@ong.org',
+  { data: { rol: 'ong', organizacion_id: 'xxx' } }
+);</code></div>
+        </div>
+      </div>
+    </li>
+    <li>
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <div class="step-title">Supabase envía el email automáticamente</div>
+        <div class="step-desc">Usando el template "Invite user" personalizado, enviado vía Resend (o el SMTP configurado).</div>
+      </div>
+    </li>
+    <li>
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <div class="step-title">El nuevo usuario hace clic en el link</div>
+        <div class="step-desc">Es redirigido a AgroTrace donde define su contraseña. Su cuenta queda activa con el rol asignado.</div>
+      </div>
+    </li>
+    <li>
+      <div class="step-num">4</div>
+      <div class="step-body">
+        <div class="step-title">Se crea automáticamente su perfil</div>
+        <div class="step-desc">Un trigger en Supabase inserta el registro en la tabla <span class="code-inline">perfiles</span> con el rol y organización correctos. El RT no necesita intervenir más.</div>
+      </div>
+    </li>
+  </ul>
+
+  <div class="callout callout-purple">
+    <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+    <div class="callout-body">
+      <strong>Estado en AgroTrace</strong>
+      El módulo de gestión de usuarios (invitaciones desde el portal RT) está pendiente de implementación. Este documento describe el procedimiento a seguir cuando se desarrolle esa funcionalidad. Por ahora, los usuarios se crean manualmente desde el dashboard de Supabase.
+    </div>
+  </div>
+
+  <!-- CHECKLIST -->
+  <h2>7. Checklist de implementación</h2>
+
+  <table>
+    <tr>
+      <th>Tarea</th>
+      <th>Responsable</th>
+      <th>Estado</th>
+    </tr>
+    <tr>
+      <td>Crear cuenta en Resend</td>
+      <td>Administrador del sistema</td>
+      <td><span class="tag-warn">Pendiente</span></td>
+    </tr>
+    <tr>
+      <td>Obtener API Key de Resend</td>
+      <td>Administrador del sistema</td>
+      <td><span class="tag-warn">Pendiente</span></td>
+    </tr>
+    <tr>
+      <td>Verificar dominio propio en Resend (opcional)</td>
+      <td>Administrador del sistema</td>
+      <td><span class="tag-warn">Pendiente</span></td>
+    </tr>
+    <tr>
+      <td>Configurar SMTP en Supabase con credenciales de Resend</td>
+      <td>Administrador del sistema</td>
+      <td><span class="tag-warn">Pendiente</span></td>
+    </tr>
+    <tr>
+      <td>Traducir y personalizar los 4 templates de email</td>
+      <td>Administrador del sistema</td>
+      <td><span class="tag-warn">Pendiente</span></td>
+    </tr>
+    <tr>
+      <td>Implementar módulo de invitación de usuarios en portal RT</td>
+      <td>Desarrollo</td>
+      <td><span class="tag-warn">Pendiente</span></td>
+    </tr>
+    <tr>
+      <td>Crear trigger en Supabase para auto-crear perfiles al activar cuenta</td>
+      <td>Desarrollo</td>
+      <td><span class="tag-warn">Pendiente</span></td>
+    </tr>
+  </table>
+
+  <div class="doc-footer">
+    <span>AgroTrace — Sistema de Trazabilidad REPROCANN</span>
+    <span>v1.0 · Junio 2026</span>
+  </div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AgroTrace — Sistema de Autenticación por Solicitud</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --soil:#2C1F0E;--bark:#4A3520;--sage:#6B7F5E;--leaf:#8EAA7B;
+  --mist:#C8D9BC;--dew:#EDF2E8;--cream:#F7F4EF;--white:#FFFFFF;
+  --accent:#4E7C3F;--amber:#854F0B;--amber-bg:#FAEEDA;--amber-light:#FAC775;
+  --purple:#534AB7;--purple-bg:#EEEDFE;
+  --error:#B94A3A;--error-bg:#FAECE7;
+  --radius:6px;
+}
+body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--soil);font-size:14px;line-height:1.7;}
+.page{max-width:900px;margin:0 auto;padding:48px 32px;}
+
+/* ── HEADER ── */
+.doc-header{background:var(--soil);border-radius:10px;padding:36px 40px;margin-bottom:36px;position:relative;overflow:hidden;}
+.doc-header::after{content:'';position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");opacity:0.03;pointer-events:none;}
+.doc-badge{display:inline-block;background:rgba(142,170,123,0.2);border:1px solid rgba(142,170,123,0.3);color:var(--leaf);font-size:0.65rem;font-weight:500;letter-spacing:0.12em;text-transform:uppercase;padding:4px 10px;border-radius:20px;margin-bottom:14px;}
+.doc-header h1{font-family:'DM Serif Display',serif;font-size:2rem;color:var(--cream);line-height:1.2;margin-bottom:10px;}
+.doc-header p{font-size:0.85rem;font-weight:300;color:var(--mist);max-width:600px;line-height:1.7;}
+.doc-meta{margin-top:20px;display:flex;gap:24px;flex-wrap:wrap;}
+.doc-meta-item{font-size:0.72rem;color:rgba(255,255,255,0.35);display:flex;align-items:center;gap:5px;}
+.doc-meta-item span{color:rgba(255,255,255,0.55);}
+
+/* ── TIPOGRAFÍA ── */
+h2{font-family:'DM Serif Display',serif;font-size:1.4rem;color:var(--soil);margin:36px 0 14px;padding-bottom:8px;border-bottom:2px solid var(--dew);}
+h3{font-size:0.95rem;font-weight:500;color:var(--bark);margin:22px 0 10px;}
+p{margin-bottom:12px;font-size:0.88rem;color:var(--bark);}
+
+/* ── CALLOUTS ── */
+.callout{border-radius:var(--radius);padding:14px 16px;margin:16px 0;display:flex;gap:12px;}
+.callout svg{width:18px;height:18px;flex-shrink:0;margin-top:1px;}
+.callout-body{font-size:0.83rem;line-height:1.6;}
+.callout-body strong{display:block;margin-bottom:4px;font-size:0.78rem;text-transform:uppercase;letter-spacing:0.06em;}
+.callout-info{background:var(--dew);border-left:3px solid var(--accent);}
+.callout-info svg{fill:var(--accent);}
+.callout-info .callout-body{color:var(--bark);}
+.callout-info .callout-body strong{color:var(--accent);}
+.callout-warn{background:var(--amber-bg);border-left:3px solid var(--amber);}
+.callout-warn svg{fill:var(--amber);}
+.callout-warn .callout-body{color:var(--amber);}
+.callout-warn .callout-body strong{color:var(--amber);}
+.callout-purple{background:var(--purple-bg);border-left:3px solid var(--purple);}
+.callout-purple svg{fill:var(--purple);}
+.callout-purple .callout-body{color:var(--purple);}
+.callout-purple .callout-body strong{color:var(--purple);}
+
+/* ── TABLA ── */
+table{width:100%;border-collapse:collapse;margin:16px 0;font-size:0.83rem;}
+th{background:var(--soil);color:var(--mist);font-weight:500;font-size:0.72rem;letter-spacing:0.06em;text-transform:uppercase;padding:10px 14px;text-align:left;}
+td{padding:10px 14px;border-bottom:1px solid var(--dew);color:var(--bark);vertical-align:top;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:var(--cream);}
+.tag-ok{background:var(--dew);color:var(--accent);font-size:0.7rem;padding:2px 7px;border-radius:10px;font-weight:500;white-space:nowrap;}
+.tag-warn{background:var(--amber-bg);color:var(--amber);font-size:0.7rem;padding:2px 7px;border-radius:10px;font-weight:500;white-space:nowrap;}
+.tag-pend{background:#f0f0f0;color:#888;font-size:0.7rem;padding:2px 7px;border-radius:10px;font-weight:500;white-space:nowrap;}
+
+/* ── OPCIONES A/B ── */
+.opcion-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:20px 0;}
+.opcion-card{border-radius:var(--radius);border:2px solid;padding:20px;}
+.opcion-a{border-color:var(--accent);background:var(--dew);}
+.opcion-b{border-color:var(--purple);background:var(--purple-bg);}
+.opcion-label{font-size:0.65rem;font-weight:500;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:6px;}
+.opcion-a .opcion-label{color:var(--accent);}
+.opcion-b .opcion-label{color:var(--purple);}
+.opcion-title{font-family:'DM Serif Display',serif;font-size:1.1rem;margin-bottom:8px;}
+.opcion-a .opcion-title{color:var(--soil);}
+.opcion-b .opcion-title{color:var(--purple);}
+.opcion-desc{font-size:0.82rem;color:var(--bark);line-height:1.6;margin-bottom:12px;}
+.opcion-pros{list-style:none;font-size:0.8rem;}
+.opcion-pros li{padding:3px 0;display:flex;align-items:flex-start;gap:6px;}
+.opcion-pros li::before{content:'✓';font-weight:500;flex-shrink:0;}
+.opcion-a .opcion-pros li::before{color:var(--accent);}
+.opcion-b .opcion-pros li::before{color:var(--purple);}
+.opcion-pros li span{color:var(--bark);}
+.opcion-badge{display:inline-block;font-size:0.68rem;font-weight:500;padding:3px 9px;border-radius:10px;margin-top:10px;}
+.opcion-a .opcion-badge{background:rgba(78,124,63,0.15);color:var(--accent);}
+.opcion-b .opcion-badge{background:rgba(83,74,183,0.15);color:var(--purple);}
+
+/* ── PASOS ── */
+.steps-list{list-style:none;margin:16px 0;}
+.steps-list li{display:flex;gap:14px;margin-bottom:18px;}
+.step-num{width:28px;height:28px;border-radius:50%;color:white;font-size:0.75rem;font-weight:500;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
+.step-num-a{background:var(--accent);}
+.step-num-b{background:var(--purple);}
+.step-body{flex:1;}
+.step-title{font-weight:500;color:var(--soil);margin-bottom:4px;font-size:0.88rem;}
+.step-desc{font-size:0.83rem;color:var(--bark);line-height:1.6;}
+
+/* ── CÓDIGO ── */
+.code-block{background:var(--soil);border-radius:var(--radius);padding:16px 18px;margin:12px 0;overflow-x:auto;}
+.code-block code{font-family:'Courier New',monospace;font-size:0.78rem;color:var(--mist);white-space:pre;}
+.code-inline{font-family:'Courier New',monospace;font-size:0.78rem;background:var(--dew);color:var(--accent);padding:1px 5px;border-radius:3px;}
+
+/* ── DIAGRAMA FLUJO ── */
+.flow-wrap{margin:20px 0;}
+.flow-title{font-size:0.72rem;font-weight:500;text-transform:uppercase;letter-spacing:0.08em;color:var(--sage);margin-bottom:10px;}
+.flow{display:flex;align-items:stretch;gap:0;flex-wrap:nowrap;overflow-x:auto;}
+.flow-step{background:var(--white);border:1px solid rgba(0,0,0,0.1);border-radius:var(--radius);padding:10px 12px;font-size:0.75rem;color:var(--bark);text-align:center;min-width:110px;display:flex;flex-direction:column;justify-content:center;gap:3px;}
+.flow-step strong{display:block;font-size:0.7rem;color:var(--soil);}
+.flow-step.hl-a{background:var(--dew);border-color:var(--accent);}
+.flow-step.hl-a strong{color:var(--accent);}
+.flow-step.hl-b{background:var(--purple-bg);border-color:var(--purple);}
+.flow-step.hl-b strong{color:var(--purple);}
+.flow-arrow{color:var(--sage);font-size:1.1rem;padding:0 4px;display:flex;align-items:center;flex-shrink:0;}
+
+/* ── COMPARATIVA ── */
+.comp-winner{font-size:0.7rem;font-weight:500;padding:2px 7px;border-radius:10px;}
+.comp-a{background:var(--dew);color:var(--accent);}
+.comp-b{background:var(--purple-bg);color:var(--purple);}
+.comp-both{background:#f0f0f0;color:#666;}
+
+/* ── CAMPO SOLICITUD EJEMPLO ── */
+.form-preview{background:var(--white);border:1px solid rgba(0,0,0,0.1);border-radius:var(--radius);padding:20px;margin:14px 0;}
+.form-preview-title{font-size:0.78rem;font-weight:500;text-transform:uppercase;letter-spacing:0.06em;color:var(--sage);margin-bottom:14px;}
+.fp-field{margin-bottom:12px;}
+.fp-label{font-size:0.68rem;font-weight:500;text-transform:uppercase;letter-spacing:0.08em;color:var(--bark);margin-bottom:4px;}
+.fp-input{width:100%;padding:8px 10px;border:1.5px solid var(--dew);border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:0.83rem;color:var(--soil);background:var(--cream);}
+.fp-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.fp-select{width:100%;padding:8px 10px;border:1.5px solid var(--dew);border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:0.83rem;color:var(--soil);background:var(--cream);}
+
+/* ── CHECKLIST ── */
+.checklist{list-style:none;margin:14px 0;}
+.checklist li{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--dew);font-size:0.83rem;color:var(--bark);}
+.checklist li:last-child{border-bottom:none;}
+.check-box{width:16px;height:16px;border:2px solid var(--dew);border-radius:3px;flex-shrink:0;margin-top:1px;}
+
+/* ── FOOTER ── */
+.doc-footer{margin-top:48px;padding-top:20px;border-top:1px solid var(--dew);display:flex;justify-content:space-between;align-items:center;font-size:0.72rem;color:var(--sage);}
+
+@media(max-width:640px){
+  .opcion-grid{grid-template-columns:1fr;}
+  .fp-row{grid-template-columns:1fr;}
+}
+@media print{
+  body{background:white;}
+  .page{padding:20px;}
+  .doc-header,.th{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ENCABEZADO -->
+  <div class="doc-header">
+    <div class="doc-badge">Guía de Procedimiento</div>
+    <h1>Sistema de Autenticación<br/>por Solicitud</h1>
+    <p>Diseño y procedimiento del flujo de registro de nuevos usuarios en AgroTrace: el usuario solicita acceso, el administrador aprueba, y el sistema envía las credenciales automáticamente.</p>
+    <div class="doc-meta">
+      <div class="doc-meta-item">Documento: <span>AgroTrace_Sist_Auth_Por_Solicitud</span></div>
+      <div class="doc-meta-item">Versión: <span>v1.0</span></div>
+      <div class="doc-meta-item">Fecha: <span>Junio 2026</span></div>
+    </div>
+  </div>
+
+  <!-- CONCEPTO -->
+  <h2>1. Concepto</h2>
+
+  <p>En lugar de que los usuarios se registren libremente, AgroTrace implementa un sistema de <strong>acceso por aprobación</strong>. El usuario completa un formulario de solicitud, el administrador lo revisa y aprueba, y recién ahí el sistema le envía el link para crear su contraseña.</p>
+
+  <p>Este modelo es adecuado para AgroTrace porque:</p>
+  <ul style="margin:0 0 12px 18px;font-size:0.88rem;color:var(--bark);">
+    <li style="margin-bottom:4px;">El acceso al sistema está vinculado a un vínculo regulatorio real (REPROCANN)</li>
+    <li style="margin-bottom:4px;">No cualquier persona puede ser productor — debe estar validada por un RT</li>
+    <li style="margin-bottom:4px;">Previene registros fraudulentos o erróneos desde el inicio</li>
+  </ul>
+
+  <div class="callout callout-info">
+    <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+    <div class="callout-body">
+      <strong>El usuario nunca elige su contraseña inicial</strong>
+      El administrador no le "manda una contraseña" — Supabase genera un link de activación seguro y el usuario define su propia contraseña al hacer clic. El administrador nunca conoce la contraseña del usuario.
+    </div>
+  </div>
+
+  <!-- FLUJO GENERAL -->
+  <h2>2. Flujo general</h2>
+
+  <div class="flow-wrap">
+    <div class="flow-title">Secuencia completa — ambas opciones comparten este flujo base</div>
+    <div class="flow">
+      <div class="flow-step hl-a"><strong>1. Solicitud</strong>Usuario llena formulario en index.html</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><strong>2. Notificación</strong>Email al administrador con los datos</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><strong>3. Revisión</strong>Administrador evalúa la solicitud</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step hl-a"><strong>4. Aprobación</strong>Crea el usuario en Supabase</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><strong>5. Activación</strong>Usuario recibe link y crea contraseña</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step hl-a"><strong>6. Acceso</strong>Usuario entra al sistema con su rol</div>
+    </div>
+  </div>
+
+  <!-- COMPARATIVA DE OPCIONES -->
+  <h2>3. Las dos opciones de implementación</h2>
+
+  <div class="opcion-grid">
+    <div class="opcion-card opcion-a">
+      <div class="opcion-label">Opción A</div>
+      <div class="opcion-title">Aprobación desde Supabase Dashboard</div>
+      <div class="opcion-desc">El formulario de solicitud envía un email al administrador. El administrador crea el usuario manualmente desde el panel de Supabase. Supabase envía el link de activación automáticamente.</div>
+      <ul class="opcion-pros">
+        <li><span>Sin desarrollo adicional en el sistema</span></li>
+        <li><span>Funciona desde el día uno</span></li>
+        <li><span>Ideal para pocas ONGs (menos de 10)</span></li>
+        <li><span>El administrador tiene control total</span></li>
+      </ul>
+      <span class="opcion-badge">Recomendada para la etapa actual</span>
+    </div>
+    <div class="opcion-card opcion-b">
+      <div class="opcion-label">Opción B</div>
+      <div class="opcion-title">Panel de administración en la app</div>
+      <div class="opcion-desc">Las solicitudes se guardan en una tabla de Supabase. El Superadmin ve una pantalla de "Solicitudes pendientes" dentro del sistema y aprueba con un botón. El sistema ejecuta la creación automáticamente.</div>
+      <ul class="opcion-pros">
+        <li><span>No requiere acceso al dashboard de Supabase</span></li>
+        <li><span>Historial de solicitudes aprobadas y rechazadas</span></li>
+        <li><span>Escalable para muchas ONGs</span></li>
+        <li><span>El RT puede aprobar usuarios de su propia ONG</span></li>
+      </ul>
+      <span class="opcion-badge">Para cuando escale el sistema</span>
+    </div>
+  </div>
+
+  <table>
+    <tr>
+      <th>Criterio</th>
+      <th>Opción A — Dashboard Supabase</th>
+      <th>Opción B — Panel en la app</th>
+    </tr>
+    <tr>
+      <td><strong>Desarrollo requerido</strong></td>
+      <td>Solo el formulario de solicitud</td>
+      <td>Formulario + tabla BD + pantalla de admin</td>
+    </tr>
+    <tr>
+      <td><strong>Quién aprueba</strong></td>
+      <td>Superadmin (acceso a Supabase)</td>
+      <td>Superadmin o RT (desde la app)</td>
+    </tr>
+    <tr>
+      <td><strong>Historial de solicitudes</strong></td>
+      <td>Solo en el email del admin</td>
+      <td>Tabla en base de datos, consultable</td>
+    </tr>
+    <tr>
+      <td><strong>Velocidad de aprobación</strong></td>
+      <td>Manual — el admin entra a Supabase</td>
+      <td>Un clic desde la app</td>
+    </tr>
+    <tr>
+      <td><strong>Escala recomendada</strong></td>
+      <td><span class="tag-ok">Hasta ~20 usuarios</span></td>
+      <td><span class="tag-warn">20+ usuarios</span></td>
+    </tr>
+    <tr>
+      <td><strong>Estado AgroTrace</strong></td>
+      <td><span class="tag-ok">Implementar ahora</span></td>
+      <td><span class="tag-pend">Etapa futura</span></td>
+    </tr>
+  </table>
+
+  <!-- FORMULARIO DE SOLICITUD -->
+  <h2>4. Formulario de solicitud (común a ambas opciones)</h2>
+
+  <p>Se agrega una opción "Solicitar acceso" en el portal <span class="code-inline">index.html</span>. El usuario completa los siguientes campos:</p>
+
+  <div class="form-preview">
+    <div class="form-preview-title">Vista previa — Formulario de solicitud de acceso</div>
+    <div class="fp-row">
+      <div class="fp-field">
+        <div class="fp-label">Nombre completo *</div>
+        <input class="fp-input" type="text" value="Ej: María González" readonly/>
+      </div>
+      <div class="fp-field">
+        <div class="fp-label">Email institucional *</div>
+        <input class="fp-input" type="email" value="Ej: mgonzalez@ong.org" readonly/>
+      </div>
+    </div>
+    <div class="fp-row">
+      <div class="fp-field">
+        <div class="fp-label">Nombre de la organización *</div>
+        <input class="fp-input" type="text" value="Ej: ONG Esperanza Verde" readonly/>
+      </div>
+      <div class="fp-field">
+        <div class="fp-label">Perfil solicitado *</div>
+        <select class="fp-select">
+          <option>Admin ONG</option>
+          <option>Responsable Técnico</option>
+        </select>
+      </div>
+    </div>
+    <div class="fp-field">
+      <div class="fp-label">Número de resolución REPROCANN (si aplica)</div>
+      <input class="fp-input" type="text" value="Ej: RES-2024-0123" readonly/>
+    </div>
+    <div class="fp-field">
+      <div class="fp-label">Motivo / información adicional</div>
+      <input class="fp-input" type="text" value="Ej: Soy la administradora de la ONG, el RT es el Dr. Ramírez" readonly/>
+    </div>
+  </div>
+
+  <div class="callout callout-warn">
+    <svg viewBox="0 0 24 24"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
+    <div class="callout-body">
+      <strong>El perfil Superadmin no aparece en el formulario</strong>
+      Los Superadmin son creados exclusivamente desde el dashboard de Supabase por el administrador técnico del sistema. No es un rol que un usuario pueda solicitar.
+    </div>
+  </div>
+
+  <!-- OPCIÓN A — PROCEDIMIENTO DETALLADO -->
+  <h2>5. Procedimiento detallado — Opción A</h2>
+  <h3>Dashboard de Supabase como herramienta de aprobación</h3>
+
+  <ul class="steps-list">
+    <li>
+      <div class="step-num step-num-a">1</div>
+      <div class="step-body">
+        <div class="step-title">Usuario completa el formulario de solicitud</div>
+        <div class="step-desc">Desde <span class="code-inline">index.html</span> → opción "Solicitar acceso". El sistema envía un email al administrador con todos los datos del formulario usando un servicio como EmailJS (no requiere backend) o directamente con Supabase Edge Functions.</div>
+      </div>
+    </li>
+    <li>
+      <div class="step-num step-num-a">2</div>
+      <div class="step-body">
+        <div class="step-title">El administrador recibe el email de notificación</div>
+        <div class="step-desc">El email incluye: nombre, organización, email, perfil solicitado y número REPROCANN. El administrador evalúa si la solicitud es legítima y corresponde al marco REPROCANN.</div>
+      </div>
+    </li>
+    <li>
+      <div class="step-num step-num-a">3</div>
+      <div class="step-body">
+        <div class="step-title">Crear el usuario en Supabase Dashboard</div>
+        <div class="step-desc">
+          Ir a: <strong>Supabase Dashboard → Authentication → Users → Add user</strong><br/>
+          Completar:
+          <div class="code-block"><code>Email:     email del solicitante
+Password:  (cualquier valor — el usuario lo cambiará)
+           Activar: "Send email confirmation"</code></div>
+          Supabase envía automáticamente el link de activación al email del usuario.
+        </div>
+      </div>
+    </li>
+    <li>
+      <div class="step-num step-num-a">4</div>
+      <div class="step-body">
+        <div class="step-title">Asignar el rol en la tabla perfiles</div>
+        <div class="step-desc">
+          En Supabase → <strong>Table Editor → perfiles → Insert row</strong>:
+          <div class="code-block"><code>id:     [UUID del usuario recién creado — se ve en Authentication → Users]
+nombre: [nombre del solicitante]
+rol:    'ong'  o  'rt'</code></div>
+        </div>
+      </div>
+    </li>
+    <li>
+      <div class="step-num step-num-a">5</div>
+      <div class="step-body">
+        <div class="step-title">El usuario activa su cuenta</div>
+        <div class="step-desc">El usuario recibe el email de Supabase con el link. Al hacer clic, es redirigido a AgroTrace donde define su contraseña. Su cuenta queda activa con el rol asignado. Puede ingresar desde <span class="code-inline">index.html</span> normalmente.</div>
+      </div>
+    </li>
+    <li>
+      <div class="step-num step-num-a">6</div>
+      <div class="step-body">
+        <div class="step-title">Notificar al usuario que su acceso fue aprobado (opcional)</div>
+        <div class="step-desc">El email de activación de Supabase ya funciona como notificación. Opcionalmente, el administrador puede enviar un email adicional de bienvenida con instrucciones de uso.</div>
+      </div>
+    </li>
+  </ul>
+
+  <!-- OPCIÓN B — PROCEDIMIENTO DETALLADO -->
+  <h2>6. Procedimiento detallado — Opción B</h2>
+  <h3>Panel de administración en la aplicación</h3>
+
+  <div class="callout callout-purple">
+    <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+    <div class="callout-body">
+      <strong>Esta opción requiere desarrollo adicional</strong>
+      Implica crear una tabla en Supabase, una pantalla dentro de la app y lógica de aprobación. Se recomienda implementar cuando el sistema tenga usuarios reales y la Opción A resulte insuficiente.
+    </div>
+  </div>
+
+  <h3>Componentes a desarrollar</h3>
+
+  <table>
+    <tr>
+      <th>Componente</th>
+      <th>Descripción</th>
+      <th>Dónde</th>
+    </tr>
+    <tr>
+      <td><strong>Tabla <span class="code-inline">solicitudes_acceso</span></strong></td>
+      <td>Almacena cada solicitud con estado: pendiente / aprobada / rechazada</td>
+      <td>Supabase SQL</td>
+    </tr>
+    <tr>
+      <td><strong>Formulario de solicitud</strong></td>
+      <td>Igual que Opción A — guarda en la tabla en lugar de enviar email</td>
+      <td>index.html</td>
+    </tr>
+    <tr>
+      <td><strong>Pantalla "Solicitudes"</strong></td>
+      <td>Lista de solicitudes pendientes con datos del solicitante. Visible solo para Superadmin y RT</td>
+      <td>agrotrace_prototipo_v3.html</td>
+    </tr>
+    <tr>
+      <td><strong>Botón "Aprobar"</strong></td>
+      <td>Ejecuta <span class="code-inline">inviteUserByEmail()</span> de Supabase, cambia estado a "aprobada"</td>
+      <td>agrotrace_prototipo_v3.html</td>
+    </tr>
+    <tr>
+      <td><strong>Botón "Rechazar"</strong></td>
+      <td>Cambia estado a "rechazada" y opcionalmente envía email al solicitante</td>
+      <td>agrotrace_prototipo_v3.html</td>
+    </tr>
+  </table>
+
+  <h3>Esquema SQL de la tabla solicitudes_acceso</h3>
+  <div class="code-block"><code>CREATE TABLE public.solicitudes_acceso (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  nombre          TEXT NOT NULL,
+  email           TEXT NOT NULL,
+  organizacion    TEXT NOT NULL,
+  rol_solicitado  TEXT NOT NULL CHECK (rol IN ('rt', 'ong')),
+  nro_reprocann   TEXT,
+  notas           TEXT,
+  estado          TEXT NOT NULL DEFAULT 'pendiente'
+                    CHECK (estado IN ('pendiente','aprobada','rechazada')),
+  aprobado_por    UUID REFERENCES public.perfiles(id),
+  creado_en       TIMESTAMPTZ DEFAULT NOW(),
+  resuelto_en     TIMESTAMPTZ
+);
+ALTER TABLE public.solicitudes_acceso ENABLE ROW LEVEL SECURITY;</code></div>
+
+  <ul class="steps-list">
+    <li>
+      <div class="step-num step-num-b">1</div>
+      <div class="step-body">
+        <div class="step-title">Usuario completa el formulario de solicitud</div>
+        <div class="step-desc">Los datos se guardan en <span class="code-inline">solicitudes_acceso</span> con estado <span class="code-inline">pendiente</span>. El administrador recibe un email de notificación automático (vía Supabase trigger o Edge Function).</div>
+      </div>
+    </li>
+    <li>
+      <div class="step-num step-num-b">2</div>
+      <div class="step-body">
+        <div class="step-title">Superadmin / RT ve las solicitudes en la app</div>
+        <div class="step-desc">En el módulo "Gestión de usuarios" aparece un badge con el número de solicitudes pendientes. La pantalla muestra una card por solicitud con todos los datos del formulario.</div>
+      </div>
+    </li>
+    <li>
+      <div class="step-num step-num-b">3</div>
+      <div class="step-body">
+        <div class="step-title">Aprobar la solicitud</div>
+        <div class="step-desc">
+          Al hacer clic en "Aprobar", el sistema ejecuta:
+          <div class="code-block"><code>// 1. Invitar al usuario via Supabase Auth
+const { data, error } = await sb.auth.admin.inviteUserByEmail(
+  solicitud.email,
+  { data: { rol: solicitud.rol_solicitado } }
+);
+
+// 2. Marcar solicitud como aprobada
+await sb.from('solicitudes_acceso')
+  .update({ estado: 'aprobada', resuelto_en: new Date() })
+  .eq('id', solicitud.id);</code></div>
+          Supabase envía automáticamente el email de invitación al usuario.
+        </div>
+      </div>
+    </li>
+    <li>
+      <div class="step-num step-num-b">4</div>
+      <div class="step-body">
+        <div class="step-title">El usuario activa su cuenta</div>
+        <div class="step-desc">Igual que Opción A — el usuario recibe el email, hace clic en el link y define su contraseña. Un trigger en Supabase crea automáticamente el registro en <span class="code-inline">perfiles</span> con el rol correcto.</div>
+      </div>
+    </li>
+    <li>
+      <div class="step-num step-num-b">5</div>
+      <div class="step-body">
+        <div class="step-title">Rechazar una solicitud</div>
+        <div class="step-desc">Si la solicitud no corresponde, el administrador la rechaza con un motivo opcional. El sistema actualiza el estado y puede enviar un email automático informando al solicitante.</div>
+      </div>
+    </li>
+  </ul>
+
+  <!-- TRIGGER SUPABASE -->
+  <h2>7. Trigger para creación automática de perfiles</h2>
+
+  <p>Cuando Supabase crea un usuario nuevo (en ambas opciones), se puede configurar un <strong>trigger de PostgreSQL</strong> que inserta automáticamente el registro en la tabla <span class="code-inline">perfiles</span>, sin que el administrador tenga que hacerlo manualmente.</p>
+
+  <div class="code-block"><code>-- Función que se ejecuta al crear un nuevo usuario en auth.users
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.perfiles (id, nombre, rol)
+  VALUES (
+    NEW.id,
+    COALESCE(NEW.raw_user_meta_data->>'nombre', NEW.email),
+    COALESCE(NEW.raw_user_meta_data->>'rol', 'ong')
+  );
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Trigger que llama a la función al crear cada usuario
+CREATE OR REPLACE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();</code></div>
+
+  <div class="callout callout-info">
+    <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+    <div class="callout-body">
+      <strong>Este trigger elimina el paso manual de la Opción A</strong>
+      Con el trigger activo, al crear el usuario en Supabase Dashboard el perfil se crea solo. El administrador solo necesita ingresar el email — no tiene que insertar manualmente en la tabla perfiles.
+    </div>
+  </div>
+
+  <!-- RESUMEN COMPARATIVO -->
+  <h2>8. Cuándo usar cada opción</h2>
+
+  <table>
+    <tr>
+      <th>Situación</th>
+      <th>Opción recomendada</th>
+    </tr>
+    <tr>
+      <td>Sistema en banco de prueba / desarrollo</td>
+      <td><span class="tag-ok">A — Dashboard Supabase</span></td>
+    </tr>
+    <tr>
+      <td>Primeras ONGs reales (menos de 10 usuarios)</td>
+      <td><span class="tag-ok">A — Dashboard Supabase</span></td>
+    </tr>
+    <tr>
+      <td>El RT quiere aprobar sus propios usuarios sin acceso a Supabase</td>
+      <td><span class="tag-warn">B — Panel en la app</span></td>
+    </tr>
+    <tr>
+      <td>Más de 3 ONGs activas con usuarios frecuentes</td>
+      <td><span class="tag-warn">B — Panel en la app</span></td>
+    </tr>
+    <tr>
+      <td>Se necesita historial auditado de quién aprobó a quién</td>
+      <td><span class="tag-warn">B — Panel en la app</span></td>
+    </tr>
+  </table>
+
+  <!-- CHECKLIST -->
+  <h2>9. Checklist de implementación — Opción A (próximo paso)</h2>
+
+  <ul class="checklist">
+    <li><div class="check-box"></div>Agregar opción "Solicitar acceso" en <span class="code-inline">index.html</span></li>
+    <li><div class="check-box"></div>Diseñar y construir formulario de solicitud con los campos definidos en sección 4</li>
+    <li><div class="check-box"></div>Configurar envío de email al administrador al enviar la solicitud (EmailJS u otro)</li>
+    <li><div class="check-box"></div>Configurar SMTP en Supabase (ver documento AgroTrace_Guia_SMTP_Email)</li>
+    <li><div class="check-box"></div>Personalizar template "Invite user" en Supabase en español</li>
+    <li><div class="check-box"></div>Crear trigger <span class="code-inline">on_auth_user_created</span> en Supabase SQL Editor</li>
+    <li><div class="check-box"></div>Probar flujo completo: solicitud → email admin → creación usuario → activación → login</li>
+  </ul>
+
+  <div class="doc-footer">
+    <span>AgroTrace — Sistema de Trazabilidad REPROCANN</span>
+    <span>v1.0 · Junio 2026</span>
+  </div>
+
+</div>
+</body>
+</html>
