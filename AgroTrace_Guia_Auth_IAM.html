@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<title>AgroTrace — Guía de Autenticación e IAM</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap');
+
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'DM Sans',sans-serif;background:#F7F4EF;color:#2C1F0E;font-size:13px;padding:40px;}
+  .page{max-width:820px;margin:0 auto;}
+
+  /* HEADER */
+  .header{background:#2C1F0E;border-radius:12px;padding:32px 36px;margin-bottom:32px;display:flex;justify-content:space-between;align-items:flex-end;}
+  .header-left h1{font-family:'DM Serif Display',serif;font-size:2rem;color:#EDF2E8;margin-bottom:4px;}
+  .header-left p{font-size:0.75rem;color:#C8D9BC;font-weight:300;letter-spacing:0.06em;text-transform:uppercase;}
+  .header-right{text-align:right;}
+  .header-right .doc-label{font-size:0.6rem;color:#8EAA7B;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px;}
+  .header-right .doc-version{font-family:'DM Serif Display',serif;font-size:1.1rem;color:#EDF2E8;}
+  .header-right .doc-date{font-size:0.65rem;color:#8EAA7B;margin-top:2px;}
+
+  /* SECTION TITLE */
+  .section-title{font-size:0.6rem;font-weight:500;text-transform:uppercase;letter-spacing:0.14em;color:#6B7F5E;margin-bottom:10px;padding-left:2px;margin-top:28px;}
+
+  /* INTRO */
+  .intro{background:white;border:1px solid rgba(0,0,0,0.07);border-radius:10px;padding:18px 22px;margin-bottom:20px;font-size:0.8rem;color:#4A3520;line-height:1.7;}
+  .intro strong{color:#2C1F0E;}
+
+  /* ESTADO ACTUAL */
+  .estado-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;}
+  .estado-card{background:white;border:1px solid rgba(0,0,0,0.07);border-radius:10px;padding:14px 16px;}
+  .estado-card .ec-label{font-size:0.58rem;font-weight:500;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;}
+  .ec-ok{color:#4E7C3F;}
+  .ec-pend{color:#854F0B;}
+  .estado-card ul{list-style:none;display:flex;flex-direction:column;gap:4px;}
+  .estado-card li{font-size:0.72rem;color:#4A3520;display:flex;align-items:flex-start;gap:6px;line-height:1.5;}
+  .estado-card li::before{flex-shrink:0;margin-top:1px;}
+  .ok li::before{content:'✓';color:#4E7C3F;}
+  .pend li::before{content:'○';color:#854F0B;}
+
+  /* PASOS */
+  .paso{background:white;border:1px solid rgba(0,0,0,0.07);border-radius:10px;overflow:hidden;margin-bottom:14px;}
+  .paso-header{display:flex;align-items:stretch;}
+  .paso-num{width:52px;display:flex;align-items:center;justify-content:center;font-family:'DM Serif Display',serif;font-size:1.8rem;flex-shrink:0;}
+  .p1 .paso-num{background:#2C1F0E;color:#EDF2E8;}
+  .p2 .paso-num{background:#4A3520;color:#EDF2E8;}
+  .p3 .paso-num{background:#4E7C3F;color:white;}
+  .p4 .paso-num{background:#6B7F5E;color:white;}
+  .paso-head-body{padding:12px 16px;flex:1;border-bottom:1px solid rgba(0,0,0,0.07);}
+  .paso-title{font-size:0.9rem;font-weight:500;color:#2C1F0E;margin-bottom:2px;}
+  .paso-sub{font-size:0.7rem;color:#6B7F5E;}
+  .paso-body{padding:14px 16px;}
+  .paso-desc{font-size:0.75rem;color:#4A3520;line-height:1.7;margin-bottom:12px;}
+
+  /* CODE */
+  pre{background:#1e1e2e;border-radius:8px;padding:14px 16px;overflow-x:auto;margin:10px 0;}
+  code{font-family:'Courier New',monospace;font-size:0.72rem;line-height:1.7;}
+  .cm{color:#6272a4;}
+  .ck{color:#ff79c6;}
+  .cs{color:#f1fa8c;}
+  .cf{color:#50fa7b;}
+  .cv{color:#bd93f9;}
+  .cn{color:#ffb86c;}
+  pre.inline-code{display:inline;padding:2px 6px;background:#F1EFE8;border-radius:4px;font-size:0.72rem;color:#4A3520;}
+
+  /* NOTA */
+  .nota{background:#EDF2E8;border:1px solid rgba(78,124,63,0.2);border-radius:8px;padding:10px 14px;font-size:0.72rem;color:#4A3520;line-height:1.6;margin-top:10px;}
+  .nota strong{color:#4E7C3F;}
+  .warn{background:#FAEEDA;border:1px solid rgba(133,79,11,0.2);border-radius:8px;padding:10px 14px;font-size:0.72rem;color:#4A3520;line-height:1.6;margin-top:10px;}
+  .warn strong{color:#854F0B;}
+
+  /* TABLA */
+  .table-wrap{background:white;border:1px solid rgba(0,0,0,0.07);border-radius:10px;overflow:hidden;margin-bottom:14px;}
+  .table-wrap table{width:100%;border-collapse:collapse;}
+  .table-wrap th{background:#2C1F0E;color:#C8D9BC;font-size:0.6rem;font-weight:500;text-transform:uppercase;letter-spacing:0.08em;padding:10px 14px;text-align:left;}
+  .table-wrap td{padding:9px 14px;font-size:0.72rem;border-bottom:1px solid rgba(0,0,0,0.05);vertical-align:top;line-height:1.6;}
+  .table-wrap tr:last-child td{border-bottom:none;}
+  .table-wrap tr:nth-child(even) td{background:#FAFAF8;}
+
+  /* FLUJO */
+  .flujo{display:flex;align-items:center;gap:0;margin:14px 0;flex-wrap:wrap;}
+  .flujo-step{background:#2C1F0E;color:#EDF2E8;padding:8px 12px;font-size:0.65rem;font-weight:500;border-radius:6px;white-space:nowrap;}
+  .flujo-arrow{padding:0 8px;color:#C8D9BC;font-size:0.75rem;}
+
+  /* RECURSOS */
+  .recursos{display:flex;flex-direction:column;gap:8px;margin-bottom:20px;}
+  .recurso{background:white;border:1px solid rgba(0,0,0,0.07);border-radius:8px;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;}
+  .rec-left .rec-title{font-size:0.78rem;font-weight:500;color:#2C1F0E;margin-bottom:2px;}
+  .rec-left .rec-desc{font-size:0.68rem;color:#6B7F5E;}
+  .rec-url{font-size:0.62rem;color:#4E7C3F;background:#EDF2E8;padding:3px 8px;border-radius:4px;white-space:nowrap;flex-shrink:0;}
+
+  /* SUPABASE INCLUIDO */
+  .incluido{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px;}
+  .inc-item{background:#EDF2E8;border-radius:8px;padding:10px 12px;text-align:center;}
+  .inc-icon{font-size:1.2rem;margin-bottom:4px;}
+  .inc-label{font-size:0.65rem;font-weight:500;color:#4E7C3F;}
+  .inc-desc{font-size:0.58rem;color:#6B7F5E;margin-top:2px;line-height:1.4;}
+
+  /* FOOTER */
+  .footer{text-align:center;font-size:0.6rem;color:#C8D9BC;margin-top:32px;padding-top:16px;border-top:1px solid rgba(0,0,0,0.07);}
+
+  @media print{
+    body{background:white;padding:20px;}
+    .page{max-width:100%;}
+    .paso{page-break-inside:avoid;}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-left">
+      <h1>AgroTrace</h1>
+      <p>Guía de implementación — Autenticación e IAM</p>
+    </div>
+    <div class="header-right">
+      <div class="doc-label">Documento</div>
+      <div class="doc-version">Auth & IAM v1.0</div>
+      <div class="doc-date">Junio 2026</div>
+    </div>
+  </div>
+
+  <!-- INTRO -->
+  <div class="intro">
+    Este documento describe los pasos necesarios para conectar el <strong>Portal de Acceso</strong> (<code>index.html</code>) con <strong>Supabase Auth</strong> e integrar el sistema de <strong>IAM</strong> (roles y permisos) al prototipo de trazabilidad existente. Es una guía de procedimiento, no de código completo.
+  </div>
+
+  <!-- ESTADO ACTUAL -->
+  <div class="section-title" style="margin-top:0;">Estado actual del sistema</div>
+  <div class="estado-grid">
+    <div class="estado-card ok">
+      <div class="ec-label ec-ok">✓ Ya implementado</div>
+      <ul>
+        <li><code>index.html</code> con formulario de login (email + password)</li>
+        <li>Supabase Auth configurado en el proyecto</li>
+        <li>SDK de Supabase cargado en el HTML</li>
+        <li>Tabla <code>perfiles</code> con campo <code>rol</code></li>
+        <li>RLS activo en todas las tablas</li>
+        <li>Auto-login provisorio con credenciales hardcodeadas</li>
+      </ul>
+    </div>
+    <div class="estado-card pend">
+      <div class="ec-label ec-pend">○ Pendiente de implementar</div>
+      <ul>
+        <li>Conexión real de <code>doLogin()</code> con Supabase Auth</li>
+        <li>Lectura del perfil y rol al iniciar la app</li>
+        <li>Adaptación de la interfaz según el rol</li>
+        <li>Formulario de registro de nuevos usuarios</li>
+        <li>Gestión de sesión (logout, expiración)</li>
+        <li>Panel de administración de usuarios</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- FLUJO GENERAL -->
+  <div class="section-title">Flujo de autenticación</div>
+  <div class="flujo">
+    <div class="flujo-step">Usuario ingresa email + password</div>
+    <div class="flujo-arrow">→</div>
+    <div class="flujo-step">Supabase Auth verifica</div>
+    <div class="flujo-arrow">→</div>
+    <div class="flujo-step">Se obtiene JWT + user.id</div>
+    <div class="flujo-arrow">→</div>
+    <div class="flujo-step">Se lee perfil y rol</div>
+    <div class="flujo-arrow">→</div>
+    <div class="flujo-step">Redirige al v3 con sesión activa</div>
+  </div>
+
+  <!-- PASO 1 -->
+  <div class="section-title">Pasos de implementación</div>
+
+  <div class="paso p1">
+    <div class="paso-header">
+      <div class="paso-num">1</div>
+      <div class="paso-head-body">
+        <div class="paso-title">Autenticación real en index.html</div>
+        <div class="paso-sub">Reemplazar doLogin() por llamadas reales a Supabase Auth</div>
+      </div>
+    </div>
+    <div class="paso-body">
+      <div class="paso-desc">La función <code>doLogin()</code> actual solo valida que los campos no estén vacíos. Hay que reemplazarla por las tres funciones principales de Supabase Auth:</div>
+      <pre><code><span class="cm">// LOGIN</span>
+<span class="ck">const</span> { data, error } = <span class="ck">await</span> sb.auth.<span class="cf">signInWithPassword</span>({
+  email: <span class="cs">'usuario@email.com'</span>,
+  password: <span class="cs">'contraseña'</span>
+})
+<span class="ck">if</span> (!error) window.location.<span class="cf">href</span> = <span class="cs">'agrotrace_prototipo_v3.html'</span>
+
+<span class="cm">// REGISTRO</span>
+<span class="ck">const</span> { data, error } = <span class="ck">await</span> sb.auth.<span class="cf">signUp</span>({
+  email, password
+})
+
+<span class="cm">// LOGOUT</span>
+<span class="ck">await</span> sb.auth.<span class="cf">signOut</span>()
+window.location.<span class="cf">href</span> = <span class="cs">'index.html'</span></code></pre>
+      <div class="nota"><strong>Nota:</strong> Supabase envía un email de confirmación al registrarse. Esto puede desactivarse en el dashboard de Supabase → Authentication → Settings → "Enable email confirmations".</div>
+    </div>
+  </div>
+
+  <!-- PASO 2 -->
+  <div class="paso p2">
+    <div class="paso-header">
+      <div class="paso-num">2</div>
+      <div class="paso-head-body">
+        <div class="paso-title">Leer perfil y rol al iniciar la app</div>
+        <div class="paso-sub">Reemplazar el auto-login hardcodeado por lectura de sesión activa</div>
+      </div>
+    </div>
+    <div class="paso-body">
+      <div class="paso-desc">Al cargar el v3, en lugar del auto-login con DEV_EMAIL/DEV_PASSWORD, verificar si hay una sesión activa y leer el perfil del usuario:</div>
+      <pre><code><span class="ck">async function</span> <span class="cf">iniciarApp</span>() {
+  <span class="cm">// Verificar si hay sesión activa</span>
+  <span class="ck">const</span> { data: { user } } = <span class="ck">await</span> sb.auth.<span class="cf">getUser</span>()
+  <span class="ck">if</span> (!user) {
+    window.location.<span class="cf">href</span> = <span class="cs">'index.html'</span> <span class="cm">// sin sesión → login</span>
+    <span class="ck">return</span>
+  }
+
+  <span class="cm">// Leer perfil y rol desde la tabla perfiles</span>
+  <span class="ck">const</span> { data: perfil } = <span class="ck">await</span> sb
+    .<span class="cf">from</span>(<span class="cs">'perfiles'</span>)
+    .<span class="cf">select</span>(<span class="cs">'*'</span>)
+    .<span class="cf">eq</span>(<span class="cs">'id'</span>, user.id)
+    .<span class="cf">single</span>()
+
+  <span class="cm">// Guardar globalmente</span>
+  CURRENT_USER = user
+  CURRENT_ROL  = perfil.rol  <span class="cm">// 'operador', 'administrador', etc.</span>
+  CURRENT_NOMBRE = perfil.nombre
+
+  <span class="cm">// Continuar cargando la app</span>
+  <span class="ck">await</span> Promise.<span class="cf">all</span>([<span class="cf">cargarLotes</span>(), <span class="cf">cargarMaterial</span>()])
+}</code></pre>
+      <div class="warn"><strong>Importante:</strong> Si no hay sesión activa, redirigir al login inmediatamente. Nunca mostrar datos sin usuario autenticado.</div>
+    </div>
+  </div>
+
+  <!-- PASO 3 -->
+  <div class="paso p3">
+    <div class="paso-header">
+      <div class="paso-num">3</div>
+      <div class="paso-head-body">
+        <div class="paso-title">Adaptar la interfaz según el rol</div>
+        <div class="paso-sub">Mostrar u ocultar funciones según CURRENT_ROL</div>
+      </div>
+    </div>
+    <div class="paso-body">
+      <div class="paso-desc">Con <code>CURRENT_ROL</code> disponible, la interfaz puede mostrar u ocultar elementos según el nivel del usuario:</div>
+      <pre><code><span class="ck">function</span> <span class="cf">aplicarPermisosPorRol</span>() {
+  <span class="ck">const</span> esAdmin = CURRENT_ROL === <span class="cs">'administrador'</span>
+  <span class="ck">const</span> esRT    = CURRENT_ROL === <span class="cs">'responsable_tecnico'</span>
+  <span class="ck">const</span> esInsp  = CURRENT_ROL === <span class="cs">'inspector'</span>
+
+  <span class="cm">// Mostrar panel de gestión de usuarios solo a admin</span>
+  <span class="cf">mostrarSi</span>(<span class="cs">'nav-usuarios'</span>, esAdmin || esRT)
+
+  <span class="cm">// Ocultar botones de edición al inspector</span>
+  <span class="ck">if</span> (esInsp) {
+    document.<span class="cf">querySelectorAll</span>(<span class="cs">'.btn-primary, .btn-advance'</span>)
+      .<span class="cf">forEach</span>(b => b.style.display = <span class="cs">'none'</span>)
+  }
+}</code></pre>
+      <div class="nota"><strong>Nota:</strong> La RLS en Supabase ya protege los datos a nivel de base de datos. Esta capa de interfaz es adicional para mejorar la experiencia del usuario — no reemplaza la seguridad del backend.</div>
+    </div>
+  </div>
+
+  <!-- PASO 4 -->
+  <div class="paso p4">
+    <div class="paso-header">
+      <div class="paso-num">4</div>
+      <div class="paso-head-body">
+        <div class="paso-title">Crear usuarios con su perfil</div>
+        <div class="paso-sub">Alta de nuevos usuarios con rol asignado por el administrador</div>
+      </div>
+    </div>
+    <div class="paso-body">
+      <div class="paso-desc">Al registrar un usuario nuevo, además del <code>signUp</code> en Supabase Auth hay que insertar su fila en la tabla <code>perfiles</code> con el rol correspondiente:</div>
+      <pre><code><span class="ck">async function</span> <span class="cf">crearUsuario</span>(nombre, email, password, rol) {
+  <span class="cm">// 1. Crear en Supabase Auth</span>
+  <span class="ck">const</span> { data, error } = <span class="ck">await</span> sb.auth.<span class="cf">signUp</span>({ email, password })
+  <span class="ck">if</span> (error) { <span class="cf">alert</span>(error.message); <span class="ck">return</span> }
+
+  <span class="cm">// 2. Insertar perfil con rol asignado</span>
+  <span class="ck">await</span> sb.<span class="cf">from</span>(<span class="cs">'perfiles'</span>).<span class="cf">insert</span>({
+    id:     data.user.id,
+    nombre: nombre,
+    rol:    rol    <span class="cm">// 'operador', 'inspector', 'administrador', etc.</span>
+  })
+}</code></pre>
+      <div class="nota"><strong>Nota:</strong> Solo el Super Administrador o el RT (según corresponda) pueden ejecutar esta función. El rol asignado determina todo lo que el usuario podrá ver y hacer en el sistema.</div>
+    </div>
+  </div>
+
+  <!-- LO QUE SUPABASE DA GRATIS -->
+  <div class="section-title">Lo que Supabase provee sin desarrollo adicional</div>
+  <div class="incluido">
+    <div class="inc-item">
+      <div class="inc-icon">🔒</div>
+      <div class="inc-label">Contraseñas seguras</div>
+      <div class="inc-desc">Almacenamiento con bcrypt. Nunca se guardan en texto plano.</div>
+    </div>
+    <div class="inc-item">
+      <div class="inc-icon">🎫</div>
+      <div class="inc-label">Tokens JWT</div>
+      <div class="inc-desc">Sesiones con tokens firmados. Refresh automático sin intervención.</div>
+    </div>
+    <div class="inc-item">
+      <div class="inc-icon">📧</div>
+      <div class="inc-label">Emails automáticos</div>
+      <div class="inc-desc">Confirmación de cuenta y recuperación de contraseña incluidos.</div>
+    </div>
+    <div class="inc-item">
+      <div class="inc-icon">⏱</div>
+      <div class="inc-label">Expiración de sesión</div>
+      <div class="inc-desc">Las sesiones expiran automáticamente según la configuración.</div>
+    </div>
+    <div class="inc-item">
+      <div class="inc-icon">🛡</div>
+      <div class="inc-label">RLS integrado</div>
+      <div class="inc-desc">Las políticas ya activas filtran datos por usuario sin código extra.</div>
+    </div>
+    <div class="inc-item">
+      <div class="inc-icon">📊</div>
+      <div class="inc-label">Dashboard de usuarios</div>
+      <div class="inc-desc">Panel en supabase.com para ver y gestionar usuarios manualmente.</div>
+    </div>
+  </div>
+
+  <!-- RECURSOS WEB -->
+  <div class="section-title">Recursos de referencia</div>
+  <div class="recursos">
+    <div class="recurso">
+      <div class="rec-left">
+        <div class="rec-title">Supabase Auth — Documentación general</div>
+        <div class="rec-desc">Guía completa de autenticación: login, registro, sesiones, providers sociales</div>
+      </div>
+      <span class="rec-url">supabase.com/docs/guides/auth</span>
+    </div>
+    <div class="recurso">
+      <div class="rec-left">
+        <div class="rec-title">Row Level Security — Guía</div>
+        <div class="rec-desc">Cómo funcionan las políticas RLS para filtrar datos por usuario y rol</div>
+      </div>
+      <span class="rec-url">supabase.com/docs/guides/auth/row-level-security</span>
+    </div>
+    <div class="recurso">
+      <div class="rec-left">
+        <div class="rec-title">signInWithPassword — Referencia JS</div>
+        <div class="rec-desc">Documentación de la función de login con email y contraseña</div>
+      </div>
+      <span class="rec-url">supabase.com/docs/reference/javascript/auth-signinwithpassword</span>
+    </div>
+    <div class="recurso">
+      <div class="rec-left">
+        <div class="rec-title">Managing User Data — Guía</div>
+        <div class="rec-desc">Cómo extender auth.users con datos adicionales usando una tabla de perfiles</div>
+      </div>
+      <span class="rec-url">supabase.com/docs/guides/auth/managing-user-data</span>
+    </div>
+    <div class="recurso">
+      <div class="rec-left">
+        <div class="rec-title">Custom Claims & RBAC</div>
+        <div class="rec-desc">Implementación avanzada de roles usando JWT claims para RBAC completo</div>
+      </div>
+      <span class="rec-url">supabase.com/docs/guides/auth/custom-claims-and-role-based-access-control-rbac</span>
+    </div>
+  </div>
+
+  <!-- TABLA ROLES Y CAMPOS -->
+  <div class="section-title">Valores de rol en tabla perfiles</div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Valor en BD</th><th>Nombre visible</th><th>Nivel</th><th>Alcance</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>super_admin</code></td><td>Super Administrador</td><td>0</td><td>Toda la plataforma</td></tr>
+        <tr><td><code>responsable_tecnico</code></td><td>Responsable Técnico (RT)</td><td>1</td><td>Sus ONG asignadas</td></tr>
+        <tr><td><code>admin_ong</code></td><td>Administrador de ONG</td><td>2</td><td>Su ONG</td></tr>
+        <tr><td><code>operador</code></td><td>Operador / Productor</td><td>3</td><td>Su propia producción</td></tr>
+        <tr><td><code>inspector</code></td><td>Inspector</td><td>4</td><td>Acceso asignado · solo lectura</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ESTADO IMPLEMENTADO -->
+  <div class="section-title">Qué hay implementado actualmente y cómo</div>
+  <div class="table-wrap" style="margin-bottom:28px;">
+    <table>
+      <thead>
+        <tr><th>Elemento</th><th>Qué es</th><th>Cómo está implementado hoy</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>index.html</code> — formulario de login</td>
+          <td>Pantalla de bienvenida con campos email y contraseña.</td>
+          <td>El formulario existe visualmente. La función <code>doLogin()</code> solo verifica que los campos no estén vacíos — no conecta con ninguna base de datos. Es pura interfaz sin backend real.</td>
+        </tr>
+        <tr>
+          <td>Supabase Auth configurado</td>
+          <td>Módulo de autenticación activo en el proyecto Supabase.</td>
+          <td>En el dashboard de Supabase → Authentication el módulo está activo. Ya existe un usuario de prueba creado manualmente desde ese dashboard para poder probar el sistema.</td>
+        </tr>
+        <tr>
+          <td>SDK de Supabase cargado</td>
+          <td>Librería JavaScript que permite al HTML hablar con Supabase.</td>
+          <td>Se carga desde CDN en el <code>&lt;head&gt;</code> del v3. Luego se inicializa el cliente <code>sb</code> con la URL y la anon key del proyecto. Sin esto ninguna consulta funcionaría.</td>
+        </tr>
+        <tr>
+          <td>Tabla <code>perfiles</code> con campo <code>rol</code></td>
+          <td>Tabla que extiende <code>auth.users</code> con datos adicionales del usuario.</td>
+          <td>Creada en el schema original. Tiene columna <code>rol</code> con valores posibles: <code>productor</code>, <code>inspector</code>, <code>operador</code>, <code>administrador</code>. Vinculada a Supabase Auth. Actualmente vacía salvo carga manual.</td>
+        </tr>
+        <tr>
+          <td>RLS activo en todas las tablas</td>
+          <td>Mecanismo de PostgreSQL que filtra qué filas puede ver cada usuario.</td>
+          <td>Habilitado en cada tabla del schema. Las políticas filtra por <code>auth.uid() = usuario_id</code>. Funciona automáticamente porque el cliente <code>sb</code> envía el token del usuario en cada consulta.</td>
+        </tr>
+        <tr>
+          <td>Auto-login provisorio</td>
+          <td>Login automático sin pantalla, usando credenciales fijas en el código.</td>
+          <td>Al cargar el v3, el sistema ejecuta <code>sb.auth.signInWithPassword()</code> con <code>DEV_EMAIL</code> y <code>DEV_PASSWORD</code> hardcodeados. Es un atajo para pruebas — no apto para producción porque las credenciales son visibles en el código fuente.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- GLOSARIO DE SIGLAS Y TÉRMINOS TÉCNICOS -->
+  <div class="section-title">Glosario de siglas y términos técnicos</div>
+  <div class="table-wrap" style="margin-bottom:28px;">
+    <table>
+      <thead>
+        <tr><th style="width:90px;">Sigla / Término</th><th>Expansión</th><th>Qué significa en la práctica</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>IAM</strong></td>
+          <td>Identity and Access Management</td>
+          <td>Sistema completo que gestiona quién puede acceder a una plataforma y qué puede hacer dentro de ella. Engloba autenticación, autorización y gestión de usuarios.</td>
+        </tr>
+        <tr>
+          <td><strong>AuthN</strong></td>
+          <td>Authentication (Autenticación)</td>
+          <td>Proceso de verificar la identidad de un usuario. Responde a: ¿quién sos? Se implementa con email + contraseña, biometría, tokens, etc.</td>
+        </tr>
+        <tr>
+          <td><strong>AuthZ</strong></td>
+          <td>Authorization (Autorización)</td>
+          <td>Proceso de verificar qué puede hacer un usuario ya identificado. Responde a: ¿qué tenés permitido hacer? Se implementa con roles y permisos.</td>
+        </tr>
+        <tr>
+          <td><strong>RBAC</strong></td>
+          <td>Role-Based Access Control</td>
+          <td>Modelo de autorización donde los permisos se agrupan en roles (Operador, Inspector, etc.) y los roles se asignan a usuarios. Es el modelo que usa AgroTrace.</td>
+        </tr>
+        <tr>
+          <td><strong>RLS</strong></td>
+          <td>Row Level Security</td>
+          <td>Mecanismo de PostgreSQL que filtra automáticamente qué filas de una tabla puede ver o modificar cada usuario, según políticas definidas en SQL.</td>
+        </tr>
+        <tr>
+          <td><strong>JWT</strong></td>
+          <td>JSON Web Token</td>
+          <td>Token firmado digitalmente que Supabase entrega al usuario al hacer login. Contiene su identidad y expira automáticamente. Se envía en cada consulta para autenticar la sesión.</td>
+        </tr>
+        <tr>
+          <td><strong>SDK</strong></td>
+          <td>Software Development Kit</td>
+          <td>Librería de código provista por Supabase que simplifica la conexión desde JavaScript. En AgroTrace se carga desde CDN y se usa como el objeto <code>sb</code>.</td>
+        </tr>
+        <tr>
+          <td><strong>CDN</strong></td>
+          <td>Content Delivery Network</td>
+          <td>Red de servidores distribuidos que sirve archivos estáticos (como el SDK de Supabase) desde el servidor más cercano al usuario, de forma rápida y sin instalación.</td>
+        </tr>
+        <tr>
+          <td><strong>API</strong></td>
+          <td>Application Programming Interface</td>
+          <td>Interfaz que permite que dos sistemas se comuniquen. Supabase expone una API REST que el SDK usa internamente para leer y escribir en la base de datos.</td>
+        </tr>
+        <tr>
+          <td><strong>REST</strong></td>
+          <td>Representational State Transfer</td>
+          <td>Estilo de arquitectura para APIs web. Las operaciones se hacen con métodos HTTP estándar (GET, POST, PATCH, DELETE) sobre URLs que representan recursos.</td>
+        </tr>
+        <tr>
+          <td><strong>SaaS</strong></td>
+          <td>Software as a Service</td>
+          <td>Modelo de distribución donde el software se ofrece como servicio online, sin que el cliente instale nada. AgroTrace es una plataforma SaaS.</td>
+        </tr>
+        <tr>
+          <td><strong>UUID</strong></td>
+          <td>Universally Unique Identifier</td>
+          <td>Identificador único de 128 bits generado automáticamente. Supabase lo usa como clave primaria de todas las tablas (ej: <code>id</code> en <code>lotes_produccion</code>).</td>
+        </tr>
+        <tr>
+          <td><strong>SQL</strong></td>
+          <td>Structured Query Language</td>
+          <td>Lenguaje estándar para consultar y manipular bases de datos relacionales. Se usa en Supabase para crear tablas, definir políticas RLS y ejecutar migraciones.</td>
+        </tr>
+        <tr>
+          <td><strong>SPA</strong></td>
+          <td>Single Page Application</td>
+          <td>Aplicación web que carga una sola página HTML y cambia el contenido dinámicamente con JavaScript, sin recargar el navegador. AgroTrace v3 es una SPA.</td>
+        </tr>
+        <tr>
+          <td><strong>ONG</strong></td>
+          <td>Organización No Gubernamental</td>
+          <td>En el contexto de REPROCANN, las organizaciones habilitadas para el cultivo de cannabis medicinal. Son la unidad de tenant en la arquitectura multi-tenant de AgroTrace.</td>
+        </tr>
+        <tr>
+          <td><strong>RT</strong></td>
+          <td>Responsable Técnico</td>
+          <td>Figura profesional obligatoria en REPROCANN que supervisa y avala el proceso productivo de una ONG. En AgroTrace tiene Nivel 1 de acceso.</td>
+        </tr>
+        <tr>
+          <td><strong>REPROCANN</strong></td>
+          <td>Registro del Programa de Cannabis</td>
+          <td>Marco regulatorio argentino (ANMAT) que habilita el cultivo de cannabis medicinal a ONG y sus asociados. Define cupos, roles y obligaciones de trazabilidad.</td>
+        </tr>
+        <tr>
+          <td><strong>BD / DB</strong></td>
+          <td>Base de Datos / Database</td>
+          <td>Sistema de almacenamiento estructurado de información. AgroTrace usa PostgreSQL como base de datos relacional, gestionada a través de Supabase.</td>
+        </tr>
+        <tr>
+          <td><strong>HTML</strong></td>
+          <td>HyperText Markup Language</td>
+          <td>Lenguaje de marcado que define la estructura visual de una página web. Cada pantalla de AgroTrace es un archivo HTML con CSS y JavaScript embebidos.</td>
+        </tr>
+        <tr>
+          <td><strong>CSS</strong></td>
+          <td>Cascading Style Sheets</td>
+          <td>Lenguaje que define el estilo visual (colores, tipografías, espaciados). En AgroTrace está embebido dentro del <code>&lt;style&gt;</code> de cada HTML.</td>
+        </tr>
+        <tr>
+          <td><strong>JS</strong></td>
+          <td>JavaScript</td>
+          <td>Lenguaje de programación que corre en el navegador y da interactividad a la interfaz. Maneja la lógica de AgroTrace, las consultas a Supabase y la navegación entre vistas.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    AgroTrace · Documento interno · Guía de Autenticación e IAM v1.1 · Junio 2026 · Referencia de procedimiento
+  </div>
+
+</div>
+</body>
+</html>
