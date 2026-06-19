@@ -201,7 +201,7 @@
     /* ── Role selector ── */
     .role-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 1fr 1fr 1fr;
       gap: 10px;
       margin-bottom: 28px;
     }
@@ -228,6 +228,14 @@
       font-weight: 500;
       color: var(--bark);
       letter-spacing: 0.03em;
+    }
+    .role-card small {
+      display: block;
+      font-size: 0.68rem;
+      font-weight: 300;
+      color: var(--sage);
+      margin-top: 3px;
+      line-height: 1.3;
     }
 
     /* ── Inputs ── */
@@ -466,25 +474,24 @@
         </div>
         <div class="form-header">
           <h2>Bienvenidos</h2>
-          <p>Seleccione su perfil de acceso para continuar.</p>
+          <p>Seleccione su perfil de acceso para continuar.<br/><small style="color:var(--sage);font-size:0.75rem;">Modo banco de prueba — sin autenticación real</small></p>
         </div>
 
         <div class="role-grid">
-          <div class="role-card" data-role="productor" onclick="selectRole(this)">
-            <svg viewBox="0 0 24 24"><path d="M12 2a9 9 0 0 1 9 9c0 3.51-2.02 6.55-5 8.08V21H8v-1.92C5.02 17.55 3 14.51 3 11a9 9 0 0 1 9-9m0 2a7 7 0 0 0-7 7c0 2.94 1.82 5.47 4.5 6.58V19h5v-1.42C17.18 16.47 19 13.94 19 11a7 7 0 0 0-7-7z"/></svg>
-            <span>Productor</span>
-          </div>
-          <div class="role-card" data-role="inspector" onclick="selectRole(this)">
+          <div class="role-card" data-role="superadmin" onclick="selectRole(this)">
             <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 4l5 2.18V11c0 3.5-2.33 6.79-5 7.93-2.67-1.14-5-4.43-5-7.93V7.18L12 5z"/></svg>
-            <span>Inspector</span>
+            <span>Superadmin</span>
+            <small>Acceso total al sistema</small>
           </div>
-          <div class="role-card" data-role="operador" onclick="selectRole(this)">
-            <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
-            <span>Operador</span>
+          <div class="role-card" data-role="rt" onclick="selectRole(this)">
+            <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 3c1.93 0 3.5 1.57 3.5 3.5S13.93 13 12 13s-3.5-1.57-3.5-3.5S10.07 6 12 6zm7 13H5v-.23c0-.62.28-1.2.76-1.58C7.47 15.82 9.64 15 12 15s4.53.82 6.24 2.19c.48.38.76.97.76 1.58V19z"/></svg>
+            <span>Resp. Técnico</span>
+            <small>Supervisión de ONGs</small>
           </div>
-          <div class="role-card" data-role="administrador" onclick="selectRole(this)">
-            <svg viewBox="0 0 24 24"><path d="M12 15.5A3.5 3.5 0 0 1 8.5 12 3.5 3.5 0 0 1 12 8.5a3.5 3.5 0 0 1 3.5 3.5 3.5 3.5 0 0 1-3.5 3.5m7.43-2.92c.04-.34.07-.68.07-1.08s-.03-.73-.07-1.08l2.11-1.63c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.63c-.04.35-.07.7-.07 1.08s.03.73.07 1.08L2.42 13.08c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.58 1.69-.98l2.49 1c.23.08.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.58z"/></svg>
-            <span>Administrador</span>
+          <div class="role-card" data-role="ong" onclick="selectRole(this)">
+            <svg viewBox="0 0 24 24"><path d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z"/></svg>
+            <span>Admin ONG</span>
+            <small>Gestión de producción</small>
           </div>
         </div>
 
@@ -620,17 +627,10 @@
   }
 
   function doLogin() {
-    const user = document.getElementById('username').value.trim();
-    const pass = document.getElementById('password').value;
-    const err  = document.getElementById('error-login');
-    if (!user || !pass) {
-      err.textContent = 'Complete todos los campos.';
-      err.classList.add('show');
-      return;
-    }
-    err.classList.remove('show');
-    // Demo: replace with real auth
-    alert(`✓ Acceso como "${selectedRole}" — Integrando con backend...`);
+    // Banco de prueba: sin autenticación real — redirige directo al sistema
+    sessionStorage.setItem('agrotrace_role', selectedRole);
+    sessionStorage.setItem('agrotrace_user', document.getElementById('username').value.trim() || 'usuario_prueba');
+    window.location.href = 'agrotrace_prototipo_v3.html';
   }
 
   function doRecover() {
