@@ -282,9 +282,141 @@
     </table>
   </div>
 
+  <!-- SECCIÓN IAM -->
+  <div class="section-title" style="margin-top:28px;">Gestión de identidad y acceso (IAM)</div>
+
+  <div class="intro" style="margin-bottom:16px;">
+    <strong>IAM</strong> (Identity and Access Management) es el proceso que define quién puede acceder al sistema y qué puede hacer dentro de él. Se divide en dos conceptos: <strong>Autenticación</strong> (verificar quién sos) y <strong>Autorización</strong> (verificar qué podés hacer). AgroTrace implementa el modelo <strong>RBAC</strong> — control de acceso basado en roles.
+  </div>
+
+  <div class="section-title">El proceso en sí</div>
+  <div class="table-wrap" style="margin-bottom:16px;">
+    <table>
+      <thead>
+        <tr>
+          <th>Término</th>
+          <th>Definición</th>
+          <th>En AgroTrace</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="term-cell">IAM</td>
+          <td class="def-cell">Identity and Access Management. Sistema completo que gestiona quién accede a la plataforma y con qué nivel de permisos.</td>
+          <td class="ex-cell">El módulo de login, roles y permisos de AgroTrace</td>
+        </tr>
+        <tr>
+          <td class="term-cell">Autenticación (AuthN)</td>
+          <td class="def-cell">Proceso de verificar la identidad del usuario. Responde a la pregunta: ¿quién sos?</td>
+          <td class="ex-cell">Login con email y contraseña vía Supabase Auth</td>
+        </tr>
+        <tr>
+          <td class="term-cell">Autorización (AuthZ)</td>
+          <td class="def-cell">Proceso de verificar qué acciones puede realizar un usuario ya autenticado. Responde a: ¿qué podés hacer?</td>
+          <td class="ex-cell">Un Operador puede cargar lotes pero no dar de alta usuarios</td>
+        </tr>
+        <tr>
+          <td class="term-cell">RBAC</td>
+          <td class="def-cell">Role-Based Access Control. Modelo de autorización donde los permisos se agrupan en roles y se asignan a usuarios.</td>
+          <td class="ex-cell">Roles: Super Admin, RT, Admin ONG, Operador, Inspector</td>
+        </tr>
+        <tr>
+          <td class="term-cell">Multi-tenancy</td>
+          <td class="def-cell">Arquitectura donde múltiples organizaciones comparten la misma plataforma con datos completamente aislados entre sí.</td>
+          <td class="ex-cell">Cada ONG ve solo sus propios lotes y usuarios</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section-title">Roles y permisos</div>
+  <div class="table-wrap" style="margin-bottom:16px;">
+    <table>
+      <thead>
+        <tr>
+          <th>Término</th>
+          <th>Definición</th>
+          <th>En AgroTrace</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="term-cell">Rol</td>
+          <td class="def-cell">Conjunto de permisos agrupados bajo un nombre. Un usuario tiene un rol asignado que determina todo lo que puede hacer.</td>
+          <td class="ex-cell">Rol "Operador", Rol "Inspector"</td>
+        </tr>
+        <tr>
+          <td class="term-cell">Permiso</td>
+          <td class="def-cell">Acción específica que un rol puede o no puede realizar sobre un recurso del sistema.</td>
+          <td class="ex-cell">"Crear lote", "Ver entregas", "Dar de baja usuarios"</td>
+        </tr>
+        <tr>
+          <td class="term-cell">Perfil de usuario</td>
+          <td class="def-cell">Conjunto de datos que describen a un usuario dentro del sistema: nombre, rol asignado, organización a la que pertenece.</td>
+          <td class="ex-cell">Tabla <code>perfiles</code> en Supabase</td>
+        </tr>
+        <tr>
+          <td class="term-cell">Tenant</td>
+          <td class="def-cell">Una organización dentro de la plataforma multi-tenant. Sus datos están aislados de los demás tenants.</td>
+          <td class="ex-cell">Cada ONG inscripta en REPROCANN es un tenant</td>
+        </tr>
+        <tr>
+          <td class="term-cell">RLS</td>
+          <td class="def-cell">Row Level Security. Mecanismo de PostgreSQL/Supabase que filtra automáticamente qué filas de la base de datos puede ver cada usuario según su identidad.</td>
+          <td class="ex-cell">Un Operador solo ve sus propios lotes aunque todos estén en la misma tabla</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section-title">Acciones sobre usuarios</div>
+  <div class="table-wrap" style="margin-bottom:28px;">
+    <table>
+      <thead>
+        <tr>
+          <th>Término</th>
+          <th>Definición</th>
+          <th>En AgroTrace</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="term-cell">Alta</td>
+          <td class="def-cell">Crear y habilitar un nuevo usuario en el sistema.</td>
+          <td class="ex-cell">El Admin ONG da de alta a un nuevo Operador</td>
+        </tr>
+        <tr>
+          <td class="term-cell">Baja</td>
+          <td class="def-cell">Eliminar o desactivar un usuario, revocando su acceso al sistema.</td>
+          <td class="ex-cell">El RT da de baja a un Operador que dejó la ONG</td>
+        </tr>
+        <tr>
+          <td class="term-cell">Onboarding</td>
+          <td class="def-cell">Proceso de incorporar una nueva organización a la plataforma: creación de cuenta, configuración inicial y alta del primer usuario.</td>
+          <td class="ex-cell">El Super Admin incorpora una nueva ONG al sistema</td>
+        </tr>
+        <tr>
+          <td class="term-cell">Provisioning</td>
+          <td class="def-cell">Asignación de recursos y permisos a un usuario nuevo al momento de su alta.</td>
+          <td class="ex-cell">Asignar rol "Operador" y vincular a su ONG al crear el usuario</td>
+        </tr>
+        <tr>
+          <td class="term-cell">Revocación</td>
+          <td class="def-cell">Quitar el acceso a un usuario de forma temporal o permanente, sin necesariamente eliminarlo del sistema.</td>
+          <td class="ex-cell">Suspender el acceso de un Inspector cuyo período venció</td>
+        </tr>
+        <tr>
+          <td class="term-cell">Acceso temporal</td>
+          <td class="def-cell">Acceso con fecha de vencimiento automática. Al llegar la fecha, el sistema revoca los permisos sin intervención manual.</td>
+          <td class="ex-cell">Inspector habilitado por 30 días para una auditoría REPROCANN</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
   <!-- FOOTER -->
   <div class="footer">
-    AgroTrace · Documento interno · Léxico de Interfaz v1.0 · Junio 2026 · Uso exclusivo del equipo de desarrollo y operaciones
+    AgroTrace · Documento interno · Léxico de Interfaz v1.1 · Junio 2026 · Uso exclusivo del equipo de desarrollo y operaciones
   </div>
 
 </div>
