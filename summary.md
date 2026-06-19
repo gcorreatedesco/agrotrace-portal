@@ -56,7 +56,30 @@ Archivo HTML/CSS/JS con toda la interfaz del sistema. Es la versión más avanza
 
 ---
 
-### 2. Base de datos en Supabase (supabase_schema.sql)
+### 2. Portal de acceso (index.html)
+Pantalla de login con selección de perfil. Modo banco de prueba activo.
+
+**Perfiles IAM definidos (3 niveles operativos):**
+| Perfil | Rol | Descripción |
+|--------|-----|-------------|
+| Superadmin | `superadmin` | Acceso total al sistema — puede operar datos productivos directamente |
+| Resp. Técnico | `rt` | Supervisión de ONGs bajo su cargo |
+| Admin ONG | `ong` | Gestión de producción de su organización |
+
+**Comportamiento actual (banco de prueba):**
+- Sin autenticación real — el botón "Ingresar" redirige directo a `agrotrace_prototipo_v3.html`
+- El rol seleccionado se guarda en `sessionStorage` bajo la clave `agrotrace_role`
+- El nombre de usuario se guarda en `sessionStorage` bajo la clave `agrotrace_user`
+- Aviso visible en el formulario: "Modo banco de prueba — sin autenticación real"
+
+**Pendiente al implementar auth real:**
+- Conectar con `sb.auth.signInWithPassword()`
+- Gestión de usuarios: RT invita por email con `inviteUserByEmail()` → Supabase envía link → usuario define contraseña
+- Vincular `registrado_por` en `entregas` y `corregido_por` en `entregas_correcciones` al usuario autenticado
+
+---
+
+### 3. Base de datos en Supabase (supabase_schema.sql)
 13 tablas PostgreSQL + 1 tabla de correcciones que implementan el ERD completo.
 
 **Tablas:**
@@ -142,7 +165,7 @@ GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO authenticated;
 
 ---
 
-### 3. Conexión Supabase ↔ HTML
+### 4. Conexión Supabase ↔ HTML
 El frontend lee y escribe datos reales en Supabase.
 
 **Qué está conectado:**
@@ -160,30 +183,21 @@ El frontend lee y escribe datos reales en Supabase.
 - Búsqueda → índice reconstruido desde datos reales
 
 **Autenticación actual (provisorio):**
-Auto-login con credenciales hardcodeadas (`DEV_EMAIL` / `DEV_PASSWORD`).
+Portal de acceso no autentica — redirige directamente al sistema con el rol seleccionado guardado en `sessionStorage`.
 
 ---
 
-### 4. Léxico común de interfaz (AgroTrace_Lexico_UI.html)
-Documento de referencia para nombrar elementos visuales sin ambigüedad.
+### 5. Documentación generada
 
-| Nivel | Término | Descripción |
-|-------|---------|-------------|
-| 1 | Módulo | Sección del sidebar |
-| 2 | Pantalla | Vista completa del área principal |
-| 3 | Pestaña | Tab dentro de una pantalla |
-| 4 | Panel | Bloque blanco con borde |
-| — | Filtro | Pill que filtra sin cambiar pantalla |
-| — | Card | Tarjeta clickeable en listado |
-| — | Timeline | Barra de 5 etapas del ciclo productivo |
-| — | Hero | Cabecera oscura del detalle de lote |
-| — | Formulario | Campos de entrada dentro de un panel |
-| — | Wizard | Formulario en pasos secuenciales |
-| — | Banner | Alerta destacada con acción directa |
+| Archivo | Descripción | Versión |
+|---------|-------------|---------|
+| `AgroTrace_Lexico_UI.html` | Léxico común de interfaz — términos visuales + glosario IAM | v1.1 |
+| `AgroTrace_Modelo_Negocio_Roles.html` | Modelo de negocio y estructura de roles (3 tipos de cliente, 5 niveles de usuario) | v1.0 |
+| `AgroTrace_Guia_Auth_IAM.html` | Guía de implementación de Auth e IAM — pasos, recursos, glosario de 21 términos técnicos | v1.1 |
 
 ---
 
-### 5. Deploy
+### 6. Deploy
 `https://gcorreatedesco.github.io/agrotrace-portal/agrotrace_prototipo_v3.html`
 
 **Proyecto Supabase:**
@@ -194,9 +208,10 @@ Documento de referencia para nombrar elementos visuales sin ambigüedad.
 
 ## Pendientes identificados
 
-1. **Sistema de login y credenciales por rol** — productor, inspector, operador, administrador, Responsable Técnico. Al implementarlo: vincular `registrado_por` en `entregas` y `corregido_por` en `entregas_correcciones` al usuario autenticado (hoy son campos de texto manual).
-2. **Lotes cerrados por división en sublotes** — el lote padre queda cerrado en la etapa donde se dividió. Pendiente de implementar el flujo completo.
-3. **Historial de entregas por paciente** — vista que agrupe todas las entregas a un mismo Nro. REPROCANN a través de múltiples lotes.
-4. **Política RLS para rol administrador** — ver todos los datos de todos los productores.
-5. **Lotes históricos de Material Básico** — análisis pendiente de cómo mostrar en detalle el ciclo completo de un lote agotado.
-6. **Formulario de entregas a pacientes** — análisis pendiente del historial por paciente (REPROCANN).
+1. **Autenticación real** — conectar `index.html` con `sb.auth.signInWithPassword`. Al implementarlo: vincular `registrado_por` en `entregas` y `corregido_por` en `entregas_correcciones` al usuario autenticado (hoy son campos de texto manual).
+2. **Gestión de usuarios en la app** — módulo para que RT y Admin ONG inviten usuarios vía `inviteUserByEmail()`. Por ahora se gestiona desde el dashboard de Supabase. Supabase envía email automático con link de activación (configurable con dominio propio via SMTP: Resend, SendGrid, Mailgun).
+3. **Lotes cerrados por división en sublotes** — el lote padre queda cerrado en la etapa donde se dividió. Pendiente de implementar el flujo completo.
+4. **Historial de entregas por paciente** — vista que agrupe todas las entregas a un mismo Nro. REPROCANN a través de múltiples lotes.
+5. **Política RLS para rol administrador** — ver todos los datos de todos los productores.
+6. **Multi-tenancy** — tabla `organizaciones` + `rt_organizaciones`, actualizar RLS para aislar datos por ONG.
+7. **Módulo Reportes** — timeline, stock, CSV/PDF.

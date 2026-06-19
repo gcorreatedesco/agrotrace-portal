@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AgroTrace — Portal Responsable Técnico</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --soil:#2C1F0E;--bark:#4A3520;--sage:#6B7F5E;--leaf:#8EAA7B;--mist:#C8D9BC;
+  --dew:#EDF2E8;--cream:#F7F4EF;--white:#FFFFFF;--accent:#4E7C3F;
+  --amber:#854F0B;--amber-bg:#FAEEDA;--amber-light:#FAC775;
+  --purple:#534AB7;--purple-bg:#EEEDFE;
+  --error:#B94A3A;--error-bg:#FAECE7;
+  --radius:6px;--radius-lg:10px;--trans:0.2s ease;
+  --sidebar:248px;
+}
+html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--soil);font-size:14px;}
+.app{display:flex;min-height:100vh;}
+
+/* ── SIDEBAR ── */
+.sidebar{width:var(--sidebar);flex-shrink:0;background:var(--soil);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto;}
+.sb-brand{padding:20px 16px 14px;border-bottom:1px solid rgba(255,255,255,0.08);}
+.brand-mark{display:flex;align-items:center;gap:10px;}
+.brand-icon{width:32px;height:32px;border:1.5px solid var(--leaf);border-radius:50%;display:flex;align-items:center;justify-content:center;}
+.brand-icon svg{width:16px;height:16px;fill:var(--leaf);}
+.brand-name{font-family:'DM Serif Display',serif;font-size:1.2rem;color:var(--dew);}
+.brand-tag{font-size:0.58rem;font-weight:300;color:var(--mist);letter-spacing:0.12em;text-transform:uppercase;margin-top:1px;}
+.sb-user{padding:10px 16px;border-bottom:1px solid rgba(255,255,255,0.08);}
+.sb-user-row{display:flex;align-items:center;gap:8px;}
+.user-av{width:28px;height:28px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;color:white;flex-shrink:0;}
+.user-nm{font-size:0.75rem;color:var(--mist);font-weight:400;}
+.user-role{font-size:0.62rem;color:var(--leaf);font-weight:300;margin-top:1px;}
+.sb-nav{padding:10px 0;flex:1;}
+.nav-sec{font-size:0.58rem;font-weight:500;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.3);padding:8px 16px 4px;}
+.nav-it{display:flex;align-items:center;gap:8px;padding:8px 16px;cursor:pointer;color:rgba(255,255,255,0.55);font-size:0.78rem;transition:all var(--trans);border-left:2px solid transparent;}
+.nav-it svg{width:14px;height:14px;fill:currentColor;flex-shrink:0;}
+.nav-it:hover{color:var(--dew);background:rgba(255,255,255,0.05);}
+.nav-it.active{color:var(--leaf);border-left-color:var(--leaf);background:rgba(142,170,123,0.1);}
+.sb-footer{padding:14px 16px;border-top:1px solid rgba(255,255,255,0.08);}
+.sb-footer-actions{display:flex;flex-direction:column;gap:6px;}
+.sb-logout{display:flex;align-items:center;gap:6px;color:rgba(255,255,255,0.35);font-size:0.72rem;cursor:pointer;background:none;border:none;font-family:'DM Sans',sans-serif;padding:0;transition:color var(--trans);}
+.sb-logout:hover{color:var(--error);}
+.sb-logout svg{width:13px;height:13px;fill:currentColor;}
+
+/* ── MAIN ── */
+.main{flex:1;display:flex;flex-direction:column;min-width:0;}
+.topbar{background:var(--white);border-bottom:1px solid rgba(0,0,0,0.06);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.topbar-left{display:flex;flex-direction:column;}
+.topbar-title{font-size:0.95rem;font-weight:500;color:var(--soil);}
+.topbar-sub{font-size:0.72rem;color:var(--sage);margin-top:1px;}
+.content{padding:24px;flex:1;}
+
+/* ── RESUMEN RT ── */
+.rt-metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:24px;}
+.rt-metric{background:var(--white);border:1px solid rgba(0,0,0,0.07);border-radius:var(--radius-lg);padding:14px 16px;}
+.rt-metric-label{font-size:0.62rem;font-weight:500;text-transform:uppercase;letter-spacing:0.08em;color:var(--sage);margin-bottom:5px;}
+.rt-metric-val{font-size:1.6rem;font-weight:500;color:var(--soil);font-family:'DM Serif Display',serif;}
+.rt-metric-sub{font-size:0.68rem;color:var(--sage);margin-top:3px;}
+
+/* ── SECCIÓN TÍTULO ── */
+.sec-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.sec-title{font-family:'DM Serif Display',serif;font-size:1.15rem;color:var(--soil);}
+.sec-count{font-size:0.75rem;color:var(--sage);margin-left:6px;}
+
+/* ── GRID DE ONGs ── */
+.ong-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;}
+
+/* ── CARD ONG ── */
+.ong-card{background:var(--white);border:1px solid rgba(0,0,0,0.07);border-radius:var(--radius-lg);padding:18px;transition:box-shadow var(--trans),border-color var(--trans);}
+.ong-card:hover{box-shadow:0 4px 16px rgba(0,0,0,0.08);border-color:rgba(0,0,0,0.12);}
+.ong-card-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;}
+.ong-info{}
+.ong-name{font-size:0.95rem;font-weight:500;color:var(--soil);margin-bottom:3px;}
+.ong-location{font-size:0.72rem;color:var(--sage);display:flex;align-items:center;gap:4px;}
+.ong-location svg{width:11px;height:11px;fill:var(--sage);}
+.ong-badge{font-size:0.62rem;font-weight:500;padding:3px 8px;border-radius:10px;white-space:nowrap;}
+.badge-ok{background:var(--dew);color:var(--accent);}
+.badge-warn{background:var(--amber-bg);color:var(--amber);}
+.badge-alert{background:var(--error-bg);color:var(--error);}
+
+.ong-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;}
+.ong-stat{text-align:center;padding:8px 4px;background:var(--cream);border-radius:var(--radius);}
+.ong-stat-val{font-size:1.1rem;font-weight:500;color:var(--soil);font-family:'DM Serif Display',serif;}
+.ong-stat-lbl{font-size:0.6rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--sage);margin-top:1px;}
+
+.ong-alerts{margin-bottom:14px;}
+.ong-alert-item{display:flex;align-items:center;gap:6px;font-size:0.72rem;color:var(--amber);padding:4px 0;border-top:1px solid var(--amber-bg);}
+.ong-alert-item:first-child{border-top:none;}
+.ong-alert-item svg{width:12px;height:12px;fill:currentColor;flex-shrink:0;}
+.ong-alert-item.alert-error{color:var(--error);}
+
+.ong-footer{display:flex;align-items:center;justify-content:space-between;padding-top:12px;border-top:1px solid rgba(0,0,0,0.06);}
+.ong-last{font-size:0.68rem;color:var(--sage);}
+.btn-supervisar{padding:7px 16px;background:var(--accent);color:white;border:none;border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:0.78rem;font-weight:500;cursor:pointer;transition:background var(--trans);display:flex;align-items:center;gap:6px;}
+.btn-supervisar:hover{background:#3d6230;}
+.btn-supervisar svg{width:13px;height:13px;fill:currentColor;}
+
+/* ── MODO PRUEBA BANNER ── */
+.dev-banner{background:var(--amber-bg);border-bottom:1px solid var(--amber-light);padding:6px 24px;font-size:0.72rem;color:var(--amber);display:flex;align-items:center;gap:6px;}
+.dev-banner svg{width:13px;height:13px;fill:currentColor;flex-shrink:0;}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ── SIDEBAR ── -->
+  <div class="sidebar">
+    <div class="sb-brand">
+      <div class="brand-mark">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24"><path d="M17 8C8 10 5.9 16.17 3.82 21.34L5.71 22l1-2.3A4.49 4.49 0 0 0 8 20C19 20 22 3 22 3c-1 2-8 3-8 3z"/></svg>
+        </div>
+        <div>
+          <div class="brand-name">AgroTrace</div>
+          <div class="brand-tag">Trazabilidad Agrícola</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sb-user">
+      <div class="sb-user-row">
+        <div class="user-av" id="sb-av">RT</div>
+        <div>
+          <div class="user-nm" id="sb-nombre">Cargando...</div>
+          <div class="user-role">Responsable Técnico</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sb-nav">
+      <div class="nav-sec">Panel RT</div>
+      <div class="nav-it active">
+        <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 3c1.93 0 3.5 1.57 3.5 3.5S13.93 13 12 13s-3.5-1.57-3.5-3.5S10.07 6 12 6zm7 13H5v-.23c0-.62.28-1.2.76-1.58C7.47 15.82 9.64 15 12 15s4.53.82 6.24 2.19c.48.38.76.97.76 1.58V19z"/></svg>
+        Mis Organizaciones
+      </div>
+      <div class="nav-it" style="opacity:0.4;cursor:default;">
+        <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+        Reportes consolidados
+        <span style="margin-left:auto;font-size:0.6rem;color:rgba(255,255,255,0.2);">Próx.</span>
+      </div>
+    </div>
+
+    <div class="sb-footer">
+      <div class="sb-footer-actions">
+        <button class="sb-logout" onclick="cerrarSesion()">
+          <svg viewBox="0 0 24 24"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>
+          Cerrar sesión
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MAIN ── -->
+  <div class="main">
+
+    <!-- Banner modo prueba -->
+    <div class="dev-banner">
+      <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+      Modo banco de prueba — datos simulados · Las organizaciones y métricas son de ejemplo
+    </div>
+
+    <div class="topbar">
+      <div class="topbar-left">
+        <div class="topbar-title">Panel de Supervisión</div>
+        <div class="topbar-sub" id="tb-sub">Responsable Técnico</div>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- Métricas resumen RT -->
+      <div class="rt-metrics">
+        <div class="rt-metric">
+          <div class="rt-metric-label">Organizaciones</div>
+          <div class="rt-metric-val" id="met-ongs">3</div>
+          <div class="rt-metric-sub">bajo supervisión</div>
+        </div>
+        <div class="rt-metric">
+          <div class="rt-metric-label">Lotes activos totales</div>
+          <div class="rt-metric-val" id="met-lotes">6</div>
+          <div class="rt-metric-sub">en todas las ONGs</div>
+        </div>
+        <div class="rt-metric">
+          <div class="rt-metric-label">Alertas</div>
+          <div class="rt-metric-val" id="met-alertas" style="color:var(--amber);">2</div>
+          <div class="rt-metric-sub">requieren atención</div>
+        </div>
+        <div class="rt-metric">
+          <div class="rt-metric-label">Última actividad</div>
+          <div class="rt-metric-val" style="font-size:1rem;padding-top:4px;">Hoy</div>
+          <div class="rt-metric-sub">ONG Esperanza Verde</div>
+        </div>
+      </div>
+
+      <!-- Lista ONGs -->
+      <div class="sec-header">
+        <div>
+          <span class="sec-title">Organizaciones supervisadas</span>
+          <span class="sec-count" id="ong-count"></span>
+        </div>
+      </div>
+
+      <div class="ong-grid" id="ong-grid">
+        <!-- Renderizado por JS -->
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+/* ── DATOS SIMULADOS ── */
+const ONGS = [
+  {
+    id: 'ong-1',
+    nombre: 'ONG Esperanza Verde',
+    localidad: 'Buenos Aires, CABA',
+    estado: 'ok',
+    estadoLabel: 'Activa',
+    lotes_activos: 3,
+    stock_total_g: 420,
+    entregas_mes: 8,
+    alertas: [],
+    ultima_actividad: 'Hoy, 14:32',
+    contacto: 'Dr. Ramírez'
+  },
+  {
+    id: 'ong-2',
+    nombre: 'Asociación Cannábica Sur',
+    localidad: 'Córdoba Capital',
+    estado: 'warn',
+    estadoLabel: 'Con alertas',
+    lotes_activos: 1,
+    stock_total_g: 35,
+    entregas_mes: 3,
+    alertas: [
+      { tipo: 'warn', texto: 'Stock de flores bajo (35 g)' },
+      { tipo: 'warn', texto: 'Lote en Floración sin actualizar (8 días)' }
+    ],
+    ultima_actividad: 'Hace 8 días',
+    contacto: 'Lic. Gomez'
+  },
+  {
+    id: 'ong-3',
+    nombre: 'Fundación Florecer',
+    localidad: 'Rosario, Santa Fe',
+    estado: 'ok',
+    estadoLabel: 'Activa',
+    lotes_activos: 2,
+    stock_total_g: 210,
+    entregas_mes: 5,
+    alertas: [],
+    ultima_actividad: 'Ayer, 09:15',
+    contacto: 'Dr. Ferreyra'
+  }
+];
+
+/* ── INIT ── */
+function init() {
+  const usuario = sessionStorage.getItem('agrotrace_user') || 'Responsable Técnico';
+  const iniciales = usuario.split(' ').map(p => p[0]).join('').toUpperCase().slice(0,2);
+  document.getElementById('sb-av').textContent = iniciales;
+  document.getElementById('sb-nombre').textContent = usuario;
+  document.getElementById('tb-sub').textContent = 'Bienvenido, ' + usuario;
+
+  renderONGs();
+}
+
+/* ── RENDER ONGs ── */
+function renderONGs() {
+  const grid = document.getElementById('ong-grid');
+  document.getElementById('ong-count').textContent = ONGS.length + ' organizaciones';
+
+  grid.innerHTML = ONGS.map(o => {
+    const badgeClass = o.estado === 'ok' ? 'badge-ok' : o.estado === 'warn' ? 'badge-warn' : 'badge-alert';
+
+    const alertasHTML = o.alertas.length > 0
+      ? `<div class="ong-alerts">` + o.alertas.map(a =>
+          `<div class="ong-alert-item ${a.tipo === 'error' ? 'alert-error' : ''}">
+            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+            ${a.texto}
+          </div>`
+        ).join('') + `</div>`
+      : '';
+
+    return `
+    <div class="ong-card">
+      <div class="ong-card-header">
+        <div class="ong-info">
+          <div class="ong-name">${o.nombre}</div>
+          <div class="ong-location">
+            <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+            ${o.localidad}
+          </div>
+        </div>
+        <span class="ong-badge ${badgeClass}">${o.estadoLabel}</span>
+      </div>
+
+      <div class="ong-stats">
+        <div class="ong-stat">
+          <div class="ong-stat-val">${o.lotes_activos}</div>
+          <div class="ong-stat-lbl">Lotes activos</div>
+        </div>
+        <div class="ong-stat">
+          <div class="ong-stat-val">${o.stock_total_g} g</div>
+          <div class="ong-stat-lbl">Stock flores</div>
+        </div>
+        <div class="ong-stat">
+          <div class="ong-stat-val">${o.entregas_mes}</div>
+          <div class="ong-stat-lbl">Entregas/mes</div>
+        </div>
+      </div>
+
+      ${alertasHTML}
+
+      <div class="ong-footer">
+        <div class="ong-last">Últ. actividad: ${o.ultima_actividad}</div>
+        <button class="btn-supervisar" onclick="supervisar('${o.id}','${o.nombre}')">
+          <svg viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+          Supervisar
+        </button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ── SUPERVISAR ONG ── */
+function supervisar(ongId, ongNombre) {
+  sessionStorage.setItem('agrotrace_supervisando_ong_id', ongId);
+  sessionStorage.setItem('agrotrace_supervisando_ong_nombre', ongNombre);
+  sessionStorage.setItem('agrotrace_role', 'rt');
+  window.location.href = 'agrotrace_prototipo_v3.html';
+}
+
+/* ── CERRAR SESIÓN ── */
+function cerrarSesion() {
+  sessionStorage.clear();
+  window.location.href = 'index.html';
+}
+
+init();
+</script>
+</body>
+</html>

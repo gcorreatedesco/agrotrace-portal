@@ -363,6 +363,14 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
 .hist-empty{font-size:0.72rem;color:var(--sage);padding:6px 0;font-style:italic;}
 .btn-danger{background:var(--error);color:white;}
 .btn-danger:hover{background:#a03020;}
+/* ── BANNER SUPERVISIÓN RT ── */
+.rt-supervision-bar{background:#1a2f1a;border-bottom:1px solid rgba(142,170,123,0.25);padding:7px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.rt-supervision-bar-left{display:flex;align-items:center;gap:8px;font-size:0.75rem;color:var(--mist);}
+.rt-supervision-bar-left svg{width:14px;height:14px;fill:var(--leaf);flex-shrink:0;}
+.rt-supervision-bar-left strong{color:var(--leaf);}
+.rt-supervision-bar-right{display:flex;align-items:center;gap:8px;}
+.btn-cambiar-ong{font-size:0.72rem;color:var(--leaf);background:rgba(142,170,123,0.12);border:1px solid rgba(142,170,123,0.25);border-radius:var(--radius);padding:4px 10px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all var(--trans);}
+.btn-cambiar-ong:hover{background:rgba(142,170,123,0.2);}
 </style>
 </head>
 <body>
@@ -419,6 +427,16 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
 
 <!-- ══ MAIN ══ -->
 <div class="main">
+<!-- Banner supervisión RT (visible solo cuando viene del portal RT) -->
+<div class="rt-supervision-bar" id="rt-bar" style="display:none;">
+  <div class="rt-supervision-bar-left">
+    <svg viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+    Supervisando: <strong id="rt-bar-ong">—</strong>
+  </div>
+  <div class="rt-supervision-bar-right">
+    <button class="btn-cambiar-ong" onclick="volverPortalRT()">← Cambiar organización</button>
+  </div>
+</div>
 <div class="topbar">
   <div style="display:flex;align-items:center;gap:12px;">
     <button class="topbar-back" id="tb-back" style="display:none;" onclick="volverDesdePantalla()"><svg viewBox="0 0 16 16"><path d="M10 3L5 8l5 5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg> <span id="tb-back-label">Volver</span></button>
@@ -844,10 +862,22 @@ async function initApp(){
     return;
   }
   CURRENT_USER=data.user;
+  // Mostrar banner si viene del portal RT
+  const ongNombre=sessionStorage.getItem('agrotrace_supervisando_ong_nombre');
+  if(ongNombre){
+    const bar=document.getElementById('rt-bar');
+    if(bar){bar.style.display='flex';document.getElementById('rt-bar-ong').textContent=ongNombre;}
+  }
   await Promise.all([cargarLotes(),cargarMaterial()]);
   rebuildSearchIndex();
   rAll('dash-lotes','todos');
   actualizarMetricasDash();
+}
+
+function volverPortalRT(){
+  sessionStorage.removeItem('agrotrace_supervisando_ong_id');
+  sessionStorage.removeItem('agrotrace_supervisando_ong_nombre');
+  window.location.href='portal_rt.html';
 }
 
 /* ── CARGA LOTES ── */

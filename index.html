@@ -627,10 +627,18 @@
   }
 
   function doLogin() {
-    // Banco de prueba: sin autenticación real — redirige directo al sistema
+    // Banco de prueba: sin autenticación real
+    const usuario = document.getElementById('username').value.trim() || 'usuario_prueba';
     sessionStorage.setItem('agrotrace_role', selectedRole);
-    sessionStorage.setItem('agrotrace_user', document.getElementById('username').value.trim() || 'usuario_prueba');
-    window.location.href = 'agrotrace_prototipo_v3.html';
+    sessionStorage.setItem('agrotrace_user', usuario);
+    // Limpiar supervisión previa
+    sessionStorage.removeItem('agrotrace_supervisando_ong_id');
+    sessionStorage.removeItem('agrotrace_supervisando_ong_nombre');
+    if (selectedRole === 'rt') {
+      window.location.href = 'portal_rt.html';
+    } else {
+      window.location.href = 'agrotrace_prototipo_v3.html';
+    }
   }
 
   function doRecover() {
