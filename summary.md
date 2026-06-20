@@ -27,6 +27,7 @@ Archivo HTML/CSS/JS con toda la interfaz del sistema. Es la versión más avanza
 - Detalle clickeable por cada lote de Material Básico
 - Historial desplegable en detalle de MB: uso en lotes productivos + registro de bajas
 - Lotes con stock = 0 se ocultan automáticamente del listado y dropdowns
+- Banner de supervisión RT (barra verde oscura) cuando viene del portal RT
 
 **Pestañas históricas — Mis Lotes Productivos:**
 - Pestaña "Lotes Productivos Activos" — lotes en ciclo activo
@@ -57,29 +58,61 @@ Archivo HTML/CSS/JS con toda la interfaz del sistema. Es la versión más avanza
 ---
 
 ### 2. Portal de acceso (index.html)
-Pantalla de login con selección de perfil. Modo banco de prueba activo.
+Pantalla de login con selección de perfil y formulario de solicitud de acceso.
 
 **Perfiles IAM definidos (3 niveles operativos):**
 | Perfil | Rol | Descripción |
 |--------|-----|-------------|
 | Superadmin | `superadmin` | Acceso total al sistema — puede operar datos productivos directamente |
-| Resp. Técnico | `rt` | Supervisión de ONGs bajo su cargo |
+| Resp. Técnico | `rt` | Supervisión de ONGs bajo su cargo → redirige a `portal_rt.html` |
 | Admin ONG | `ong` | Gestión de producción de su organización |
 
 **Comportamiento actual (banco de prueba):**
-- Sin autenticación real — el botón "Ingresar" redirige directo a `agrotrace_prototipo_v3.html`
+- Sin autenticación real — el botón "Ingresar" redirige directo al sistema
 - El rol seleccionado se guarda en `sessionStorage` bajo la clave `agrotrace_role`
 - El nombre de usuario se guarda en `sessionStorage` bajo la clave `agrotrace_user`
-- Aviso visible en el formulario: "Modo banco de prueba — sin autenticación real"
+- Aviso visible: "Modo banco de prueba — sin autenticación real"
 
-**Pendiente al implementar auth real:**
-- Conectar con `sb.auth.signInWithPassword()`
-- Gestión de usuarios: RT invita por email con `inviteUserByEmail()` → Supabase envía link → usuario define contraseña
-- Vincular `registrado_por` en `entregas` y `corregido_por` en `entregas_correcciones` al usuario autenticado
+**Formulario de solicitud de acceso (implementado):**
+- Acceso desde "¿No tiene cuenta? Solicitar acceso" en la pantalla de roles
+- Campos: Nombre completo, Email de contacto, Nombre de Asociación Civil / ONG, Perfil solicitado (Admin ONG / *Responsable Técnico — en itálica*), Nro. REPROCANN (opcional), Información adicional (opcional)
+- Al enviar: llama a la Edge Function `solicitar-acceso` en Supabase
+- Muestra pantalla de confirmación "Solicitud enviada"
 
 ---
 
-### 3. Base de datos en Supabase (supabase_schema.sql)
+### 3. Portal RT (portal_rt.html) — nuevo
+Panel de supervisión para el Responsable Técnico.
+
+- Cards de ONGs bajo supervisión con métricas: lotes activos, stock de flores, entregas/mes
+- Badge de estado por ONG: Activa / Con alertas
+- Alertas visibles por card
+- Botón "Supervisar" → guarda ONG en `sessionStorage` y abre v3 con banner de supervisión
+- Botón "← Cambiar organización" en v3 → vuelve al portal RT
+- Datos simulados (hardcodeados) por ahora — se conectará a Supabase al implementar multi-tenancy
+
+---
+
+### 4. Sistema de notificación de solicitudes — Edge Function
+
+**Edge Function `solicitar-acceso`** (`supabase/functions/solicitar-acceso/index.ts`):
+- Recibe datos del formulario via POST
+- Envía email HTML al administrador via Resend con todos los datos del solicitante
+- Incluye en el email el próximo paso a seguir (crear usuario en Supabase Dashboard)
+- Desplegada en Supabase Edge Functions ✅
+
+**Secrets configurados en Supabase (Project Settings → Secrets):**
+| Secret | Valor |
+|--------|-------|
+| `RESEND_API_KEY` | API Key de Resend (re_...) |
+| `ADMIN_EMAIL` | Email del administrador |
+| `FROM_EMAIL` | `AgroTrace <onboarding@resend.dev>` |
+
+**Estado:** Deploy exitoso. Pendiente verificar envío real de email (error en API Key al momento de cortar la sesión — regenerar en resend.com y actualizar el secret `RESEND_API_KEY` en Supabase).
+
+---
+
+### 5. Base de datos en Supabase (supabase_schema.sql)
 13 tablas PostgreSQL + 1 tabla de correcciones que implementan el ERD completo.
 
 **Tablas:**
@@ -150,22 +183,34 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON public.entregas_correcciones TO anon;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.entregas_correcciones TO authenticated;
 ```
 
+**Trigger pendiente de ejecutar (auto-crear perfil al activar cuenta):**
+```sql
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.perfiles (id, nombre, rol)
+  VALUES (
+    NEW.id,
+    COALESCE(NEW.raw_user_meta_data->>'nombre', NEW.email),
+    COALESCE(NEW.raw_user_meta_data->>'rol', 'ong')
+  );
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+```
+
 **Configuración Supabase:**
 - Enable Data API: ✅
 - Automatically expose new tables: ❌
 - Enable automatic RLS: ✅
 
-**Permisos generales (aplicar a tablas nuevas):**
-```sql
-GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO anon;
-GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO authenticated;
-GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO anon;
-GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO authenticated;
-```
-
 ---
 
-### 4. Conexión Supabase ↔ HTML
+### 6. Conexión Supabase ↔ HTML
 El frontend lee y escribe datos reales en Supabase.
 
 **Qué está conectado:**
@@ -181,37 +226,43 @@ El frontend lee y escribe datos reales en Supabase.
 - Entregas → guarda en `entregas` + descuenta `flores_cosechadas.stock_actual`
 - Correcciones → guarda en `entregas_correcciones` + actualiza `entregas` + ajusta stock
 - Búsqueda → índice reconstruido desde datos reales
+- Formulario solicitud de acceso → llama a Edge Function `solicitar-acceso`
 
 **Autenticación actual (provisorio):**
 Portal de acceso no autentica — redirige directamente al sistema con el rol seleccionado guardado en `sessionStorage`.
 
 ---
 
-### 5. Documentación generada
+### 7. Documentación generada
 
 | Archivo | Descripción | Versión |
 |---------|-------------|---------|
 | `AgroTrace_Lexico_UI.html` | Léxico común de interfaz — términos visuales + glosario IAM | v1.1 |
-| `AgroTrace_Modelo_Negocio_Roles.html` | Modelo de negocio y estructura de roles (3 tipos de cliente, 5 niveles de usuario) | v1.0 |
-| `AgroTrace_Guia_Auth_IAM.html` | Guía de implementación de Auth e IAM — pasos, recursos, glosario de 21 términos técnicos | v1.1 |
+| `AgroTrace_Modelo_Negocio_Roles.html` | Modelo de negocio y estructura de roles | v1.0 |
+| `AgroTrace_Guia_Auth_IAM.html` | Guía de Auth e IAM — pasos, recursos, glosario 21 términos | v1.1 |
+| `AgroTrace_Guia_SMTP_Email.html` | Configuración de email transaccional con Resend vía Supabase | v1.0 |
+| `AgroTrace_Sist_Auth_Por_Solicitud.html` | Sistema de autenticación por solicitud — Opción A y B, procedimiento de deploy | v1.1 |
 
 ---
 
-### 6. Deploy
+### 8. Deploy
 `https://gcorreatedesco.github.io/agrotrace-portal/agrotrace_prototipo_v3.html`
 
 **Proyecto Supabase:**
 - URL: `https://jqkyifuyaxxwugrnjfnq.supabase.co`
 - Plan: Free (East US - Ohio)
+- Edge Function desplegada: `solicitar-acceso`
 
 ---
 
 ## Pendientes identificados
 
-1. **Autenticación real** — conectar `index.html` con `sb.auth.signInWithPassword`. Al implementarlo: vincular `registrado_por` en `entregas` y `corregido_por` en `entregas_correcciones` al usuario autenticado (hoy son campos de texto manual).
-2. **Gestión de usuarios en la app** — módulo para que RT y Admin ONG inviten usuarios vía `inviteUserByEmail()`. Por ahora se gestiona desde el dashboard de Supabase. Supabase envía email automático con link de activación (configurable con dominio propio via SMTP: Resend, SendGrid, Mailgun).
-3. **Lotes cerrados por división en sublotes** — el lote padre queda cerrado en la etapa donde se dividió. Pendiente de implementar el flujo completo.
-4. **Historial de entregas por paciente** — vista que agrupe todas las entregas a un mismo Nro. REPROCANN a través de múltiples lotes.
-5. **Política RLS para rol administrador** — ver todos los datos de todos los productores.
-6. **Multi-tenancy** — tabla `organizaciones` + `rt_organizaciones`, actualizar RLS para aislar datos por ONG.
-7. **Módulo Reportes** — timeline, stock, CSV/PDF.
+1. **Verificar Edge Function** — regenerar API Key en resend.com, actualizar secret `RESEND_API_KEY` en Supabase, probar formulario de solicitud end-to-end.
+2. **Ejecutar trigger** `on_auth_user_created` en Supabase SQL Editor (ver sección 5).
+3. **Personalizar template "Invite user"** en Supabase → Authentication → Email Templates (texto en español incluido en `AgroTrace_Sist_Auth_Por_Solicitud.html`).
+4. **Autenticación real** — conectar `index.html` con `sb.auth.signInWithPassword`. Al implementarlo: vincular `registrado_por` en `entregas` y `corregido_por` en `entregas_correcciones` al usuario autenticado.
+5. **Lotes cerrados por división en sublotes** — el lote padre queda cerrado en la etapa donde se dividió.
+6. **Historial de entregas por paciente** — vista que agrupe todas las entregas a un mismo Nro. REPROCANN.
+7. **Política RLS para rol administrador** — ver todos los datos de todos los productores.
+8. **Multi-tenancy** — tabla `organizaciones` + `rt_organizaciones`, actualizar RLS, conectar portal RT con datos reales.
+9. **Módulo Reportes** — timeline, stock, CSV/PDF.

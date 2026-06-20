@@ -363,6 +363,23 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
 .hist-empty{font-size:0.72rem;color:var(--sage);padding:6px 0;font-style:italic;}
 .btn-danger{background:var(--error);color:white;}
 .btn-danger:hover{background:#a03020;}
+/* ── ANÁLISIS DE CALIDAD ── */
+.analisis-card{background:var(--cream);border:1px solid rgba(0,0,0,0.07);border-radius:var(--radius);padding:12px 14px;margin-bottom:8px;}
+.analisis-card-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;}
+.analisis-card-title{font-size:0.82rem;font-weight:500;color:var(--soil);}
+.analisis-card-fecha{font-size:0.68rem;color:var(--sage);}
+.analisis-valores{display:flex;gap:10px;flex-wrap:wrap;margin:8px 0;}
+.analisis-val{background:var(--white);border:1px solid rgba(0,0,0,0.07);border-radius:var(--radius);padding:5px 10px;text-align:center;min-width:72px;}
+.analisis-val-num{font-size:1rem;font-weight:500;color:var(--soil);font-family:'DM Serif Display',serif;}
+.analisis-val-lbl{font-size:0.6rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--sage);margin-top:1px;}
+.analisis-link{font-size:0.72rem;color:var(--accent);text-decoration:none;display:inline-flex;align-items:center;gap:4px;margin-top:4px;}
+.analisis-link:hover{text-decoration:underline;}
+.file-drop{border:2px dashed var(--mist);border-radius:var(--radius);padding:18px;text-align:center;cursor:pointer;transition:border-color var(--trans),background var(--trans);background:var(--cream);}
+.file-drop:hover,.file-drop.drag{border-color:var(--accent);background:var(--dew);}
+.file-drop-icon{font-size:1.5rem;margin-bottom:6px;}
+.file-drop-txt{font-size:0.78rem;color:var(--sage);}
+.file-drop-txt strong{color:var(--accent);cursor:pointer;}
+.file-selected{font-size:0.75rem;color:var(--accent);margin-top:6px;display:none;}
 /* ── BANNER SUPERVISIÓN RT ── */
 .rt-supervision-bar{background:#1a2f1a;border-bottom:1px solid rgba(142,170,123,0.25);padding:7px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;}
 .rt-supervision-bar-left{display:flex;align-items:center;gap:8px;font-size:0.75rem;color:var(--mist);}
@@ -1188,8 +1205,8 @@ function renderPanelActivo(){
   else if(et==='vegetativa')el.innerHTML=panelVegetativa();
   else if(et==='floracion')el.innerHTML=panelFloracion();
   else if(et==='cosecha_curado')el.innerHTML=panelCosecha();
-  else if(et==='flores')el.innerHTML=panelFlores();
-  else if(et==='completado')el.innerHTML=panelFlores();
+  else if(et==='flores'){el.innerHTML=panelFlores();cargarAnalisis();}
+  else if(et==='completado'){el.innerHTML=panelFlores();cargarAnalisis();}
   else if(et==='cerrado')el.innerHTML=panelCerrado();
   else el.innerHTML='<div class="panel"><div class="pt">Estado desconocido</div></div>';
 }
@@ -1431,8 +1448,162 @@ function panelFlores(){
       </div>
       <div class="hist-section-body" id="hist-entregas"><div class="hist-empty">Cargando...</div></div>
     </div>
+    <div class="panel" style="margin-top:14px;padding:14px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <div class="pt" style="margin:0;">Análisis de Calidad</div>
+        <button class="btn btn-secondary" style="font-size:0.72rem;padding:5px 10px;" onclick="abrirFormAnalisis()">+ Agregar análisis</button>
+      </div>
+      <div id="form-analisis" style="display:none;border-top:1px solid rgba(0,0,0,0.07);padding-top:14px;margin-bottom:14px;">
+        <div class="g2">
+          <div class="field"><label>Fecha de análisis<span class="req">*</span></label><input type="date" id="an-fecha"/></div>
+          <div class="field"><label>Muestra preparada por<span class="opt">opcional</span></label><input type="text" id="an-preparador" placeholder="Nombre del responsable"/></div>
+        </div>
+        <div class="g2" style="grid-template-columns:1fr 1fr 1fr;">
+          <div class="field"><label>THC %</label><input type="number" id="an-thc" placeholder="0.00" min="0" max="100" step="0.01"/></div>
+          <div class="field"><label>CBD %</label><input type="number" id="an-cbd" placeholder="0.00" min="0" max="100" step="0.01"/></div>
+          <div class="field"><label>Humedad %</label><input type="number" id="an-hum" placeholder="0.00" min="0" max="100" step="0.01"/></div>
+        </div>
+        <div class="g2" style="grid-template-columns:2fr 1fr 1fr;align-items:end;">
+          <div class="field"><label>Otro compuesto<span class="opt">opcional</span></label><input type="text" id="an-otro-nombre" placeholder="Ej: CBG, Terpenos..."/></div>
+          <div class="field"><label>Valor</label><input type="number" id="an-otro-val" placeholder="0.00" min="0" step="0.0001"/></div>
+          <div class="field"><label>Unidad</label><input type="text" id="an-otro-unidad" placeholder="%, mg, ppm..."/></div>
+        </div>
+        <div class="field">
+          <label>Informe / Archivo<span class="opt">opcional</span></label>
+          <div class="file-drop" id="an-file-drop" onclick="document.getElementById('an-file-input').click()" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="handleFileDrop(event)">
+            <div class="file-drop-icon">📎</div>
+            <div class="file-drop-txt">Arrastrá el archivo aquí o <strong>seleccioná desde tu dispositivo</strong></div>
+            <div class="file-drop-txt" style="margin-top:4px;font-size:0.68rem;">PDF, JPG, PNG, DOCX — máx. 10 MB</div>
+          </div>
+          <div class="file-selected" id="an-file-selected">✓ <span id="an-file-nombre"></span></div>
+          <input type="file" id="an-file-input" style="display:none;" accept=".pdf,.jpg,.jpeg,.png,.docx" onchange="onFileSelected(this)"/>
+        </div>
+        <div class="error-msg" id="an-error">Completá la fecha de análisis.</div>
+        <div class="ab" style="margin-top:10px;">
+          <button class="btn btn-secondary" onclick="cerrarFormAnalisis()">Cancelar</button>
+          <button class="btn btn-primary" onclick="guardarAnalisis()">Guardar análisis</button>
+        </div>
+      </div>
+      <div id="lista-analisis"><div class="hist-empty">Cargando análisis...</div></div>
+    </div>
     ${cerrarBanner}
   </div>`;
+}
+
+/* ── ANÁLISIS DE CALIDAD ── */
+let _archivoAnalisis = null;
+
+function abrirFormAnalisis(){
+  document.getElementById('form-analisis').style.display='block';
+  const hoy=new Date().toISOString().split('T')[0];
+  document.getElementById('an-fecha').value=hoy;
+  document.getElementById('an-error').classList.remove('show');
+  _archivoAnalisis=null;
+  document.getElementById('an-file-selected').style.display='none';
+}
+
+function cerrarFormAnalisis(){
+  document.getElementById('form-analisis').style.display='none';
+  _archivoAnalisis=null;
+}
+
+function onFileSelected(input){
+  if(input.files&&input.files[0]){
+    _archivoAnalisis=input.files[0];
+    document.getElementById('an-file-nombre').textContent=_archivoAnalisis.name;
+    document.getElementById('an-file-selected').style.display='block';
+    document.getElementById('an-file-drop').classList.add('drag');
+  }
+}
+
+function handleFileDrop(event){
+  event.preventDefault();
+  document.getElementById('an-file-drop').classList.remove('drag');
+  const file=event.dataTransfer.files[0];
+  if(file){
+    _archivoAnalisis=file;
+    document.getElementById('an-file-nombre').textContent=file.name;
+    document.getElementById('an-file-selected').style.display='block';
+    document.getElementById('an-file-drop').classList.add('drag');
+  }
+}
+
+async function guardarAnalisis(){
+  const fecha=document.getElementById('an-fecha').value;
+  const errEl=document.getElementById('an-error');
+  if(!fecha){errEl.classList.add('show');return;}
+  errEl.classList.remove('show');
+
+  const floresId=HIST_DATA.flores?.id;
+  if(!floresId)return;
+
+  const preparador=document.getElementById('an-preparador').value.trim()||null;
+  const thc=document.getElementById('an-thc').value||null;
+  const cbd=document.getElementById('an-cbd').value||null;
+  const hum=document.getElementById('an-hum').value||null;
+  const otroNombre=document.getElementById('an-otro-nombre').value.trim()||null;
+  const otroVal=document.getElementById('an-otro-val').value||null;
+  const otroUnidad=document.getElementById('an-otro-unidad').value.trim()||null;
+
+  let informe_url=null, informe_nombre=null;
+
+  // Subir archivo a Storage si fue seleccionado
+  if(_archivoAnalisis){
+    const ext=_archivoAnalisis.name.split('.').pop();
+    const path=`${floresId}/${Date.now()}_${_archivoAnalisis.name}`;
+    const{data:upData,error:upErr}=await sb.storage.from('analisis-calidad').upload(path,_archivoAnalisis,{upsert:false});
+    if(upErr){alert('Error al subir el archivo: '+upErr.message);return;}
+    const{data:urlData}=sb.storage.from('analisis-calidad').getPublicUrl(path);
+    informe_url=urlData?.publicUrl||null;
+    informe_nombre=_archivoAnalisis.name;
+  }
+
+  const{error}=await sb.from('analisis_calidad').insert({
+    flores_id:floresId,
+    fecha_analisis:fecha,
+    preparado_por:preparador,
+    thc_pct:thc?parseFloat(thc):null,
+    cbd_pct:cbd?parseFloat(cbd):null,
+    humedad_pct:hum?parseFloat(hum):null,
+    otro_compuesto:otroNombre,
+    otro_valor:otroVal?parseFloat(otroVal):null,
+    otro_unidad:otroUnidad,
+    informe_url,
+    informe_nombre
+  });
+  if(error){alert('Error al guardar análisis: '+error.message);return;}
+
+  cerrarFormAnalisis();
+  // limpiar inputs
+  ['an-fecha','an-preparador','an-thc','an-cbd','an-hum','an-otro-nombre','an-otro-val','an-otro-unidad'].forEach(id=>{
+    const el=document.getElementById(id);if(el)el.value='';
+  });
+  document.getElementById('an-file-drop').classList.remove('drag');
+  cargarAnalisis();
+}
+
+async function cargarAnalisis(){
+  const el=document.getElementById('lista-analisis');
+  if(!el)return;
+  const floresId=HIST_DATA.flores?.id;
+  if(!floresId){el.innerHTML='<div class="hist-empty">Sin datos de flores.</div>';return;}
+  const{data,error}=await sb.from('analisis_calidad').select('*').eq('flores_id',floresId).order('fecha_analisis',{ascending:false});
+  if(error||!data||data.length===0){el.innerHTML='<div class="hist-empty">Sin análisis registrados.</div>';return;}
+  el.innerHTML=data.map(a=>{
+    const vals=[];
+    if(a.thc_pct!=null)vals.push(`<div class="analisis-val"><div class="analisis-val-num">${a.thc_pct}%</div><div class="analisis-val-lbl">THC</div></div>`);
+    if(a.cbd_pct!=null)vals.push(`<div class="analisis-val"><div class="analisis-val-num">${a.cbd_pct}%</div><div class="analisis-val-lbl">CBD</div></div>`);
+    if(a.humedad_pct!=null)vals.push(`<div class="analisis-val"><div class="analisis-val-num">${a.humedad_pct}%</div><div class="analisis-val-lbl">Humedad</div></div>`);
+    if(a.otro_compuesto&&a.otro_valor!=null)vals.push(`<div class="analisis-val"><div class="analisis-val-num">${a.otro_valor}${a.otro_unidad?' '+a.otro_unidad:''}</div><div class="analisis-val-lbl">${a.otro_compuesto}</div></div>`);
+    const linkArchivo=a.informe_url?`<a class="analisis-link" href="${a.informe_url}" target="_blank" download="${a.informe_nombre||'informe'}">📄 ${a.informe_nombre||'Ver informe'} ↗</a>`:'';
+    return`<div class="analisis-card">
+      <div class="analisis-card-header">
+        <div class="analisis-card-title">${fmtDate(a.fecha_analisis)}${a.preparado_por?' · Preparado por: '+a.preparado_por:''}</div>
+      </div>
+      ${vals.length>0?`<div class="analisis-valores">${vals.join('')}</div>`:''}
+      ${linkArchivo}
+    </div>`;
+  }).join('');
 }
 
 async function cargarHistorialEntregas(){

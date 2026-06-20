@@ -235,13 +235,19 @@ CREATE POLICY "via lote flores" ON public.flores_cosechadas
 
 -- ── ANÁLISIS DE CALIDAD ──────────────────────────
 CREATE TABLE IF NOT EXISTS public.analisis_calidad (
-  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  flores_id     UUID NOT NULL REFERENCES public.flores_cosechadas(id) ON DELETE CASCADE,
-  fecha_analisis DATE NOT NULL,
-  laboratorio   TEXT NOT NULL,
-  informe_url   TEXT,  -- URL al archivo en Supabase Storage
-  notas         TEXT,
-  creado_en     TIMESTAMPTZ DEFAULT NOW()
+  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  flores_id        UUID NOT NULL REFERENCES public.flores_cosechadas(id) ON DELETE CASCADE,
+  fecha_analisis   DATE NOT NULL,
+  preparado_por    TEXT,              -- nombre de quien preparó la muestra
+  thc_pct          NUMERIC(5,2),     -- porcentaje THC (0-100)
+  cbd_pct          NUMERIC(5,2),     -- porcentaje CBD (0-100)
+  humedad_pct      NUMERIC(5,2),     -- porcentaje humedad (0-100)
+  otro_compuesto   TEXT,             -- nombre del compuesto adicional
+  otro_valor       NUMERIC(10,4),    -- valor numérico del compuesto adicional
+  otro_unidad      TEXT,             -- unidad definida por el usuario (%, mg, ppm, etc.)
+  informe_url      TEXT,             -- URL al archivo en Supabase Storage
+  informe_nombre   TEXT,             -- nombre original del archivo
+  creado_en        TIMESTAMPTZ DEFAULT NOW()
 );
 ALTER TABLE public.analisis_calidad ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "via flores analisis" ON public.analisis_calidad
@@ -297,3 +303,34 @@ ALTER TABLE public.lotes_plantas_madre
 ALTER TABLE public.lotes_produccion
   ADD COLUMN IF NOT EXISTS fecha_cierre DATE,
   ADD COLUMN IF NOT EXISTS motivo_cierre TEXT;
+
+-- ── MIGRACIÓN: analisis_calidad — nuevos campos ──
+ALTER TABLE public.analisis_calidad
+  ADD COLUMN IF NOT EXISTS preparado_por  TEXT,
+  ADD COLUMN IF NOT EXISTS thc_pct        NUMERIC(5,2),
+  ADD COLUMN IF NOT EXISTS cbd_pct        NUMERIC(5,2),
+  ADD COLUMN IF NOT EXISTS humedad_pct    NUMERIC(5,2),
+  ADD COLUMN IF NOT EXISTS otro_compuesto TEXT,
+  ADD COLUMN IF NOT EXISTS otro_valor     NUMERIC(10,4),
+  ADD COLUMN IF NOT EXISTS otro_unidad    TEXT,
+  ADD COLUMN IF NOT EXISTS informe_nombre TEXT;
+-- Nota: informe_url ya existía — solo se agregan los campos nuevos
+
+-- ── MIGRACIÓN: Supabase Storage — bucket analisis-calidad ──
+-- Ejecutar en Supabase Dashboard > Storage > New bucket:
+--   Nombre: analisis-calidad
+--   Public: NO (privado)
+-- Luego ejecutar esta policy para que usuarios autenticados puedan subir/leer sus archivos:
+INSERT INTO storage.buckets (id, name, public)
+  VALUES ('analisis-calidad', 'analisis-calidad', false)
+  ON CONFLICT (id) DO NOTHING;
+
+CREATE POLICY "usuarios pueden subir sus analisis"
+  ON storage.objects FOR INSERT
+  TO authenticated
+  WITH CHECK (bucket_id = 'analisis-calidad');
+
+CREATE POLICY "usuarios pueden leer sus analisis"
+  ON storage.objects FOR SELECT
+  TO authenticated
+  USING (bucket_id = 'analisis-calidad');
