@@ -380,6 +380,16 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
 .file-drop-txt{font-size:0.78rem;color:var(--sage);}
 .file-drop-txt strong{color:var(--accent);cursor:pointer;}
 .file-selected{font-size:0.75rem;color:var(--accent);margin-top:6px;display:none;}
+/* ── DOCUMENTACIÓN MATERIAL BÁSICO ── */
+.mb-doc-section{margin-top:14px;padding-top:14px;border-top:1px solid rgba(0,0,0,0.07);}
+.mb-doc-subtitle{font-size:0.72rem;font-weight:500;color:var(--bark);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.06em;}
+.mb-doc-lista{margin-top:6px;}
+.mb-doc-file-item{display:flex;align-items:center;justify-content:space-between;padding:5px 8px;background:var(--dew);border-radius:var(--radius);margin-bottom:4px;font-size:0.75rem;color:var(--accent);}
+.mb-doc-remove{background:none;border:none;color:var(--sage);cursor:pointer;font-size:0.8rem;padding:0 2px;line-height:1;transition:color var(--trans);}
+.mb-doc-remove:hover{color:var(--error);}
+.mb-doc-view{display:flex;align-items:center;gap:6px;padding:8px 10px;background:var(--cream);border:1px solid rgba(0,0,0,0.07);border-radius:var(--radius);margin-bottom:6px;font-size:0.78rem;color:var(--bark);}
+.mb-doc-view a{color:var(--accent);text-decoration:none;margin-left:auto;font-size:0.72rem;}
+.mb-doc-view a:hover{text-decoration:underline;}
 /* ── BANNER SUPERVISIÓN RT ── */
 .rt-supervision-bar{background:#1a2f1a;border-bottom:1px solid rgba(142,170,123,0.25);padding:7px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;}
 .rt-supervision-bar-left{display:flex;align-items:center;gap:8px;font-size:0.75rem;color:var(--mist);}
@@ -811,6 +821,25 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
       </div>
     </div>
     <div class="field"><label>Notas<span class="opt">opcional</span></label><input type="text" id="nm-notas" placeholder="Observaciones..."/></div>
+    <div class="mb-doc-section">
+      <div class="pt" style="font-size:0.82rem;margin-bottom:12px;">Documentación de origen <span style="font-size:0.68rem;font-weight:300;color:var(--sage);text-transform:none;letter-spacing:0;">(todos los campos son opcionales)</span></div>
+      <div class="mb-doc-subtitle">Rótulo / Estampilla INASE</div>
+      <div class="file-drop" onclick="document.getElementById('nm-rotulo-input').click()" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="handleMBFileDrop(event,'rotulo_estampilla')">
+        <div class="file-drop-icon">📎</div>
+        <div class="file-drop-txt">Arrastrá los archivos aquí o <strong>seleccioná desde tu dispositivo</strong></div>
+        <div class="file-drop-txt" style="margin-top:4px;font-size:0.68rem;">JPG, PNG, PDF — múltiples archivos permitidos</div>
+      </div>
+      <input type="file" id="nm-rotulo-input" style="display:none;" accept=".pdf,.jpg,.jpeg,.png" multiple onchange="onMBFileSelected(this,'rotulo_estampilla')"/>
+      <div id="nm-rotulo-lista" class="mb-doc-lista"></div>
+      <div class="mb-doc-subtitle" style="margin-top:12px;">Factura de compra</div>
+      <div class="file-drop" onclick="document.getElementById('nm-factura-input').click()" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="handleMBFileDrop(event,'factura')">
+        <div class="file-drop-icon">📎</div>
+        <div class="file-drop-txt">Arrastrá el archivo aquí o <strong>seleccioná desde tu dispositivo</strong></div>
+        <div class="file-drop-txt" style="margin-top:4px;font-size:0.68rem;">PDF, JPG, PNG — un solo archivo</div>
+      </div>
+      <input type="file" id="nm-factura-input" style="display:none;" accept=".pdf,.jpg,.jpeg,.png" onchange="onMBFileSelected(this,'factura')"/>
+      <div id="nm-factura-lista" class="mb-doc-lista"></div>
+    </div>
     <div class="ab">
       <button class="btn btn-secondary" onclick="sv('stock')">Cancelar</button>
       <button class="btn btn-primary" onclick="guardarMaterial()">Crear lote</button>
@@ -857,6 +886,8 @@ const DEV_PASSWORD = 'AgroTrace2025!';
 
 let CURRENT_USER = null;
 let TIPO_NM = null;
+let _mbArchivosRotulo = [];   // array de File para rótulo/estampilla
+let _mbArchivoFactura = null; // File único para factura
 
 /* ── DATA (desde Supabase) ── */
 let LD = [];
@@ -1033,6 +1064,10 @@ function renderPanelMaterial(editando){
       <button class="btn btn-advance" onclick="habilitarEdicionMaterial()">✏ Editar datos</button>`;
 
   const historial=editando?'':`
+    <div class="mb-doc-section">
+      <div class="pt" style="font-size:0.82rem;margin-bottom:10px;">Documentación de origen</div>
+      <div id="dm-docs"><div class="hist-empty">Cargando...</div></div>
+    </div>
     <div class="hist-section" style="margin-top:14px;">
       <div class="hist-section-header" onclick="toggleHistSection(this,'hist-uso')">
         Historial de uso en Lotes de Producción <span class="hs-arrow">▼</span>
@@ -1052,7 +1087,7 @@ function renderPanelMaterial(editando){
 
   el.innerHTML=`<div class="pt">${editando?'Editar lote — modificando datos':'Datos del lote'}</div>${filas}<div class="ab">${botones}</div>${historial}`;
 
-  if(!editando)cargarHistorialMaterial();
+  if(!editando){cargarHistorialMaterial();cargarDocumentosMB();}
 }
 
 function toggleHistSection(header,bodyId){
@@ -2240,6 +2275,86 @@ function onNMOrigen(v){
   }
 }
 
+/* ── MATERIAL BÁSICO — DOCUMENTOS ── */
+function handleMBFileDrop(event,tipo){
+  event.preventDefault();
+  event.currentTarget.classList.remove('drag');
+  const files=Array.from(event.dataTransfer.files).filter(f=>/\.(pdf|jpe?g|png)$/i.test(f.name));
+  if(!files.length)return;
+  if(tipo==='rotulo_estampilla'){
+    _mbArchivosRotulo=[..._mbArchivosRotulo,...files];
+    renderMBFileLista('rotulo_estampilla');
+  } else {
+    _mbArchivoFactura=files[0];
+    renderMBFileLista('factura');
+  }
+}
+
+function onMBFileSelected(input,tipo){
+  const files=Array.from(input.files);
+  if(!files.length)return;
+  if(tipo==='rotulo_estampilla'){
+    _mbArchivosRotulo=[..._mbArchivosRotulo,...files];
+    renderMBFileLista('rotulo_estampilla');
+  } else {
+    _mbArchivoFactura=files[0];
+    renderMBFileLista('factura');
+  }
+  input.value='';
+}
+
+function removeMBFile(tipo,idx){
+  if(tipo==='rotulo_estampilla'){_mbArchivosRotulo.splice(idx,1);}
+  else{_mbArchivoFactura=null;}
+  renderMBFileLista(tipo);
+}
+
+function renderMBFileLista(tipo){
+  if(tipo==='rotulo_estampilla'){
+    const el=document.getElementById('nm-rotulo-lista');
+    if(!el)return;
+    el.innerHTML=_mbArchivosRotulo.map((f,i)=>`
+      <div class="mb-doc-file-item">📎 ${f.name}
+        <button class="mb-doc-remove" onclick="removeMBFile('rotulo_estampilla',${i})">✕</button>
+      </div>`).join('');
+  } else {
+    const el=document.getElementById('nm-factura-lista');
+    if(!el)return;
+    el.innerHTML=_mbArchivoFactura?`
+      <div class="mb-doc-file-item">📄 ${_mbArchivoFactura.name}
+        <button class="mb-doc-remove" onclick="removeMBFile('factura',0)">✕</button>
+      </div>`:'';
+  }
+}
+
+async function cargarDocumentosMB(){
+  const el=document.getElementById('dm-docs');
+  if(!el||!MAT_ACTIVO)return;
+  const tipoTbl={semillas:'semillas',esquejes:'esquejes',pm:'pm'}[MAT_TIPO];
+  const{data,error}=await sb.from('material_documentos').select('tipo_doc,archivo_url,archivo_nombre').eq('lote_id',MAT_ACTIVO.id).eq('lote_tipo',tipoTbl).order('creado_en');
+  if(error||!data||data.length===0){
+    el.innerHTML='<div class="hist-empty">Sin documentos cargados.</div>';return;
+  }
+  const rotulos=data.filter(d=>d.tipo_doc==='rotulo_estampilla');
+  const facturas=data.filter(d=>d.tipo_doc==='factura');
+  let html='';
+  if(rotulos.length){
+    html+=`<div class="mb-doc-subtitle">Rótulo / Estampilla INASE</div>`;
+    rotulos.forEach(d=>{
+      html+=`<div class="mb-doc-view">📎 ${d.archivo_nombre||'Archivo'}
+        <a href="${d.archivo_url}" target="_blank">Ver / Descargar</a></div>`;
+    });
+  }
+  if(facturas.length){
+    html+=`<div class="mb-doc-subtitle" style="margin-top:10px;">Factura de compra</div>`;
+    facturas.forEach(d=>{
+      html+=`<div class="mb-doc-view">📄 ${d.archivo_nombre||'Archivo'}
+        <a href="${d.archivo_url}" target="_blank">Ver / Descargar</a></div>`;
+    });
+  }
+  el.innerHTML=html||'<div class="hist-empty">Sin documentos cargados.</div>';
+}
+
 async function guardarMaterial(){
   const nombre=document.getElementById('nm-nombre').value.trim();
   const fecha=document.getElementById('nm-fecha').value;
@@ -2263,12 +2378,46 @@ async function guardarMaterial(){
     ({error}=await sb.from('lotes_plantas_madre').insert({usuario_id:CURRENT_USER.id,nombre_lote:nombre,fecha_adquisicion:fecha,origen_tipo:origen,proveedor:origen==='externo'?prov:null,lote_origen_id:loteOrigenId||null,variedad,cantidad_inicial:Math.round(stockIni),cantidad_actual:Math.round(stockIni),notas}));
   }
   if(error){alert('Error al guardar: '+error.message);return;}
+
+  // ── Subir documentos si hay archivos seleccionados ──
+  const tipoTblDoc={semillas:'semillas',esquejes:'esquejes',pm:'pm'}[TIPO_NM];
+  // Recuperar el ID del lote recién creado
+  const tblMap={semillas:'lotes_semillas',esquejes:'lotes_esquejes',pm:'lotes_plantas_madre'};
+  const{data:nuevoLote}=await sb.from(tblMap[TIPO_NM]).select('id').eq('usuario_id',CURRENT_USER.id).order('creado_en',{ascending:false}).limit(1).single();
+  if(nuevoLote){
+    const loteId=nuevoLote.id;
+    const ts=Date.now();
+    // Rótulos (múltiples)
+    for(let i=0;i<_mbArchivosRotulo.length;i++){
+      const f=_mbArchivosRotulo[i];
+      const path=`${loteId}/rotulo_estampilla/${ts}_${i}_${f.name}`;
+      const{data:upd}=await sb.storage.from('material-basico-docs').upload(path,f);
+      if(upd){
+        const{data:{publicUrl}}=sb.storage.from('material-basico-docs').getPublicUrl(path);
+        await sb.from('material_documentos').insert({lote_id:loteId,lote_tipo:tipoTblDoc,tipo_doc:'rotulo_estampilla',archivo_url:publicUrl,archivo_nombre:f.name});
+      }
+    }
+    // Factura (único)
+    if(_mbArchivoFactura){
+      const f=_mbArchivoFactura;
+      const path=`${loteId}/factura/${ts}_${f.name}`;
+      const{data:upd}=await sb.storage.from('material-basico-docs').upload(path,f);
+      if(upd){
+        const{data:{publicUrl}}=sb.storage.from('material-basico-docs').getPublicUrl(path);
+        await sb.from('material_documentos').insert({lote_id:loteId,lote_tipo:tipoTblDoc,tipo_doc:'factura',archivo_url:publicUrl,archivo_nombre:f.name});
+      }
+    }
+  }
+
   alert('¡Lote de material básico creado exitosamente!');
   ['nm-nombre','nm-fecha','nm-variedad','nm-stock','nm-notas'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   const pEl=document.getElementById('nm-proveedor');if(pEl)pEl.value='';
   document.getElementById('nm-origen').value='';document.getElementById('nm-unidad').value='';
   document.getElementById('nm-externo').style.display='none';document.getElementById('nm-interno').style.display='none';
   ['nm-s','nm-e','nm-p'].forEach(id=>document.getElementById(id).classList.remove('sel'));
+  _mbArchivosRotulo=[];_mbArchivoFactura=null;
+  const rl=document.getElementById('nm-rotulo-lista');if(rl)rl.innerHTML='';
+  const fl=document.getElementById('nm-factura-lista');if(fl)fl.innerHTML='';
   TIPO_NM=null;
   await cargarMaterial();rebuildSearchIndex();sv('stock');
 }

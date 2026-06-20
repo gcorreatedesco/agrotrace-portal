@@ -306,6 +306,8 @@ ALTER TABLE public.lotes_produccion
 
 -- ── MIGRACIÓN: analisis_calidad — nuevos campos ──
 ALTER TABLE public.analisis_calidad
+  ALTER COLUMN laboratorio DROP NOT NULL;
+ALTER TABLE public.analisis_calidad
   ADD COLUMN IF NOT EXISTS preparado_por  TEXT,
   ADD COLUMN IF NOT EXISTS thc_pct        NUMERIC(5,2),
   ADD COLUMN IF NOT EXISTS cbd_pct        NUMERIC(5,2),
@@ -334,3 +336,49 @@ CREATE POLICY "usuarios pueden leer sus analisis"
   ON storage.objects FOR SELECT
   TO authenticated
   USING (bucket_id = 'analisis-calidad');
+
+
+-- ── TABLA: material_documentos ────────────────────
+-- Documentos de origen adjuntos a lotes de material básico
+-- (Rótulo/Estampilla INASE y Facturas de compra)
+CREATE TABLE IF NOT EXISTS public.material_documentos (
+  id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  lote_id        UUID NOT NULL,
+  lote_tipo      TEXT NOT NULL CHECK (lote_tipo IN ('semillas','esquejes','pm')),
+  tipo_doc       TEXT NOT NULL CHECK (tipo_doc IN ('rotulo_estampilla','factura')),
+  archivo_url    TEXT NOT NULL,
+  archivo_nombre TEXT,
+  creado_en      TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE public.material_documentos ENABLE ROW LEVEL SECURITY;
+-- RLS: el usuario solo ve documentos de sus propios lotes
+-- (verificamos via la tabla correspondiente según lote_tipo)
+CREATE POLICY "usuario ve sus material_documentos"
+  ON public.material_documentos FOR ALL
+  USING (
+    (lote_tipo = 'semillas'  AND EXISTS (SELECT 1 FROM public.lotes_semillas      WHERE id = lote_id AND usuario_id = auth.uid()))
+    OR
+    (lote_tipo = 'esquejes'  AND EXISTS (SELECT 1 FROM public.lotes_esquejes      WHERE id = lote_id AND usuario_id = auth.uid()))
+    OR
+    (lote_tipo = 'pm'        AND EXISTS (SELECT 1 FROM public.lotes_plantas_madre WHERE id = lote_id AND usuario_id = auth.uid()))
+  );
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.material_documentos TO anon;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.material_documentos TO authenticated;
+
+
+-- ── MIGRACIÓN: Supabase Storage — bucket material-basico-docs ──
+-- Bucket privado para documentos de Material Básico
+INSERT INTO storage.buckets (id, name, public)
+  VALUES ('material-basico-docs', 'material-basico-docs', false)
+  ON CONFLICT (id) DO NOTHING;
+
+CREATE POLICY "usuarios pueden subir docs material basico"
+  ON storage.objects FOR INSERT
+  TO authenticated
+  WITH CHECK (bucket_id = 'material-basico-docs');
+
+CREATE POLICY "usuarios pueden leer docs material basico"
+  ON storage.objects FOR SELECT
+  TO authenticated
+  USING (bucket_id = 'material-basico-docs');

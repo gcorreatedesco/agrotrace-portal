@@ -130,6 +130,7 @@ Panel de supervisión para el Responsable Técnico.
 - `analisis_calidad` — análisis de laboratorio
 - `entregas` — entregas a pacientes (nro_reprocann obligatorio)
 - `entregas_correcciones` — historial de correcciones de entregas
+- `material_documentos` — documentos de origen adjuntos a lotes de material básico (rótulo/estampilla + factura)
 
 Todas con **Row Level Security (RLS)** activado.
 
@@ -219,7 +220,7 @@ El frontend lee y escribe datos reales en Supabase.
 - Wizard "Nuevo lote" → guarda en `lotes_produccion` + `etapa_nursery` + descuenta stock
 - Avance de etapas → guarda en tabla correspondiente + actualiza `etapa_actual`
 - Cierre de lotes → actualiza `etapa_actual`, `fecha_cierre`, `motivo_cierre`
-- Formulario "Nuevo material básico" → guarda en la tabla correspondiente
+- Formulario "Nuevo material básico" → guarda en la tabla correspondiente + sube documentos a Storage bucket `material-basico-docs` + registra en `material_documentos`
 - Formulario de baja → guarda en `bajas_material` + actualiza `stock_actual`
 - Eliminar totalidad → registra baja total + pone stock en 0 + oculta lote
 - Historial de MB → consulta `lotes_produccion`, `etapa_nursery`, `bajas_material`
