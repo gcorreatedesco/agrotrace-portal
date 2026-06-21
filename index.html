@@ -745,7 +745,7 @@
 
     try {
       const SUPABASE_URL = 'https://jqkyifuyaxxwugrnjfnq.supabase.co';
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/solicitar-acceso`, {
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/solictar_acceso`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ nombre, email, ong, perfil, reprocann, notas }),
