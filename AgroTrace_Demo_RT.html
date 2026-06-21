@@ -1,0 +1,1133 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AgroTrace — Demo Responsable Técnico · 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --soil:   #2C1F0E;
+    --bark:   #4A3520;
+    --sage:   #6B7F5E;
+    --leaf:   #8EAA7B;
+    --mist:   #C8D9BC;
+    --dew:    #EDF2E8;
+    --cream:  #F7F4EF;
+    --accent: #4E7C3F;
+    --amber:  #854F0B;
+    --purple: #534AB7;
+    --error:  #B94A3A;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    font-family: 'DM Sans', sans-serif;
+    background: #000;
+  }
+
+  /* ── Slideshow container ── */
+  #deck {
+    position: relative;
+    width: 100vw; height: 100vh;
+    overflow: hidden;
+  }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    width: 100%; height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.55s ease;
+    padding: 40px 60px;
+  }
+  .slide.active {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* ── Typography helpers ── */
+  .serif { font-family: 'DM Serif Display', serif; }
+  .slide-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(1.8rem, 3.2vw, 2.8rem);
+    line-height: 1.15;
+    text-align: center;
+    margin-bottom: 0.3em;
+  }
+  .slide-subtitle {
+    font-size: clamp(0.9rem, 1.4vw, 1.15rem);
+    font-weight: 300;
+    text-align: center;
+    max-width: 720px;
+    line-height: 1.6;
+  }
+  .label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  /* ══════════════════════════════
+     SLIDE 1 — Portada
+  ══════════════════════════════ */
+  #s1 {
+    background: var(--soil);
+    justify-content: center;
+    gap: 0;
+  }
+  #s1 .logo-mark {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 28px;
+  }
+  #s1 .logo-icon {
+    width: 68px; height: 68px;
+    border-radius: 16px;
+    background: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2rem;
+  }
+  #s1 .logo-text {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(3rem, 7vw, 5.5rem);
+    color: var(--dew);
+    letter-spacing: -1px;
+    line-height: 1;
+  }
+  #s1 .divider {
+    width: 120px; height: 2px;
+    background: var(--sage);
+    margin: 24px auto;
+  }
+  #s1 .cover-sub {
+    font-size: clamp(1rem, 1.8vw, 1.35rem);
+    color: var(--mist);
+    text-align: center;
+    font-weight: 300;
+    max-width: 560px;
+    line-height: 1.5;
+  }
+  #s1 .cover-bajada {
+    margin-top: 14px;
+    font-size: clamp(0.85rem, 1.2vw, 1rem);
+    color: var(--leaf);
+    text-align: center;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  #s1 .cover-year {
+    margin-top: 36px;
+    font-size: 0.85rem;
+    color: var(--bark);
+    letter-spacing: 0.15em;
+    font-weight: 400;
+  }
+
+  /* ══════════════════════════════
+     SLIDE 2 — El problema
+  ══════════════════════════════ */
+  #s2 { background: var(--cream); flex-direction: column; gap: 12px; }
+  #s2 .slide-title { color: var(--soil); }
+  #s2 .problem-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    width: 100%;
+    max-width: 960px;
+    margin-top: 20px;
+  }
+  .prob-card {
+    background: #fff;
+    border: 1.5px solid var(--mist);
+    border-radius: 16px;
+    padding: 32px 24px;
+    text-align: center;
+    box-shadow: 0 4px 18px rgba(44,31,14,.07);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+  }
+  .prob-card .icon { font-size: 2.8rem; line-height: 1; }
+  .prob-card h3 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.25rem;
+    color: var(--soil);
+  }
+  .prob-card p {
+    font-size: 0.9rem;
+    color: #555;
+    line-height: 1.65;
+    font-weight: 300;
+  }
+  .prob-card .tag {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--error);
+    background: #fdecea;
+    padding: 3px 10px;
+    border-radius: 20px;
+  }
+
+  /* ══════════════════════════════
+     SLIDE 3 — Portal RT Mockup
+  ══════════════════════════════ */
+  #s3 { background: var(--dew); flex-direction: column; gap: 10px; padding: 28px 48px; }
+  #s3 .slide-title { color: var(--soil); font-size: clamp(1.5rem, 2.6vw, 2.2rem); }
+  .rt-portal {
+    width: 100%;
+    max-width: 980px;
+    background: var(--cream);
+    border-radius: 14px;
+    box-shadow: 0 8px 40px rgba(44,31,14,.18);
+    overflow: hidden;
+    border: 1px solid var(--mist);
+  }
+  .rt-topbar {
+    background: var(--soil);
+    padding: 12px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .rt-topbar .rt-logo {
+    font-family: 'DM Serif Display', serif;
+    color: var(--dew);
+    font-size: 1.15rem;
+    letter-spacing: -0.3px;
+  }
+  .rt-topbar .rt-role {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--leaf);
+    background: rgba(142,170,123,.15);
+    border: 1px solid rgba(142,170,123,.3);
+    padding: 2px 10px;
+    border-radius: 20px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-left: 4px;
+  }
+  .rt-topbar .spacer { flex: 1; }
+  .rt-topbar .rt-user {
+    font-size: 0.82rem;
+    color: var(--mist);
+    font-weight: 300;
+  }
+  .rt-body {
+    padding: 16px 20px;
+  }
+  .rt-section-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--sage);
+    margin-bottom: 10px;
+  }
+  .rt-ong-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+  .ong-card {
+    background: #fff;
+    border: 1.5px solid var(--mist);
+    border-radius: 10px;
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    box-shadow: 0 2px 8px rgba(44,31,14,.06);
+  }
+  .ong-card-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .ong-name {
+    font-weight: 600;
+    color: var(--soil);
+    font-size: 0.88rem;
+    line-height: 1.3;
+  }
+  .ong-loc {
+    font-size: 0.75rem;
+    color: #888;
+    font-weight: 300;
+    margin-top: 2px;
+  }
+  .badge {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 20px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .badge-active { background: #d4edda; color: #1a6e31; }
+  .badge-alert  { background: #fff3cd; color: #856404; }
+  .ong-metrics {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    border-top: 1px solid var(--dew);
+    padding-top: 10px;
+  }
+  .metric {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+  .metric-val {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--soil);
+    line-height: 1;
+  }
+  .metric-lbl {
+    font-size: 0.63rem;
+    color: #999;
+    text-align: center;
+    font-weight: 400;
+    line-height: 1.2;
+  }
+  .metric-alert .metric-val { color: var(--amber); }
+  .ong-btn {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 7px;
+    padding: 7px 0;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    text-align: center;
+    letter-spacing: 0.02em;
+  }
+
+  /* ══════════════════════════════
+     SLIDE 4 — Timeline
+  ══════════════════════════════ */
+  #s4 { background: var(--cream); flex-direction: column; gap: 16px; }
+  #s4 .slide-title { color: var(--soil); }
+  .timeline-wrap {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    width: 100%;
+    max-width: 960px;
+    margin-top: 8px;
+  }
+  .tl-step {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    padding: 0 8px;
+  }
+  .tl-step:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    top: 34px;
+    left: calc(50% + 28px);
+    right: calc(-50% + 28px);
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--leaf));
+    z-index: 0;
+  }
+  .tl-icon-wrap {
+    width: 64px; height: 64px;
+    border-radius: 50%;
+    background: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.7rem;
+    position: relative;
+    z-index: 1;
+    box-shadow: 0 4px 14px rgba(78,124,63,.28);
+    flex-shrink: 0;
+  }
+  .tl-step:last-child .tl-icon-wrap { background: var(--purple); box-shadow: 0 4px 14px rgba(83,74,183,.28); }
+  .tl-step-name {
+    font-family: 'DM Serif Display', serif;
+    font-size: 0.95rem;
+    color: var(--soil);
+    text-align: center;
+    margin-top: 10px;
+    line-height: 1.2;
+  }
+  .tl-step-desc {
+    font-size: 0.75rem;
+    color: #666;
+    text-align: center;
+    margin-top: 6px;
+    font-weight: 300;
+    line-height: 1.5;
+    max-width: 130px;
+  }
+  .realtime-banner {
+    background: var(--dew);
+    border: 1.5px solid var(--mist);
+    border-radius: 12px;
+    padding: 16px 28px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    max-width: 720px;
+    margin-top: 14px;
+  }
+  .realtime-banner .icon { font-size: 1.6rem; flex-shrink: 0; }
+  .realtime-banner p {
+    font-size: 0.95rem;
+    color: var(--soil);
+    line-height: 1.5;
+    font-weight: 400;
+  }
+  .realtime-banner strong { color: var(--accent); font-weight: 600; }
+
+  /* ══════════════════════════════
+     SLIDE 5 — Entregas
+  ══════════════════════════════ */
+  #s5 { background: var(--dew); flex-direction: column; gap: 12px; padding: 32px 60px; }
+  #s5 .slide-title { color: var(--soil); }
+  .deliveries-wrap {
+    width: 100%;
+    max-width: 860px;
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 4px 24px rgba(44,31,14,.1);
+    overflow: hidden;
+    border: 1px solid var(--mist);
+  }
+  .del-topbar {
+    background: var(--soil);
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .del-topbar span {
+    font-size: 0.78rem;
+    color: var(--mist);
+    font-weight: 400;
+  }
+  .del-topbar strong {
+    font-size: 0.82rem;
+    color: var(--dew);
+    font-weight: 600;
+  }
+  .del-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .del-table thead tr {
+    background: var(--dew);
+  }
+  .del-table th {
+    padding: 10px 16px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--sage);
+    text-align: left;
+    border-bottom: 1.5px solid var(--mist);
+  }
+  .del-table tbody tr {
+    border-bottom: 1px solid var(--dew);
+  }
+  .del-table tbody tr:last-child { border-bottom: none; }
+  .del-table td {
+    padding: 11px 16px;
+    font-size: 0.85rem;
+    color: var(--soil);
+    font-weight: 400;
+  }
+  .del-table td .reprocann {
+    font-size: 0.72rem;
+    color: var(--sage);
+    font-weight: 300;
+    display: block;
+  }
+  .del-table td .qty {
+    font-weight: 600;
+    color: var(--accent);
+  }
+  .del-table td .recorded-by {
+    font-size: 0.78rem;
+    color: #777;
+  }
+  .audit-note {
+    background: var(--soil);
+    border-radius: 10px;
+    padding: 14px 22px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    max-width: 860px;
+    width: 100%;
+  }
+  .audit-note .icon { font-size: 1.4rem; flex-shrink: 0; }
+  .audit-note p {
+    font-size: 0.88rem;
+    color: var(--mist);
+    line-height: 1.5;
+    font-weight: 300;
+  }
+  .audit-note p strong { color: var(--leaf); font-weight: 600; }
+
+  /* ══════════════════════════════
+     SLIDE 6 — Supervisión remota
+  ══════════════════════════════ */
+  #s6 { background: var(--cream); flex-direction: column; gap: 16px; }
+  #s6 .slide-title { color: var(--soil); }
+  .remote-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+    width: 100%;
+    max-width: 760px;
+    margin-top: 8px;
+  }
+  .remote-card {
+    background: #fff;
+    border: 1.5px solid var(--mist);
+    border-radius: 16px;
+    padding: 28px 26px;
+    display: flex;
+    align-items: flex-start;
+    gap: 18px;
+    box-shadow: 0 3px 14px rgba(44,31,14,.07);
+  }
+  .remote-card .icon-box {
+    width: 54px; height: 54px;
+    border-radius: 12px;
+    background: var(--dew);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.7rem;
+    flex-shrink: 0;
+  }
+  .remote-card h3 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.05rem;
+    color: var(--soil);
+    margin-bottom: 6px;
+  }
+  .remote-card p {
+    font-size: 0.84rem;
+    color: #666;
+    font-weight: 300;
+    line-height: 1.55;
+  }
+
+  /* ══════════════════════════════
+     SLIDE 7 — Lo que viene
+  ══════════════════════════════ */
+  #s7 { background: var(--dew); flex-direction: column; gap: 14px; }
+  #s7 .slide-title { color: var(--soil); }
+  .upcoming-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 18px;
+    width: 100%;
+    max-width: 820px;
+    margin-top: 8px;
+  }
+  .upcoming-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    background: #fff;
+    border: 1.5px solid var(--mist);
+    border-radius: 14px;
+    padding: 22px 20px;
+    box-shadow: 0 2px 10px rgba(44,31,14,.06);
+  }
+  .upcoming-item .u-icon {
+    width: 48px; height: 48px;
+    border-radius: 10px;
+    background: var(--soil);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.4rem;
+    flex-shrink: 0;
+  }
+  .upcoming-item h3 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1rem;
+    color: var(--soil);
+    margin-bottom: 5px;
+  }
+  .upcoming-item p {
+    font-size: 0.82rem;
+    color: #666;
+    font-weight: 300;
+    line-height: 1.5;
+  }
+
+  /* ══════════════════════════════
+     SLIDE 8 — Cierre
+  ══════════════════════════════ */
+  #s8 {
+    background: var(--soil);
+    flex-direction: column;
+    gap: 0;
+    justify-content: center;
+  }
+  #s8 .close-eyebrow {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--leaf);
+    margin-bottom: 18px;
+  }
+  #s8 .close-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(2rem, 4.5vw, 3.5rem);
+    color: var(--dew);
+    text-align: center;
+    line-height: 1.15;
+    max-width: 780px;
+    margin-bottom: 14px;
+  }
+  #s8 .close-sub {
+    font-size: clamp(0.85rem, 1.3vw, 1rem);
+    color: var(--mist);
+    text-align: center;
+    font-weight: 300;
+    max-width: 640px;
+    line-height: 1.7;
+    margin-bottom: 40px;
+  }
+  .close-cols {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+    width: 100%;
+    max-width: 720px;
+    margin-bottom: 40px;
+  }
+  .close-col {
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(200,217,188,.2);
+    border-radius: 14px;
+    padding: 22px 24px;
+  }
+  .close-col h4 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1rem;
+    color: var(--leaf);
+    margin-bottom: 10px;
+  }
+  .close-col ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+  .close-col ul li {
+    font-size: 0.85rem;
+    color: var(--mist);
+    font-weight: 300;
+    padding-left: 16px;
+    position: relative;
+    line-height: 1.45;
+  }
+  .close-col ul li::before {
+    content: '→';
+    position: absolute;
+    left: 0;
+    color: var(--sage);
+    font-size: 0.8rem;
+  }
+  #s8 .close-footer {
+    font-size: 0.75rem;
+    color: var(--bark);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    font-weight: 400;
+  }
+
+  /* ══════════════════════════════
+     NAVIGATION
+  ══════════════════════════════ */
+  #nav {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    z-index: 100;
+    pointer-events: none;
+  }
+  .nav-btn {
+    pointer-events: auto;
+    background: rgba(44,31,14,.75);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    color: var(--dew);
+    border: 1px solid rgba(200,217,188,.25);
+    border-radius: 8px;
+    width: 40px; height: 36px;
+    font-size: 1rem;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background .2s, opacity .2s;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .nav-btn:hover { background: rgba(78,124,63,.8); }
+  .nav-btn:disabled { opacity: 0.25; cursor: default; }
+  #counter {
+    pointer-events: none;
+    background: rgba(44,31,14,.75);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    color: var(--mist);
+    border: 1px solid rgba(200,217,188,.2);
+    border-radius: 8px;
+    padding: 0 14px;
+    height: 36px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    min-width: 64px;
+  }
+  #fs-btn {
+    pointer-events: auto;
+    background: rgba(44,31,14,.75);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    color: var(--dew);
+    border: 1px solid rgba(200,217,188,.25);
+    border-radius: 8px;
+    width: 36px; height: 36px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background .2s;
+    font-family: 'DM Sans', sans-serif;
+    margin-left: 8px;
+  }
+  #fs-btn:hover { background: rgba(78,124,63,.8); }
+</style>
+</head>
+<body>
+
+<div id="deck">
+
+  <!-- ══ SLIDE 1 — Portada ══ -->
+  <section class="slide active" id="s1">
+    <div class="logo-mark">
+      <div class="logo-icon">🌿</div>
+      <div class="logo-text">AgroTrace</div>
+    </div>
+    <div class="divider"></div>
+    <p class="cover-sub">Sistema de trazabilidad para producción<br>de cannabis medicinal</p>
+    <p class="cover-bajada">Visión para el Responsable Técnico</p>
+    <p class="cover-year">2026</p>
+  </section>
+
+  <!-- ══ SLIDE 2 — El problema ══ -->
+  <section class="slide" id="s2">
+    <h2 class="slide-title">¿Cómo supervisa hoy un RT a sus ONGs?</h2>
+    <p class="slide-subtitle" style="color:#666;">El trabajo real, antes de AgroTrace</p>
+    <div class="problem-grid">
+      <div class="prob-card">
+        <div class="icon">📋</div>
+        <h3>Planillas Excel</h3>
+        <p>Datos desactualizados, sin historial de cambios, errores de carga manual. Cada ONG tiene su propio formato.</p>
+        <span class="tag">Sin trazabilidad</span>
+      </div>
+      <div class="prob-card">
+        <div class="icon">💬</div>
+        <h3>WhatsApp / Email</h3>
+        <p>Información dispersa entre conversaciones, sin orden ni registro formal. Imposible auditar.</p>
+        <span class="tag">Información informal</span>
+      </div>
+      <div class="prob-card">
+        <div class="icon">🚗</div>
+        <h3>Visitas presenciales</h3>
+        <p>Costosas en tiempo y traslado, poco frecuentes. No escalan cuando el RT supervisa muchas ONGs.</p>
+        <span class="tag">No escalable</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ SLIDE 3 — Portal RT Mockup ══ -->
+  <section class="slide" id="s3">
+    <h2 class="slide-title">Un panel unificado de todas sus ONGs</h2>
+    <div class="rt-portal">
+      <div class="rt-topbar">
+        <span class="rt-logo">🌿 AgroTrace</span>
+        <span class="rt-role">Responsable Técnico</span>
+        <div class="spacer"></div>
+        <span class="rt-user">Dr. Ramírez &nbsp;·&nbsp; Portal RT</span>
+      </div>
+      <div class="rt-body">
+        <p class="rt-section-label">ONGs bajo supervisión — 3 activas</p>
+        <div class="rt-ong-grid">
+
+          <!-- ONG 1 -->
+          <div class="ong-card">
+            <div class="ong-card-head">
+              <div>
+                <div class="ong-name">ONG Esperanza Verde</div>
+                <div class="ong-loc">📍 Rosario, Santa Fe</div>
+              </div>
+              <span class="badge badge-active">Activa</span>
+            </div>
+            <div class="ong-metrics">
+              <div class="metric">
+                <span class="metric-val">4</span>
+                <span class="metric-lbl">Lotes activos</span>
+              </div>
+              <div class="metric">
+                <span class="metric-val">280g</span>
+                <span class="metric-lbl">Stock flores</span>
+              </div>
+              <div class="metric">
+                <span class="metric-val">12</span>
+                <span class="metric-lbl">Entregas / mes</span>
+              </div>
+            </div>
+            <button class="ong-btn">Supervisar →</button>
+          </div>
+
+          <!-- ONG 2 -->
+          <div class="ong-card">
+            <div class="ong-card-head">
+              <div>
+                <div class="ong-name">Asoc. Cannábica Sur</div>
+                <div class="ong-loc">📍 Córdoba Capital</div>
+              </div>
+              <span class="badge badge-alert">Con alertas</span>
+            </div>
+            <div class="ong-metrics">
+              <div class="metric">
+                <span class="metric-val">2</span>
+                <span class="metric-lbl">Lotes activos</span>
+              </div>
+              <div class="metric metric-alert">
+                <span class="metric-val">45g</span>
+                <span class="metric-lbl">Stock bajo ⚠</span>
+              </div>
+              <div class="metric">
+                <span class="metric-val">8</span>
+                <span class="metric-lbl">Entregas / mes</span>
+              </div>
+            </div>
+            <button class="ong-btn">Supervisar →</button>
+          </div>
+
+          <!-- ONG 3 -->
+          <div class="ong-card">
+            <div class="ong-card-head">
+              <div>
+                <div class="ong-name">Fundación Florecer</div>
+                <div class="ong-loc">📍 CABA</div>
+              </div>
+              <span class="badge badge-active">Activa</span>
+            </div>
+            <div class="ong-metrics">
+              <div class="metric">
+                <span class="metric-val">3</span>
+                <span class="metric-lbl">Lotes activos</span>
+              </div>
+              <div class="metric">
+                <span class="metric-val">190g</span>
+                <span class="metric-lbl">Stock flores</span>
+              </div>
+              <div class="metric">
+                <span class="metric-val">15</span>
+                <span class="metric-lbl">Entregas / mes</span>
+              </div>
+            </div>
+            <button class="ong-btn">Supervisar →</button>
+          </div>
+
+        </div><!-- /rt-ong-grid -->
+      </div><!-- /rt-body -->
+    </div><!-- /rt-portal -->
+  </section>
+
+  <!-- ══ SLIDE 4 — Timeline ══ -->
+  <section class="slide" id="s4">
+    <h2 class="slide-title">El ciclo de producción, visible de punta a punta</h2>
+    <div class="timeline-wrap">
+      <div class="tl-step">
+        <div class="tl-icon-wrap">🌱</div>
+        <div class="tl-step-name">Nursery</div>
+        <div class="tl-step-desc">Germinación y enraizamiento inicial del material</div>
+      </div>
+      <div class="tl-step">
+        <div class="tl-icon-wrap">🌿</div>
+        <div class="tl-step-name">Vegetativa</div>
+        <div class="tl-step-desc">Crecimiento en estructura y biomasa foliar</div>
+      </div>
+      <div class="tl-step">
+        <div class="tl-icon-wrap">🌸</div>
+        <div class="tl-step-name">Floración</div>
+        <div class="tl-step-desc">Inducción y desarrollo de flores medicinales</div>
+      </div>
+      <div class="tl-step">
+        <div class="tl-icon-wrap">✂️</div>
+        <div class="tl-step-name">Cosecha &amp; Curado</div>
+        <div class="tl-step-desc">Corte, secado y curado con registro de peso</div>
+      </div>
+      <div class="tl-step">
+        <div class="tl-icon-wrap">💐</div>
+        <div class="tl-step-name">Flores Cosechadas</div>
+        <div class="tl-step-desc">Stock disponible para entregas a pacientes</div>
+      </div>
+    </div>
+    <div class="realtime-banner">
+      <span class="icon">📡</span>
+      <p>El RT puede ver el <strong>estado de cada lote de cada ONG en tiempo real</strong>, desde cualquier etapa del ciclo, sin necesitar planillas ni reportes manuales.</p>
+    </div>
+  </section>
+
+  <!-- ══ SLIDE 5 — Entregas ══ -->
+  <section class="slide" id="s5">
+    <h2 class="slide-title">Registro de entregas bajo REPROCANN</h2>
+    <div class="deliveries-wrap">
+      <div class="del-topbar">
+        <strong>ONG Esperanza Verde</strong>
+        <span>· Historial de entregas · Junio 2026</span>
+      </div>
+      <table class="del-table">
+        <thead>
+          <tr>
+            <th>Paciente REPROCANN</th>
+            <th>Fecha</th>
+            <th>Cantidad</th>
+            <th>Registrado por</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              García, Marta L.
+              <span class="reprocann">Nro. REPROCANN: 0042-2024-01873</span>
+            </td>
+            <td>14/06/2026</td>
+            <td><span class="qty">30 g</span></td>
+            <td><span class="recorded-by">Ana Belén Torres</span></td>
+          </tr>
+          <tr>
+            <td>
+              Rodríguez, Pablo E.
+              <span class="reprocann">Nro. REPROCANN: 0042-2024-02105</span>
+            </td>
+            <td>11/06/2026</td>
+            <td><span class="qty">20 g</span></td>
+            <td><span class="recorded-by">Lucía Fernández</span></td>
+          </tr>
+          <tr>
+            <td>
+              Molina, Claudia R.
+              <span class="reprocann">Nro. REPROCANN: 0042-2025-00448</span>
+            </td>
+            <td>07/06/2026</td>
+            <td><span class="qty">25 g</span></td>
+            <td><span class="recorded-by">Ana Belén Torres</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="audit-note">
+      <span class="icon">🔍</span>
+      <p>El RT puede <strong>auditar el historial completo de entregas</strong> sin solicitar planillas a las ONGs. Cada registro incluye fecha, cantidad y Nro. REPROCANN del paciente.</p>
+    </div>
+  </section>
+
+  <!-- ══ SLIDE 6 — Supervisión remota ══ -->
+  <section class="slide" id="s6">
+    <h2 class="slide-title">Supervisar sin estar presente</h2>
+    <p class="slide-subtitle" style="color:#666;">El RT tiene visibilidad completa desde cualquier lugar</p>
+    <div class="remote-grid">
+      <div class="remote-card">
+        <div class="icon-box">🔔</div>
+        <div>
+          <h3>Alertas automáticas</h3>
+          <p>Stock bajo, lotes sin movimiento, entregas fuera de parámetro. El sistema avisa sin que el RT tenga que consultar.</p>
+        </div>
+      </div>
+      <div class="remote-card">
+        <div class="icon-box">📊</div>
+        <div>
+          <h3>Métricas en tiempo real</h3>
+          <p>Producción, stock y entregas actualizados permanentemente. Sin esperar informes mensuales ni llamadas de seguimiento.</p>
+        </div>
+      </div>
+      <div class="remote-card">
+        <div class="icon-box">🔍</div>
+        <div>
+          <h3>Acceso de solo lectura</h3>
+          <p>El RT supervisa sin interferir en la operación diaria de cada ONG. Visibilidad total, autonomía preservada.</p>
+        </div>
+      </div>
+      <div class="remote-card">
+        <div class="icon-box">📱</div>
+        <div>
+          <h3>Desde cualquier dispositivo</h3>
+          <p>Celular, tablet o escritorio. Sin instalaciones. Acceso web seguro con usuario y contraseña.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ SLIDE 7 — Lo que viene ══ -->
+  <section class="slide" id="s7">
+    <h2 class="slide-title">Lo que viene</h2>
+    <p class="slide-subtitle" style="color:#666; margin-bottom:4px;">Funcionalidades en desarrollo activo</p>
+    <div class="upcoming-grid">
+      <div class="upcoming-item">
+        <div class="u-icon">📄</div>
+        <div>
+          <h3>Reportes automáticos</h3>
+          <p>Exportación en PDF o CSV por ONG, por período o por tipo de producción. Listos para auditorías regulatorias.</p>
+        </div>
+      </div>
+      <div class="upcoming-item">
+        <div class="u-icon">📅</div>
+        <div>
+          <h3>Historial por paciente</h3>
+          <p>Seguimiento longitudinal de entregas por Nro. REPROCANN. Trazabilidad completa desde el lote hasta el paciente.</p>
+        </div>
+      </div>
+      <div class="upcoming-item">
+        <div class="u-icon">🔔</div>
+        <div>
+          <h3>Notificaciones por email</h3>
+          <p>Alertas proactivas en la bandeja del RT. No hace falta abrir el sistema para enterarse de lo que importa.</p>
+        </div>
+      </div>
+      <div class="upcoming-item">
+        <div class="u-icon">📈</div>
+        <div>
+          <h3>Estadísticas comparativas</h3>
+          <p>Comparación de producción y entregas entre ONGs supervisadas. Panel ejecutivo para el RT con visión de conjunto.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ SLIDE 8 — Cierre ══ -->
+  <section class="slide" id="s8">
+    <p class="close-eyebrow">AgroTrace · REPROCANN · Argentina</p>
+    <h2 class="close-title">Trazabilidad real.<br>Supervisión efectiva.</h2>
+    <p class="close-sub">Un sistema diseñado desde el trabajo concreto de productores y RT bajo REPROCANN</p>
+    <div class="close-cols">
+      <div class="close-col">
+        <h4>Para el RT</h4>
+        <ul>
+          <li>Menos visitas presenciales, más visibilidad cotidiana</li>
+          <li>Auditoría en tiempo real, sin solicitar planillas</li>
+          <li>Panel unificado de todas las ONGs supervisadas</li>
+        </ul>
+      </div>
+      <div class="close-col">
+        <h4>Para las ONGs</h4>
+        <ul>
+          <li>Menos carga administrativa en cada ciclo</li>
+          <li>Cumplimiento regulatorio integrado al flujo de trabajo</li>
+          <li>Registro de entregas a pacientes en segundos</li>
+        </ul>
+      </div>
+    </div>
+    <p class="close-footer">En desarrollo activo &nbsp;·&nbsp; 2026</p>
+  </section>
+
+</div><!-- /deck -->
+
+<!-- ══ NAVIGATION BAR ══ -->
+<div id="nav">
+  <button class="nav-btn" id="btn-prev" title="Anterior (←)" onclick="go(-1)">←</button>
+  <div id="counter">1 / 8</div>
+  <button class="nav-btn" id="btn-next" title="Siguiente (→)" onclick="go(1)">→</button>
+  <button id="fs-btn" title="Pantalla completa (F)" onclick="toggleFS()">⛶</button>
+</div>
+
+<script>
+  const TOTAL = 8;
+  let cur = 1;
+
+  function showSlide(n) {
+    // clamp
+    n = Math.max(1, Math.min(TOTAL, n));
+    // hide previous
+    const prev = document.querySelector('.slide.active');
+    if (prev) prev.classList.remove('active');
+    // show new
+    document.getElementById('s' + n).classList.add('active');
+    cur = n;
+    // update counter
+    document.getElementById('counter').textContent = cur + ' / ' + TOTAL;
+    // update buttons
+    document.getElementById('btn-prev').disabled = cur === 1;
+    document.getElementById('btn-next').disabled = cur === TOTAL;
+  }
+
+  function go(delta) {
+    showSlide(cur + delta);
+  }
+
+  // Keyboard navigation
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') {
+      e.preventDefault();
+      go(1);
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      go(-1);
+    } else if (e.key === 'f' || e.key === 'F') {
+      toggleFS();
+    } else if (e.key === 'Escape') {
+      // let browser handle
+    }
+    // Number keys 1-8
+    const n = parseInt(e.key);
+    if (n >= 1 && n <= TOTAL) {
+      showSlide(n);
+    }
+  });
+
+  // Fullscreen
+  function toggleFS() {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    } else {
+      document.exitFullscreen().catch(() => {});
+    }
+  }
+
+  // Init
+  showSlide(1);
+</script>
+</body>
+</html>
