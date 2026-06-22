@@ -260,6 +260,9 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
 .wb{background:var(--amber-bg);border-radius:var(--radius);padding:9px 12px;font-size:0.72rem;color:var(--amber);line-height:1.6;margin-top:6px;}
 .erb{background:var(--error-bg);border-radius:var(--radius);padding:9px 12px;font-size:0.72rem;color:var(--error);line-height:1.6;margin-top:6px;}
 .ro-val{padding:7px 10px;font-size:0.78rem;font-weight:500;color:var(--soil);background:var(--cream);border-radius:var(--radius);border:1px solid rgba(0,0,0,0.07);}
+.inconsistencia-banner{background:var(--amber-bg);border:1px solid rgba(133,79,11,0.3);border-radius:var(--radius);padding:10px 12px;font-size:0.72rem;color:var(--amber);line-height:1.6;margin-bottom:12px;display:flex;gap:8px;align-items:flex-start;}
+.inconsistencia-banner svg{flex-shrink:0;margin-top:1px;}
+.modo-correc{background:rgba(78,124,63,0.07);border:1.5px dashed rgba(78,124,63,0.35);border-radius:var(--radius);padding:7px 12px;font-size:0.7rem;color:var(--accent);margin-bottom:10px;display:flex;align-items:center;gap:6px;}
 
 /* unidades mode */
 .um{display:flex;gap:12px;margin-bottom:8px;}
@@ -898,6 +901,7 @@ let ALL_LOTES = [];
 
 let LOTE_ACTIVO=null;
 let HIST_DATA={};
+let INCONSISTENCIAS={};
 
 let OA=null,LA=null,UI=false,searchOpen=false;
 
@@ -1194,6 +1198,7 @@ async function openLote(id){
   }
   LOTE_ACTIVO=lote;
   HIST_DATA={};
+  INCONSISTENCIAS={};
   const emap={nursery:'Nursery · orden 1',vegetativa:'Vegetativa · orden 2',floracion:'Floración · orden 3',cosecha:'Cosecha y Curado · orden 4',cosecha_curado:'Cosecha y Curado · orden 4',flores:'Flores Cosechadas · orden 5',completado:'Ciclo completado',cerrado:'Cerrado anticipadamente'};
   const bmap={nursery:'b-nur',vegetativa:'b-veg',floracion:'b-flo',cosecha:'b-cos',cosecha_curado:'b-cos',flores:'b-fl2',completado:'b-com',cerrado:'b-cia'};
   document.getElementById('det-nombre').textContent=lote.n;
@@ -1215,6 +1220,7 @@ async function openLote(id){
   const results=await Promise.all(reqs);
   const keys=['nursery','vegetativa','floracion','cosecha_curado','flores'];
   for(let i=0;i<results.length;i++){if(results[i].data)HIST_DATA[keys[i]]=results[i].data;}
+  checkInconsistencias();
   renderTimeline(lote.etapaRaw);
   renderPanelActivo();
 }
@@ -1228,11 +1234,13 @@ function renderTimeline(etapa){
     if(etapa==='completado'){cls='tli done';ico='✓';}
     else if(s.ord<curIdx){cls='tli done';ico='✓';}
     else if(s.ord===curIdx&&!esHist){cls='tli active';}
+    const hasInc=INCONSISTENCIAS[s.key];
+    const incDot=hasInc?`<span style="display:inline-block;width:7px;height:7px;background:var(--amber);border-radius:50%;position:absolute;top:-2px;right:-2px;" title="Inconsistencia detectada"></span>`:'';
     let click=' style="cursor:default;"';
     if(!esHist&&s.ord<curIdx)click=` onclick="openEtapaHist('${s.key}')" style="cursor:pointer;"`;
     else if(!esHist&&s.ord===curIdx)click=` onclick="volverEtapaActual()" style="cursor:pointer;"`;
     else if(esHist)click=` onclick="openEtapaHist('${s.key}')" style="cursor:pointer;"`;
-    return`<div class="${cls}"${click}><div class="tln2">${ico}</div><div class="tll">${s.label}</div></div>`;
+    return`<div class="${cls}"${click}><div class="tln2" style="position:relative;">${ico}${incDot}</div><div class="tll">${s.label}${hasInc?' ⚠':''}</div></div>`;
   }).join('');
 }
 
@@ -1344,10 +1352,11 @@ function panelNursery(hist=false){
   const d=HIST_DATA.nursery||{};
   const metodo=d.metodo_ingreso==='bandejas'?`${d.bandejas||0} bandejas × ${d.alveolos||0} alveolos`:(d.metodo_ingreso||'—');
   const ab=hist
-    ?`<button class="btn btn-secondary" onclick="volverEtapaActual()">← Etapa actual</button><button class="btn btn-primary" onclick="guardarEtapaHist('nursery')">Guardar cambios</button>`
+    ?`<button class="btn btn-secondary" onclick="openEtapaHist('nursery')">Cancelar</button><button class="btn btn-primary" onclick="guardarEtapaHist('nursery')">Guardar corrección</button>`
     :`<button class="btn btn-secondary" onclick="guardarBorrador()">Guardar borrador</button><button class="btn btn-advance" onclick="guardarAvanzar()">Guardar y avanzar a Vegetativa →</button>`;
+  const modoBadge=hist?`<div class="modo-correc">✏ Modo corrección — los cambios quedan registrados en el historial</div>`:'';
   return`<div class="panel">
-    <div class="pt">${hist?'Nursery — editar datos':'Etapa Nursery — datos actuales'}<span style="font-size:0.62rem;color:var(--sage);font-weight:400;text-transform:none;">* obligatorio</span></div>
+    ${modoBadge}<div class="pt">${hist?'Nursery — editar datos':'Etapa Nursery — datos actuales'}<span style="font-size:0.62rem;color:var(--sage);font-weight:400;text-transform:none;">* obligatorio</span></div>
     <div class="g2">
       <div class="field"><label>Fecha inicio</label><div class="ro-val">${fmtDate(d.fecha_inicio)||'—'}</div></div>
       <div class="field"><label>Origen material</label><div class="ro-val">${d.origen_material||'—'}</div></div>
@@ -1376,10 +1385,11 @@ function panelVegetativa(hist=false){
   const autoFecha=nur.fecha_fin||'';
   const autoCant=nur.cantidad_egreso||'';
   const ab=hist
-    ?`<button class="btn btn-secondary" onclick="volverEtapaActual()">← Etapa actual</button><button class="btn btn-primary" onclick="guardarEtapaHist('vegetativa')">Guardar cambios</button>`
+    ?`<button class="btn btn-secondary" onclick="openEtapaHist('vegetativa')">Cancelar</button><button class="btn btn-primary" onclick="guardarEtapaHist('vegetativa')">Guardar corrección</button>`
     :`<button class="btn btn-secondary" onclick="guardarBorrador()">Guardar borrador</button><button class="btn btn-advance" onclick="guardarAvanzar()">Guardar y avanzar a Floración →</button>`;
+  const modoBadge=hist?`<div class="modo-correc">✏ Modo corrección — los cambios quedan registrados en el historial</div>`:'';
   return`<div class="panel">
-    <div class="pt">${hist?'Vegetativa — editar datos':'Etapa Vegetativa — datos actuales'}<span style="font-size:0.62rem;color:var(--sage);font-weight:400;text-transform:none;">* obligatorio</span></div>
+    ${modoBadge}<div class="pt">${hist?'Vegetativa — editar datos':'Etapa Vegetativa — datos actuales'}<span style="font-size:0.62rem;color:var(--sage);font-weight:400;text-transform:none;">* obligatorio</span></div>
     <div class="g2">
       <div class="field"><label>Fecha inicio (Trasplante)</label><input type="date" id="veg-fecha-ini" value="${d.fecha_inicio||autoFecha}"/></div>
       <div class="field"><label>Cantidad ingreso</label><input type="number" id="veg-cant-ini" value="${d.cantidad_ingreso||autoCant}" placeholder="Nº de plantas"/></div>
@@ -1404,10 +1414,11 @@ function panelFloracion(hist=false){
   const autoFecha=veg.fecha_fin||'';
   const autoCant=veg.cantidad_egreso||'';
   const ab=hist
-    ?`<button class="btn btn-secondary" onclick="volverEtapaActual()">← Etapa actual</button><button class="btn btn-primary" onclick="guardarEtapaHist('floracion')">Guardar cambios</button>`
+    ?`<button class="btn btn-secondary" onclick="openEtapaHist('floracion')">Cancelar</button><button class="btn btn-primary" onclick="guardarEtapaHist('floracion')">Guardar corrección</button>`
     :`<button class="btn btn-secondary" onclick="guardarBorrador()">Guardar borrador</button><button class="btn btn-advance" onclick="guardarAvanzar()">Guardar y avanzar a Cosecha →</button>`;
+  const modoBadge=hist?`<div class="modo-correc">✏ Modo corrección — los cambios quedan registrados en el historial</div>`:'';
   return`<div class="panel">
-    <div class="pt">${hist?'Floración — editar datos':'Etapa Floración — datos actuales'}<span style="font-size:0.62rem;color:var(--sage);font-weight:400;text-transform:none;">* obligatorio</span></div>
+    ${modoBadge}<div class="pt">${hist?'Floración — editar datos':'Etapa Floración — datos actuales'}<span style="font-size:0.62rem;color:var(--sage);font-weight:400;text-transform:none;">* obligatorio</span></div>
     <div class="g2">
       <div class="field"><label>Fecha inicio (Inducción)</label><input type="date" id="flo-fecha-ini" value="${d.fecha_inicio||autoFecha}"/></div>
       <div class="field"><label>Cantidad ingreso</label><input type="number" id="flo-cant-ini" value="${d.cantidad_ingreso||autoCant}" placeholder="Nº de plantas"/></div>
@@ -1430,10 +1441,11 @@ function panelFloracion(hist=false){
 function panelCosecha(hist=false){
   const d=HIST_DATA.cosecha_curado||{};
   const ab=hist
-    ?`<button class="btn btn-secondary" onclick="volverEtapaActual()">← Etapa actual</button><button class="btn btn-primary" onclick="guardarEtapaHist('cosecha_curado')">Guardar cambios</button>`
+    ?`<button class="btn btn-secondary" onclick="openEtapaHist('cosecha_curado')">Cancelar</button><button class="btn btn-primary" onclick="guardarEtapaHist('cosecha_curado')">Guardar corrección</button>`
     :`<button class="btn btn-secondary" onclick="guardarBorrador()">Guardar borrador</button><button class="btn btn-advance" onclick="guardarAvanzar()">Guardar y avanzar a Flores →</button>`;
+  const modoBadge=hist?`<div class="modo-correc">✏ Modo corrección — los cambios quedan registrados en el historial</div>`:'';
   return`<div class="panel">
-    <div class="pt">${hist?'Cosecha y Curado — editar datos':'Etapa Cosecha y Curado'}<span style="font-size:0.62rem;color:var(--sage);font-weight:400;text-transform:none;">* obligatorio</span></div>
+    ${modoBadge}<div class="pt">${hist?'Cosecha y Curado — editar datos':'Etapa Cosecha y Curado'}<span style="font-size:0.62rem;color:var(--sage);font-weight:400;text-transform:none;">* obligatorio</span></div>
     <div class="g2">
       <div class="field"><label>Fecha inicio cosecha</label><input type="date" id="cos-fecha-ini" value="${d.fecha_inicio_cosecha||''}"/></div>
       <div class="field"><label>Fecha fin cosecha<span class="opt">opcional</span></label><input type="date" id="cos-fecha-fin" value="${d.fecha_fin_cosecha||''}"/></div>
@@ -1825,12 +1837,80 @@ async function guardarEntrega(){
   alert(`Entrega registrada correctamente.\nStock restante: ${nuevoStock} g`);
 }
 
-function openEtapaHist(key){
+/* ── CORRECCIONES E INCONSISTENCIAS ── */
+function checkInconsistencias(){
+  INCONSISTENCIAS={};
+  const nur=HIST_DATA.nursery||{};
+  const veg=HIST_DATA.vegetativa||{};
+  const flo=HIST_DATA.floracion||{};
+  if(veg.cantidad_ingreso!=null&&nur.cantidad_egreso!=null&&Number(veg.cantidad_ingreso)!==Number(nur.cantidad_egreso)){
+    if(!INCONSISTENCIAS.vegetativa)INCONSISTENCIAS.vegetativa={msgs:[]};
+    INCONSISTENCIAS.vegetativa.msgs.push(`La cantidad de ingreso registrada (${veg.cantidad_ingreso}) no coincide con el egreso corregido de Nursery (${nur.cantidad_egreso}).`);
+  }
+  if(veg.fecha_inicio&&nur.fecha_fin&&veg.fecha_inicio!==nur.fecha_fin){
+    if(!INCONSISTENCIAS.vegetativa)INCONSISTENCIAS.vegetativa={msgs:[]};
+    INCONSISTENCIAS.vegetativa.msgs.push(`La fecha de inicio (${fmtDate(veg.fecha_inicio)}) no coincide con la fecha fin corregida de Nursery (${fmtDate(nur.fecha_fin)}).`);
+  }
+  if(flo.cantidad_ingreso!=null&&veg.cantidad_egreso!=null&&Number(flo.cantidad_ingreso)!==Number(veg.cantidad_egreso)){
+    if(!INCONSISTENCIAS.floracion)INCONSISTENCIAS.floracion={msgs:[]};
+    INCONSISTENCIAS.floracion.msgs.push(`La cantidad de ingreso registrada (${flo.cantidad_ingreso}) no coincide con el egreso corregido de Vegetativa (${veg.cantidad_egreso}).`);
+  }
+  if(flo.fecha_inicio&&veg.fecha_fin&&flo.fecha_inicio!==veg.fecha_fin){
+    if(!INCONSISTENCIAS.floracion)INCONSISTENCIAS.floracion={msgs:[]};
+    INCONSISTENCIAS.floracion.msgs.push(`La fecha de inicio (${fmtDate(flo.fecha_inicio)}) no coincide con la fecha fin corregida de Vegetativa (${fmtDate(veg.fecha_fin)}).`);
+  }
+}
+
+function renderInconsistenciaBanner(key){
+  const inc=INCONSISTENCIAS[key];
+  if(!inc)return'';
+  const txt=inc.msgs.join(' ');
+  return`<div class="inconsistencia-banner"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg><div><strong>Inconsistencia detectada</strong> — ${txt} Registrá una corrección para resolver este valor.</div></div>`;
+}
+
+function panelReadOnly(key){
+  const d=HIST_DATA[key]||{};
+  const banner=renderInconsistenciaBanner(key);
+  const NM={nursery:'Nursery',vegetativa:'Vegetativa',floracion:'Floración',cosecha_curado:'Cosecha y Curado'};
+  let campos='';
+  if(key==='nursery'){
+    const metodo=d.metodo_ingreso==='bandejas'?`${d.bandejas||0} bandejas × ${d.alveolos||0} alveolos`:(d.metodo_ingreso||'—');
+    campos=`<div class="g2"><div class="field"><label>Fecha inicio</label><div class="ro-val">${fmtDate(d.fecha_inicio)||'—'}</div></div><div class="field"><label>Origen material</label><div class="ro-val">${d.origen_material||'—'}</div></div></div>
+    <div class="g2"><div class="field"><label>Método ingreso</label><div class="ro-val">${metodo}</div></div><div class="field"><label>Cantidad ingreso</label><div class="ro-val">${d.cantidad_ingreso!=null?d.cantidad_ingreso+' plántulas':'—'}</div></div></div>
+    <hr style="border:none;border-top:1px solid rgba(0,0,0,0.07);margin:10px 0;">
+    <div class="g2"><div class="field"><label>Fecha fin</label><div class="ro-val">${fmtDate(d.fecha_fin)||'—'}</div></div><div class="field"><label>Cantidad egreso</label><div class="ro-val">${d.cantidad_egreso!=null?d.cantidad_egreso+' plántulas':'—'}</div></div></div>
+    <div class="g2"><div class="field"><label>Bajas</label><div class="ro-val">${d.bajas!=null?d.bajas:0}</div></div><div class="field"><label>Notas</label><div class="ro-val">${d.notas||'—'}</div></div></div>`;
+  } else if(key==='vegetativa'){
+    campos=`<div class="g2"><div class="field"><label>Fecha inicio (Trasplante)</label><div class="ro-val">${fmtDate(d.fecha_inicio)||'—'}</div></div><div class="field"><label>Cantidad ingreso</label><div class="ro-val">${d.cantidad_ingreso!=null?d.cantidad_ingreso+' plantas':'—'}</div></div></div>
+    <hr style="border:none;border-top:1px solid rgba(0,0,0,0.07);margin:10px 0;">
+    <div class="g2"><div class="field"><label>Fecha fin (Inicio inducción)</label><div class="ro-val">${fmtDate(d.fecha_fin)||'—'}</div></div><div class="field"><label>Cantidad egreso</label><div class="ro-val">${d.cantidad_egreso!=null?d.cantidad_egreso+' plantas':'—'}</div></div></div>
+    <div class="g2"><div class="field"><label>Bajas</label><div class="ro-val">${d.bajas!=null?d.bajas:0}</div></div><div class="field"><label>Notas</label><div class="ro-val">${d.notas||'—'}</div></div></div>`;
+  } else if(key==='floracion'){
+    campos=`<div class="g2"><div class="field"><label>Fecha inicio (Inducción)</label><div class="ro-val">${fmtDate(d.fecha_inicio)||'—'}</div></div><div class="field"><label>Cantidad ingreso</label><div class="ro-val">${d.cantidad_ingreso!=null?d.cantidad_ingreso+' plantas':'—'}</div></div></div>
+    <hr style="border:none;border-top:1px solid rgba(0,0,0,0.07);margin:10px 0;">
+    <div class="g2"><div class="field"><label>Fecha fin (Cosecha)</label><div class="ro-val">${fmtDate(d.fecha_fin)||'—'}</div></div><div class="field"><label>Cantidad egreso</label><div class="ro-val">${d.cantidad_egreso!=null?d.cantidad_egreso+' plantas':'—'}</div></div></div>
+    <div class="g2"><div class="field"><label>Bajas</label><div class="ro-val">${d.bajas!=null?d.bajas:0}</div></div><div class="field"><label>Notas</label><div class="ro-val">${d.notas||'—'}</div></div></div>`;
+  } else if(key==='cosecha_curado'){
+    const ps=d.tiene_empaque?((d.peso_inicial_curado||0)-(d.tara_empaque||0)).toFixed(1):null;
+    campos=`<div class="g2"><div class="field"><label>Fecha inicio cosecha</label><div class="ro-val">${fmtDate(d.fecha_inicio_cosecha)||'—'}</div></div><div class="field"><label>Fecha fin cosecha</label><div class="ro-val">${fmtDate(d.fecha_fin_cosecha)||'—'}</div></div></div>
+    <div class="g2"><div class="field"><label>Peso inicial curado</label><div class="ro-val">${d.peso_inicial_curado!=null?d.peso_inicial_curado+' g':'—'}</div></div><div class="field"><label>¿Tiene empaque?</label><div class="ro-val">${d.tiene_empaque?'Sí':'No'}</div></div></div>
+    ${d.tiene_empaque?`<div class="g2"><div class="field"><label>Tara empaque</label><div class="ro-val">${d.tara_empaque!=null?d.tara_empaque+' g':'—'}</div></div><div class="field"><label>Peso seco final</label><div class="ro-val">${ps} g</div></div></div>`:''}
+    <div class="field"><label>Notas</label><div class="ro-val">${d.notas||'—'}</div></div>`;
+  }
+  return`<div class="panel">${banner}<div class="pt">${NM[key]||key} — datos registrados</div>${campos}<div class="ab"><button class="btn btn-secondary" onclick="volverEtapaActual()">← Etapa actual</button><button class="btn btn-primary" onclick="activarCorreccion('${key}')">✏ Registrar corrección</button></div></div>`;
+}
+
+function activarCorreccion(key){
   const el=document.getElementById('det-panel');
   if(key==='nursery')el.innerHTML=panelNursery(true);
   else if(key==='vegetativa')el.innerHTML=panelVegetativa(true);
   else if(key==='floracion')el.innerHTML=panelFloracion(true);
   else if(key==='cosecha_curado')el.innerHTML=panelCosecha(true);
+}
+
+function openEtapaHist(key){
+  const el=document.getElementById('det-panel');
+  el.innerHTML=panelReadOnly(key);
 }
 
 function volverEtapaActual(){renderPanelActivo();}
@@ -1853,7 +1933,17 @@ async function guardarEtapaHist(key){
   if(dbErr){alert('Error al guardar: '+dbErr.message);return;}
   const tbl={nursery:'etapa_nursery',vegetativa:'etapa_vegetativa',floracion:'etapa_floracion',cosecha_curado:'etapa_cosecha_curado'}[key];
   if(tbl){const{data}=await sb.from(tbl).select('*').eq('lote_id',LOTE_ACTIVO.id).maybeSingle();if(data)HIST_DATA[key]=data;}
-  alert('Datos guardados correctamente.');
+  checkInconsistencias();
+  const adjNM={nursery:'Vegetativa',vegetativa:'Floración',floracion:'Cosecha y Curado'};
+  const adjKey={nursery:'vegetativa',vegetativa:'floracion',floracion:'cosecha_curado'};
+  const adjK=adjKey[key];
+  if(adjK&&INCONSISTENCIAS[adjK]){
+    const msgs=INCONSISTENCIAS[adjK].msgs.join('\n• ');
+    alert(`✓ Corrección guardada.\n\n⚠ Este cambio genera una inconsistencia en "${adjNM[key]}":\n• ${msgs}\n\nDeberás registrar una corrección también en esa etapa.`);
+  } else {
+    alert('Corrección guardada correctamente.');
+  }
+  document.getElementById('det-panel').innerHTML=panelReadOnly(key);
 }
 
 /* ── NAVIGATION ── */
