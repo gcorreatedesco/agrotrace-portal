@@ -263,7 +263,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);c
               <input type="text" id="ong-nombre" placeholder="Ej: Asociación Civil Esperanza Verde"/>
             </div>
             <div class="field">
-              <label>CUIT / CUIL *</label>
+              <label>CUIT / CUIL <span>(opcional)</span></label>
               <input type="text" id="ong-cuit" placeholder="Ej: 30-71234567-8"/>
             </div>
             <div class="field">
@@ -271,15 +271,15 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);c
               <input type="text" id="ong-localidad" placeholder="Ej: Buenos Aires, CABA"/>
             </div>
             <div class="field">
-              <label>Dirección</label>
+              <label>Dirección *</label>
               <input type="text" id="ong-direccion" placeholder="Ej: Av. Corrientes 1234"/>
             </div>
             <div class="field">
-              <label>Email institucional</label>
+              <label>Email institucional *</label>
               <input type="email" id="ong-email" placeholder="contacto@asociacion.org"/>
             </div>
             <div class="field">
-              <label>Teléfono</label>
+              <label>Teléfono *</label>
               <input type="text" id="ong-telefono" placeholder="Ej: 11-4567-8901"/>
             </div>
           </div>
@@ -457,7 +457,7 @@ function guardarONG() {
   const notas      = document.getElementById('ong-notas').value.trim();
   const errEl      = document.getElementById('error-nueva-ong');
 
-  if (!nombre || !cuit || !localidad || !respNombre || !respEmail) {
+  if (!nombre || !localidad || !direccion || !email || !telefono || !respNombre || !respEmail) {
     errEl.classList.add('show'); return;
   }
   errEl.classList.remove('show');
