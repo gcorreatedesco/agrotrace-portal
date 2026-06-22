@@ -624,15 +624,9 @@
     document.getElementById(id).classList.add('active');
   }
 
-  // Detecta si la página abrió desde un link de recuperación de contraseña
-  window.addEventListener('DOMContentLoaded', async () => {
-    const hash   = new URLSearchParams(window.location.hash.slice(1));
-    const type   = hash.get('type');
-    const access = hash.get('access_token');
-    const refresh= hash.get('refresh_token');
-    if (type === 'recovery' && access) {
-      await sb.auth.setSession({ access_token: access, refresh_token: refresh });
-      history.replaceState(null, '', window.location.pathname);
+  // Detecta el evento PASSWORD_RECOVERY que dispara Supabase al abrir el link del email
+  sb.auth.onAuthStateChange((event) => {
+    if (event === 'PASSWORD_RECOVERY') {
       showView('view-nueva-password');
     }
   });
