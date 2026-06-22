@@ -903,20 +903,16 @@ let OA=null,LA=null,UI=false,searchOpen=false;
 
 /* ── INIT ── */
 async function initApp(){
-  const {data:{session},error}=await sb.auth.getSession();
-  if(error||!session){
-    window.location.href='index.html';
-    return;
-  }
-  CURRENT_USER=session.user;
-  // Mostrar nombre real en sidebar
-  const{data:perfil}=await sb.from('perfiles').select('nombre,rol').eq('id',CURRENT_USER.id).single();
-  if(perfil){
-    const nm=document.querySelector('.user-nm');
-    const av=document.querySelector('.user-av');
-    if(nm)nm.textContent=perfil.nombre;
-    if(av)av.textContent=perfil.nombre.split(' ').map(p=>p[0]).slice(0,2).join('').toUpperCase();
-  }
+  // DEMO MODE: UUID fijo — reemplazar por getSession() cuando se implemente auth real
+  CURRENT_USER={id:'c6bafecb-5df5-4573-ad6d-3d0f328a8010',email:'gcorreatedesco@gmail.com'};
+
+  // Mostrar nombre desde sessionStorage (seteado por el login demo)
+  const userName=sessionStorage.getItem('agrotrace_user')||'Usuario';
+  const nm=document.querySelector('.user-nm');
+  const av=document.querySelector('.user-av');
+  if(nm)nm.textContent=userName;
+  if(av)av.textContent=userName.split(' ').map(p=>p[0]).slice(0,2).join('').toUpperCase();
+
   // Mostrar banner si viene del portal RT
   const ongNombre=sessionStorage.getItem('agrotrace_supervisando_ong_nombre');
   if(ongNombre){
