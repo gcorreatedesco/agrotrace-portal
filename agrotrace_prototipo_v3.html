@@ -903,13 +903,20 @@ let OA=null,LA=null,UI=false,searchOpen=false;
 
 /* ── INIT ── */
 async function initApp(){
-  const {data,error}=await sb.auth.signInWithPassword({email:DEV_EMAIL,password:DEV_PASSWORD});
-  if(error){
-    document.getElementById('tt').textContent='⚠ Error de conexión';
-    document.getElementById('ts').textContent='No se pudo autenticar: '+error.message;
+  const {data:{session},error}=await sb.auth.getSession();
+  if(error||!session){
+    window.location.href='index.html';
     return;
   }
-  CURRENT_USER=data.user;
+  CURRENT_USER=session.user;
+  // Mostrar nombre real en sidebar
+  const{data:perfil}=await sb.from('perfiles').select('nombre,rol').eq('id',CURRENT_USER.id).single();
+  if(perfil){
+    const nm=document.querySelector('.user-nm');
+    const av=document.querySelector('.user-av');
+    if(nm)nm.textContent=perfil.nombre;
+    if(av)av.textContent=perfil.nombre.split(' ').map(p=>p[0]).slice(0,2).join('').toUpperCase();
+  }
   // Mostrar banner si viene del portal RT
   const ongNombre=sessionStorage.getItem('agrotrace_supervisando_ong_nombre');
   if(ongNombre){
