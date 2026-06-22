@@ -569,6 +569,45 @@
         <button class="btn-primary" onclick="showView('view-login')">Volver al inicio de sesión</button>
       </div>
 
+      <!-- Nueva contraseña (desde link de recuperación) -->
+      <div class="view" id="view-nueva-password">
+        <div class="form-header">
+          <h2>Nueva contraseña</h2>
+          <p>Ingrese y confirme su nueva contraseña para recuperar el acceso.</p>
+        </div>
+
+        <div class="field">
+          <label>Nueva contraseña</label>
+          <div class="input-wrap">
+            <svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+            <input type="password" id="new-password" placeholder="Mínimo 6 caracteres" autocomplete="new-password"/>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Confirmar contraseña</label>
+          <div class="input-wrap">
+            <svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+            <input type="password" id="new-password-confirm" placeholder="Repetí la contraseña" autocomplete="new-password"/>
+          </div>
+          <div class="error-msg" id="error-nueva-password">Las contraseñas no coinciden.</div>
+        </div>
+
+        <button class="btn-primary" onclick="doNuevaPassword()" style="margin-top:8px;">Guardar contraseña</button>
+      </div>
+
+      <!-- Nueva contraseña guardada -->
+      <div class="view" id="view-nueva-password-ok">
+        <div class="success-icon">
+          <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+        </div>
+        <div class="form-header">
+          <h2>Contraseña actualizada</h2>
+          <p>Tu contraseña fue cambiada con éxito. Ya podés iniciar sesión con tus nuevas credenciales.</p>
+        </div>
+        <button class="btn-primary" onclick="showView('view-login')">Ir al inicio de sesión</button>
+      </div>
+
     </div>
   </div>
 </div>
@@ -584,6 +623,19 @@
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     document.getElementById(id).classList.add('active');
   }
+
+  // Detecta si la página abrió desde un link de recuperación de contraseña
+  window.addEventListener('DOMContentLoaded', async () => {
+    const hash   = new URLSearchParams(window.location.hash.slice(1));
+    const type   = hash.get('type');
+    const access = hash.get('access_token');
+    const refresh= hash.get('refresh_token');
+    if (type === 'recovery' && access) {
+      await sb.auth.setSession({ access_token: access, refresh_token: refresh });
+      history.replaceState(null, '', window.location.pathname);
+      showView('view-nueva-password');
+    }
+  });
 
   function togglePass() {
     const input = document.getElementById('password');
@@ -670,6 +722,36 @@
       btn.textContent = 'Enviar solicitud';
       btn.disabled = false;
     }
+  }
+
+  async function doNuevaPassword() {
+    const pass1 = document.getElementById('new-password').value;
+    const pass2 = document.getElementById('new-password-confirm').value;
+    const errEl = document.getElementById('error-nueva-password');
+    const btn   = document.querySelector('#view-nueva-password .btn-primary');
+
+    if (pass1.length < 6) {
+      errEl.textContent = 'La contraseña debe tener al menos 6 caracteres.';
+      errEl.classList.add('show'); return;
+    }
+    if (pass1 !== pass2) {
+      errEl.textContent = 'Las contraseñas no coinciden.';
+      errEl.classList.add('show'); return;
+    }
+    errEl.classList.remove('show');
+    btn.textContent = 'Guardando...'; btn.disabled = true;
+
+    const { error } = await sb.auth.updateUser({ password: pass1 });
+
+    if (error) {
+      errEl.textContent = 'No se pudo actualizar la contraseña. Intentá de nuevo.';
+      errEl.classList.add('show');
+      btn.textContent = 'Guardar contraseña'; btn.disabled = false;
+      return;
+    }
+
+    await sb.auth.signOut();
+    showView('view-nueva-password-ok');
   }
 
   async function doRecover() {
