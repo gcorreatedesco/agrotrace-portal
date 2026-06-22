@@ -11,7 +11,7 @@
 CREATE TABLE IF NOT EXISTS public.perfiles (
   id          UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   nombre      TEXT NOT NULL,
-  rol         TEXT NOT NULL CHECK (rol IN ('productor','inspector','operador','administrador')),
+  rol         TEXT NOT NULL CHECK (rol IN ('superadmin','rt','ong')),
   creado_en   TIMESTAMPTZ DEFAULT NOW()
 );
 ALTER TABLE public.perfiles ENABLE ROW LEVEL SECURITY;
