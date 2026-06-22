@@ -33,13 +33,13 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);c
 .user-nm{font-size:0.75rem;color:var(--mist);font-weight:400;}
 .user-role{font-size:0.62rem;color:var(--leaf);font-weight:300;margin-top:1px;}
 .sb-nav{padding:10px 0;flex:1;}
-.nav-sec{font-size:0.58rem;font-weight:500;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.3);padding:8px 16px 4px;}
-.nav-it{display:flex;align-items:center;gap:8px;padding:8px 16px;cursor:pointer;color:rgba(255,255,255,0.55);font-size:0.78rem;transition:all var(--trans);border-left:2px solid transparent;}
+.nav-sec{font-size:0.58rem;font-weight:500;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.3);padding:10px 16px 4px;}
+.nav-it{display:flex;align-items:center;gap:8px;padding:8px 16px;cursor:pointer;color:rgba(255,255,255,0.55);font-size:0.78rem;transition:all var(--trans);border-left:2px solid transparent;user-select:none;}
 .nav-it svg{width:14px;height:14px;fill:currentColor;flex-shrink:0;}
 .nav-it:hover{color:var(--dew);background:rgba(255,255,255,0.05);}
 .nav-it.active{color:var(--leaf);border-left-color:var(--leaf);background:rgba(142,170,123,0.1);}
+.nav-it.disabled{opacity:0.35;cursor:default;}
 .sb-footer{padding:14px 16px;border-top:1px solid rgba(255,255,255,0.08);}
-.sb-footer-actions{display:flex;flex-direction:column;gap:6px;}
 .sb-logout{display:flex;align-items:center;gap:6px;color:rgba(255,255,255,0.35);font-size:0.72rem;cursor:pointer;background:none;border:none;font-family:'DM Sans',sans-serif;padding:0;transition:color var(--trans);}
 .sb-logout:hover{color:var(--error);}
 .sb-logout svg{width:13px;height:13px;fill:currentColor;}
@@ -47,12 +47,15 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);c
 /* ── MAIN ── */
 .main{flex:1;display:flex;flex-direction:column;min-width:0;}
 .topbar{background:var(--white);border-bottom:1px solid rgba(0,0,0,0.06);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
-.topbar-left{display:flex;flex-direction:column;}
 .topbar-title{font-size:0.95rem;font-weight:500;color:var(--soil);}
 .topbar-sub{font-size:0.72rem;color:var(--sage);margin-top:1px;}
 .content{padding:24px;flex:1;}
 
-/* ── RESUMEN RT ── */
+/* ── VIEWS ── */
+.view{display:none;}
+.view.active{display:block;}
+
+/* ── MÉTRICAS RT ── */
 .rt-metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:24px;}
 .rt-metric{background:var(--white);border:1px solid rgba(0,0,0,0.07);border-radius:var(--radius-lg);padding:14px 16px;}
 .rt-metric-label{font-size:0.62rem;font-weight:500;text-transform:uppercase;letter-spacing:0.08em;color:var(--sage);margin-bottom:5px;}
@@ -64,42 +67,79 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);c
 .sec-title{font-family:'DM Serif Display',serif;font-size:1.15rem;color:var(--soil);}
 .sec-count{font-size:0.75rem;color:var(--sage);margin-left:6px;}
 
-/* ── GRID DE ONGs ── */
-.ong-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;}
+/* ── BOTÓN ACCIÓN ── */
+.btn-primary{padding:9px 18px;background:var(--accent);color:white;border:none;border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:0.82rem;font-weight:500;cursor:pointer;transition:background var(--trans);display:inline-flex;align-items:center;gap:7px;}
+.btn-primary:hover{background:#3d6230;}
+.btn-primary svg{width:14px;height:14px;fill:currentColor;}
+.btn-secondary{padding:9px 18px;background:none;color:var(--sage);border:1.5px solid var(--mist);border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:0.82rem;font-weight:400;cursor:pointer;transition:all var(--trans);}
+.btn-secondary:hover{border-color:var(--sage);color:var(--bark);}
 
-/* ── CARD ONG ── */
+/* ── GRID ONGs ── */
+.ong-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;}
 .ong-card{background:var(--white);border:1px solid rgba(0,0,0,0.07);border-radius:var(--radius-lg);padding:18px;transition:box-shadow var(--trans),border-color var(--trans);}
 .ong-card:hover{box-shadow:0 4px 16px rgba(0,0,0,0.08);border-color:rgba(0,0,0,0.12);}
 .ong-card-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;}
-.ong-info{}
 .ong-name{font-size:0.95rem;font-weight:500;color:var(--soil);margin-bottom:3px;}
 .ong-location{font-size:0.72rem;color:var(--sage);display:flex;align-items:center;gap:4px;}
 .ong-location svg{width:11px;height:11px;fill:var(--sage);}
 .ong-badge{font-size:0.62rem;font-weight:500;padding:3px 8px;border-radius:10px;white-space:nowrap;}
 .badge-ok{background:var(--dew);color:var(--accent);}
 .badge-warn{background:var(--amber-bg);color:var(--amber);}
-.badge-alert{background:var(--error-bg);color:var(--error);}
-
 .ong-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;}
 .ong-stat{text-align:center;padding:8px 4px;background:var(--cream);border-radius:var(--radius);}
 .ong-stat-val{font-size:1.1rem;font-weight:500;color:var(--soil);font-family:'DM Serif Display',serif;}
 .ong-stat-lbl{font-size:0.6rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--sage);margin-top:1px;}
-
 .ong-alerts{margin-bottom:14px;}
 .ong-alert-item{display:flex;align-items:center;gap:6px;font-size:0.72rem;color:var(--amber);padding:4px 0;border-top:1px solid var(--amber-bg);}
 .ong-alert-item:first-child{border-top:none;}
 .ong-alert-item svg{width:12px;height:12px;fill:currentColor;flex-shrink:0;}
-.ong-alert-item.alert-error{color:var(--error);}
-
 .ong-footer{display:flex;align-items:center;justify-content:space-between;padding-top:12px;border-top:1px solid rgba(0,0,0,0.06);}
 .ong-last{font-size:0.68rem;color:var(--sage);}
 .btn-supervisar{padding:7px 16px;background:var(--accent);color:white;border:none;border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:0.78rem;font-weight:500;cursor:pointer;transition:background var(--trans);display:flex;align-items:center;gap:6px;}
 .btn-supervisar:hover{background:#3d6230;}
 .btn-supervisar svg{width:13px;height:13px;fill:currentColor;}
 
-/* ── MODO PRUEBA BANNER ── */
-.dev-banner{background:var(--amber-bg);border-bottom:1px solid var(--amber-light);padding:6px 24px;font-size:0.72rem;color:var(--amber);display:flex;align-items:center;gap:6px;}
-.dev-banner svg{width:13px;height:13px;fill:currentColor;flex-shrink:0;}
+/* ── EMPTY STATE ── */
+.empty-state{text-align:center;padding:60px 20px;}
+.empty-icon{width:56px;height:56px;background:var(--dew);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;}
+.empty-icon svg{width:26px;height:26px;fill:var(--accent);}
+.empty-title{font-family:'DM Serif Display',serif;font-size:1.2rem;color:var(--soil);margin-bottom:8px;}
+.empty-desc{font-size:0.82rem;color:var(--sage);margin-bottom:20px;line-height:1.6;}
+
+/* ── FORMULARIO NUEVA ONG ── */
+.form-card{background:var(--white);border:1px solid rgba(0,0,0,0.07);border-radius:var(--radius-lg);padding:28px;max-width:680px;}
+.form-section-title{font-size:0.6rem;font-weight:500;text-transform:uppercase;letter-spacing:0.14em;color:var(--sage);margin-bottom:14px;margin-top:24px;padding-bottom:6px;border-bottom:1px solid var(--dew);}
+.form-section-title:first-child{margin-top:0;}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.form-grid.full{grid-template-columns:1fr;}
+.field{display:flex;flex-direction:column;gap:5px;}
+.field label{font-size:0.7rem;font-weight:500;text-transform:uppercase;letter-spacing:0.08em;color:var(--bark);}
+.field label span{font-weight:300;text-transform:none;letter-spacing:0;color:var(--sage);}
+.field input,.field textarea,.field select{width:100%;padding:9px 12px;border:1.5px solid var(--dew);border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:0.85rem;color:var(--soil);background:var(--white);outline:none;transition:border-color var(--trans),box-shadow var(--trans);}
+.field input:focus,.field textarea:focus,.field select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(78,124,63,0.1);}
+.field textarea{resize:vertical;min-height:72px;}
+.field input::placeholder,.field textarea::placeholder{color:#B5B5B0;}
+.form-actions{display:flex;align-items:center;gap:10px;margin-top:24px;padding-top:20px;border-top:1px solid var(--dew);}
+.error-msg{font-size:0.75rem;color:var(--error);display:none;margin-top:2px;}
+.error-msg.show{display:block;}
+
+/* ── POPUP BIENVENIDA ── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px;}
+.overlay.hidden{display:none;}
+.popup{background:var(--white);border-radius:var(--radius-lg);padding:32px;max-width:440px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.2);}
+.popup-icon{width:52px;height:52px;background:var(--dew);border-radius:50%;display:flex;align-items:center;justify-content:center;margin-bottom:18px;}
+.popup-icon svg{width:24px;height:24px;fill:var(--accent);}
+.popup-title{font-family:'DM Serif Display',serif;font-size:1.4rem;color:var(--soil);margin-bottom:10px;}
+.popup-body{font-size:0.83rem;color:var(--bark);line-height:1.7;margin-bottom:8px;}
+.popup-tip{background:var(--dew);border-radius:var(--radius);padding:10px 14px;font-size:0.78rem;color:var(--bark);line-height:1.6;margin-bottom:22px;}
+.popup-tip strong{color:var(--accent);}
+.popup-btn{width:100%;padding:12px;background:var(--accent);color:white;border:none;border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:0.88rem;font-weight:500;cursor:pointer;transition:background var(--trans);}
+.popup-btn:hover{background:#3d6230;}
+
+@media(max-width:700px){
+  .rt-metrics{grid-template-columns:1fr 1fr;}
+  .form-grid{grid-template-columns:1fr;}
+}
 </style>
 </head>
 <body>
@@ -131,131 +171,186 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);c
 
     <div class="sb-nav">
       <div class="nav-sec">Panel RT</div>
-      <div class="nav-it active">
+      <div class="nav-it active" id="nav-mis-ongs" onclick="showView('view-mis-ongs',this)">
         <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 3c1.93 0 3.5 1.57 3.5 3.5S13.93 13 12 13s-3.5-1.57-3.5-3.5S10.07 6 12 6zm7 13H5v-.23c0-.62.28-1.2.76-1.58C7.47 15.82 9.64 15 12 15s4.53.82 6.24 2.19c.48.38.76.97.76 1.58V19z"/></svg>
         Mis Organizaciones
       </div>
-      <div class="nav-it" style="opacity:0.4;cursor:default;">
+      <div class="nav-it disabled">
         <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
         Reportes consolidados
         <span style="margin-left:auto;font-size:0.6rem;color:rgba(255,255,255,0.2);">Próx.</span>
       </div>
+
+      <div class="nav-sec" style="margin-top:6px;">Gestión</div>
+      <div class="nav-it" id="nav-nueva-ong" onclick="showView('view-nueva-ong',this)">
+        <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+        Nueva Asociación Civil
+      </div>
     </div>
 
     <div class="sb-footer">
-      <div class="sb-footer-actions">
-        <button class="sb-logout" onclick="cerrarSesion()">
-          <svg viewBox="0 0 24 24"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>
-          Cerrar sesión
-        </button>
-      </div>
+      <button class="sb-logout" onclick="cerrarSesion()">
+        <svg viewBox="0 0 24 24"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>
+        Cerrar sesión
+      </button>
     </div>
   </div>
 
   <!-- ── MAIN ── -->
   <div class="main">
-
-    <!-- Banner modo prueba -->
-    <div class="dev-banner">
-      <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
-      Modo banco de prueba — datos simulados · Las organizaciones y métricas son de ejemplo
-    </div>
-
     <div class="topbar">
-      <div class="topbar-left">
-        <div class="topbar-title">Panel de Supervisión</div>
-        <div class="topbar-sub" id="tb-sub">Responsable Técnico</div>
+      <div>
+        <div class="topbar-title" id="tb-title">Mis Organizaciones</div>
+        <div class="topbar-sub" id="tb-sub">Panel de Supervisión</div>
       </div>
     </div>
 
     <div class="content">
 
-      <!-- Métricas resumen RT -->
-      <div class="rt-metrics">
-        <div class="rt-metric">
-          <div class="rt-metric-label">Organizaciones</div>
-          <div class="rt-metric-val" id="met-ongs">3</div>
-          <div class="rt-metric-sub">bajo supervisión</div>
+      <!-- ── VIEW: MIS ORGANIZACIONES ── -->
+      <div class="view active" id="view-mis-ongs">
+        <div class="rt-metrics">
+          <div class="rt-metric">
+            <div class="rt-metric-label">Organizaciones</div>
+            <div class="rt-metric-val" id="met-ongs">0</div>
+            <div class="rt-metric-sub">bajo supervisión</div>
+          </div>
+          <div class="rt-metric">
+            <div class="rt-metric-label">Lotes activos totales</div>
+            <div class="rt-metric-val" id="met-lotes">—</div>
+            <div class="rt-metric-sub">en todas las ONGs</div>
+          </div>
+          <div class="rt-metric">
+            <div class="rt-metric-label">Alertas</div>
+            <div class="rt-metric-val" id="met-alertas">—</div>
+            <div class="rt-metric-sub">requieren atención</div>
+          </div>
+          <div class="rt-metric">
+            <div class="rt-metric-label">Última actividad</div>
+            <div class="rt-metric-val" style="font-size:1rem;padding-top:4px;">—</div>
+            <div class="rt-metric-sub">sin actividad registrada</div>
+          </div>
         </div>
-        <div class="rt-metric">
-          <div class="rt-metric-label">Lotes activos totales</div>
-          <div class="rt-metric-val" id="met-lotes">6</div>
-          <div class="rt-metric-sub">en todas las ONGs</div>
+
+        <div class="sec-header">
+          <div>
+            <span class="sec-title">Organizaciones supervisadas</span>
+            <span class="sec-count" id="ong-count"></span>
+          </div>
+          <button class="btn-primary" onclick="showView('view-nueva-ong', document.getElementById('nav-nueva-ong'))">
+            <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+            Nueva Asociación Civil
+          </button>
         </div>
-        <div class="rt-metric">
-          <div class="rt-metric-label">Alertas</div>
-          <div class="rt-metric-val" id="met-alertas" style="color:var(--amber);">2</div>
-          <div class="rt-metric-sub">requieren atención</div>
-        </div>
-        <div class="rt-metric">
-          <div class="rt-metric-label">Última actividad</div>
-          <div class="rt-metric-val" style="font-size:1rem;padding-top:4px;">Hoy</div>
-          <div class="rt-metric-sub">ONG Esperanza Verde</div>
+
+        <div class="ong-grid" id="ong-grid">
+          <!-- Renderizado por JS -->
         </div>
       </div>
 
-      <!-- Lista ONGs -->
-      <div class="sec-header">
-        <div>
-          <span class="sec-title">Organizaciones supervisadas</span>
-          <span class="sec-count" id="ong-count"></span>
+      <!-- ── VIEW: NUEVA ONG ── -->
+      <div class="view" id="view-nueva-ong">
+        <div class="sec-header" style="margin-bottom:20px;">
+          <div class="sec-title">Nueva Asociación Civil</div>
         </div>
-      </div>
 
-      <div class="ong-grid" id="ong-grid">
-        <!-- Renderizado por JS -->
+        <div class="form-card">
+
+          <div class="form-section-title">Datos de la organización</div>
+          <div class="form-grid">
+            <div class="field">
+              <label>Nombre de la Asociación Civil *</label>
+              <input type="text" id="ong-nombre" placeholder="Ej: Asociación Civil Esperanza Verde"/>
+            </div>
+            <div class="field">
+              <label>CUIT / CUIL *</label>
+              <input type="text" id="ong-cuit" placeholder="Ej: 30-71234567-8"/>
+            </div>
+            <div class="field">
+              <label>Localidad *</label>
+              <input type="text" id="ong-localidad" placeholder="Ej: Buenos Aires, CABA"/>
+            </div>
+            <div class="field">
+              <label>Dirección</label>
+              <input type="text" id="ong-direccion" placeholder="Ej: Av. Corrientes 1234"/>
+            </div>
+            <div class="field">
+              <label>Email institucional</label>
+              <input type="email" id="ong-email" placeholder="contacto@asociacion.org"/>
+            </div>
+            <div class="field">
+              <label>Teléfono</label>
+              <input type="text" id="ong-telefono" placeholder="Ej: 11-4567-8901"/>
+            </div>
+          </div>
+
+          <div class="form-section-title">Responsable de la organización</div>
+          <div class="form-grid">
+            <div class="field">
+              <label>Nombre completo *</label>
+              <input type="text" id="ong-resp-nombre" placeholder="Ej: María González"/>
+            </div>
+            <div class="field">
+              <label>Email del responsable *</label>
+              <input type="email" id="ong-resp-email" placeholder="responsable@ejemplo.com"/>
+            </div>
+          </div>
+
+          <div class="form-section-title">Datos REPROCANN</div>
+          <div class="form-grid">
+            <div class="field">
+              <label>Nro. resolución REPROCANN <span>(si aplica)</span></label>
+              <input type="text" id="ong-reprocann" placeholder="Ej: RES-2024-0123"/>
+            </div>
+            <div class="field">
+              <label>Fecha de inscripción <span>(si aplica)</span></label>
+              <input type="date" id="ong-fecha-inscripcion"/>
+            </div>
+          </div>
+
+          <div class="form-grid full" style="margin-top:14px;">
+            <div class="field">
+              <label>Notas <span>(opcional)</span></label>
+              <textarea id="ong-notas" placeholder="Información adicional sobre la organización..."></textarea>
+            </div>
+          </div>
+
+          <div class="error-msg" id="error-nueva-ong">Completá los campos obligatorios (*).</div>
+
+          <div class="form-actions">
+            <button class="btn-primary" onclick="guardarONG()">
+              <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+              Dar de alta organización
+            </button>
+            <button class="btn-secondary" onclick="showView('view-mis-ongs', document.getElementById('nav-mis-ongs'))">Cancelar</button>
+          </div>
+
+        </div>
       </div>
 
     </div>
   </div>
 </div>
 
+<!-- ── POPUP BIENVENIDA ── -->
+<div class="overlay" id="overlay-bienvenida">
+  <div class="popup">
+    <div class="popup-icon">
+      <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 4l5 2.18V11c0 3.5-2.33 6.79-5 7.93-2.67-1.14-5-4.43-5-7.93V7.18L12 5z"/></svg>
+    </div>
+    <div class="popup-title">Bienvenido/a a AgroTrace</div>
+    <div class="popup-body">
+      Accediste como <strong>Responsable Técnico</strong>. Desde este panel supervisás la producción de las Asociaciones Civiles a tu cargo.
+    </div>
+    <div class="popup-tip">
+      <strong>Primer paso:</strong> Debés dar de alta al menos una Asociación Civil en el sistema. Hacé click en <strong>"Nueva Asociación Civil"</strong> en el menú lateral izquierdo para comenzar.
+    </div>
+    <button class="popup-btn" onclick="cerrarBienvenida()">Entendido, comenzar</button>
+  </div>
+</div>
+
 <script>
-/* ── DATOS SIMULADOS ── */
-const ONGS = [
-  {
-    id: 'ong-1',
-    nombre: 'ONG Esperanza Verde',
-    localidad: 'Buenos Aires, CABA',
-    estado: 'ok',
-    estadoLabel: 'Activa',
-    lotes_activos: 3,
-    stock_total_g: 420,
-    entregas_mes: 8,
-    alertas: [],
-    ultima_actividad: 'Hoy, 14:32',
-    contacto: 'Dr. Ramírez'
-  },
-  {
-    id: 'ong-2',
-    nombre: 'Asociación Cannábica Sur',
-    localidad: 'Córdoba Capital',
-    estado: 'warn',
-    estadoLabel: 'Con alertas',
-    lotes_activos: 1,
-    stock_total_g: 35,
-    entregas_mes: 3,
-    alertas: [
-      { tipo: 'warn', texto: 'Stock de flores bajo (35 g)' },
-      { tipo: 'warn', texto: 'Lote en Floración sin actualizar (8 días)' }
-    ],
-    ultima_actividad: 'Hace 8 días',
-    contacto: 'Lic. Gomez'
-  },
-  {
-    id: 'ong-3',
-    nombre: 'Fundación Florecer',
-    localidad: 'Rosario, Santa Fe',
-    estado: 'ok',
-    estadoLabel: 'Activa',
-    lotes_activos: 2,
-    stock_total_g: 210,
-    entregas_mes: 5,
-    alertas: [],
-    ultima_actividad: 'Ayer, 09:15',
-    contacto: 'Dr. Ferreyra'
-  }
-];
+let ONGS = [];
 
 /* ── INIT ── */
 function init() {
@@ -263,74 +358,133 @@ function init() {
   const iniciales = usuario.split(' ').map(p => p[0]).join('').toUpperCase().slice(0,2);
   document.getElementById('sb-av').textContent = iniciales;
   document.getElementById('sb-nombre').textContent = usuario;
-  document.getElementById('tb-sub').textContent = 'Bienvenido, ' + usuario;
+
+  // Mostrar popup de bienvenida si es el primer ingreso
+  if (!sessionStorage.getItem('rt_bienvenida_vista')) {
+    document.getElementById('overlay-bienvenida').classList.remove('hidden');
+  }
 
   renderONGs();
+}
+
+/* ── BIENVENIDA ── */
+function cerrarBienvenida() {
+  sessionStorage.setItem('rt_bienvenida_vista', '1');
+  document.getElementById('overlay-bienvenida').classList.add('hidden');
+}
+
+/* ── NAVEGACIÓN ── */
+function showView(viewId, navEl) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById(viewId).classList.add('active');
+  document.querySelectorAll('.nav-it').forEach(n => n.classList.remove('active'));
+  if (navEl) navEl.classList.add('active');
+
+  const titles = {
+    'view-mis-ongs': ['Mis Organizaciones', 'Panel de Supervisión'],
+    'view-nueva-ong': ['Nueva Asociación Civil', 'Gestión de Asociaciones'],
+  };
+  const t = titles[viewId];
+  if (t) {
+    document.getElementById('tb-title').textContent = t[0];
+    document.getElementById('tb-sub').textContent = t[1];
+  }
 }
 
 /* ── RENDER ONGs ── */
 function renderONGs() {
   const grid = document.getElementById('ong-grid');
-  document.getElementById('ong-count').textContent = ONGS.length + ' organizaciones';
+  document.getElementById('met-ongs').textContent = ONGS.length;
+  document.getElementById('ong-count').textContent = ONGS.length
+    ? ONGS.length + (ONGS.length === 1 ? ' organización' : ' organizaciones')
+    : '';
 
-  grid.innerHTML = ONGS.map(o => {
-    const badgeClass = o.estado === 'ok' ? 'badge-ok' : o.estado === 'warn' ? 'badge-warn' : 'badge-alert';
+  if (ONGS.length === 0) {
+    grid.innerHTML = `
+      <div class="empty-state" style="grid-column:1/-1;">
+        <div class="empty-icon">
+          <svg viewBox="0 0 24 24"><path d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z"/></svg>
+        </div>
+        <div class="empty-title">Sin organizaciones todavía</div>
+        <div class="empty-desc">Todavía no hay Asociaciones Civiles registradas.<br/>Usá el botón para dar de alta la primera.</div>
+        <button class="btn-primary" onclick="showView('view-nueva-ong', document.getElementById('nav-nueva-ong'))">
+          <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+          Nueva Asociación Civil
+        </button>
+      </div>`;
+    return;
+  }
 
-    const alertasHTML = o.alertas.length > 0
-      ? `<div class="ong-alerts">` + o.alertas.map(a =>
-          `<div class="ong-alert-item ${a.tipo === 'error' ? 'alert-error' : ''}">
-            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
-            ${a.texto}
-          </div>`
-        ).join('') + `</div>`
-      : '';
-
-    return `
+  grid.innerHTML = ONGS.map(o => `
     <div class="ong-card">
       <div class="ong-card-header">
-        <div class="ong-info">
+        <div>
           <div class="ong-name">${o.nombre}</div>
           <div class="ong-location">
             <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
-            ${o.localidad}
+            ${o.localidad || '—'}
           </div>
         </div>
-        <span class="ong-badge ${badgeClass}">${o.estadoLabel}</span>
+        <span class="ong-badge badge-ok">Activa</span>
       </div>
-
       <div class="ong-stats">
-        <div class="ong-stat">
-          <div class="ong-stat-val">${o.lotes_activos}</div>
-          <div class="ong-stat-lbl">Lotes activos</div>
-        </div>
-        <div class="ong-stat">
-          <div class="ong-stat-val">${o.stock_total_g} g</div>
-          <div class="ong-stat-lbl">Stock flores</div>
-        </div>
-        <div class="ong-stat">
-          <div class="ong-stat-val">${o.entregas_mes}</div>
-          <div class="ong-stat-lbl">Entregas/mes</div>
-        </div>
+        <div class="ong-stat"><div class="ong-stat-val">0</div><div class="ong-stat-lbl">Lotes activos</div></div>
+        <div class="ong-stat"><div class="ong-stat-val">0 g</div><div class="ong-stat-lbl">Stock flores</div></div>
+        <div class="ong-stat"><div class="ong-stat-val">0</div><div class="ong-stat-lbl">Entregas/mes</div></div>
       </div>
-
-      ${alertasHTML}
-
       <div class="ong-footer">
-        <div class="ong-last">Últ. actividad: ${o.ultima_actividad}</div>
+        <div class="ong-last">Responsable: ${o.resp_nombre || '—'}</div>
         <button class="btn-supervisar" onclick="supervisar('${o.id}','${o.nombre}')">
           <svg viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
           Supervisar
         </button>
       </div>
-    </div>`;
-  }).join('');
+    </div>`).join('');
+}
+
+/* ── GUARDAR ONG ── */
+function guardarONG() {
+  const nombre     = document.getElementById('ong-nombre').value.trim();
+  const cuit       = document.getElementById('ong-cuit').value.trim();
+  const localidad  = document.getElementById('ong-localidad').value.trim();
+  const direccion  = document.getElementById('ong-direccion').value.trim();
+  const email      = document.getElementById('ong-email').value.trim();
+  const telefono   = document.getElementById('ong-telefono').value.trim();
+  const respNombre = document.getElementById('ong-resp-nombre').value.trim();
+  const respEmail  = document.getElementById('ong-resp-email').value.trim();
+  const reprocann  = document.getElementById('ong-reprocann').value.trim();
+  const fechaInsc  = document.getElementById('ong-fecha-inscripcion').value;
+  const notas      = document.getElementById('ong-notas').value.trim();
+  const errEl      = document.getElementById('error-nueva-ong');
+
+  if (!nombre || !cuit || !localidad || !respNombre || !respEmail) {
+    errEl.classList.add('show'); return;
+  }
+  errEl.classList.remove('show');
+
+  const nueva = {
+    id: 'ong-' + Date.now(),
+    nombre, cuit, localidad, direccion, email, telefono,
+    resp_nombre: respNombre, resp_email: respEmail,
+    reprocann, fecha_inscripcion: fechaInsc, notas
+  };
+  ONGS.push(nueva);
+
+  // Limpiar formulario
+  ['ong-nombre','ong-cuit','ong-localidad','ong-direccion','ong-email',
+   'ong-telefono','ong-resp-nombre','ong-resp-email','ong-reprocann',
+   'ong-fecha-inscripcion','ong-notas'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+
+  showView('view-mis-ongs', document.getElementById('nav-mis-ongs'));
+  renderONGs();
 }
 
 /* ── SUPERVISAR ONG ── */
 function supervisar(ongId, ongNombre) {
   sessionStorage.setItem('agrotrace_supervisando_ong_id', ongId);
   sessionStorage.setItem('agrotrace_supervisando_ong_nombre', ongNombre);
-  sessionStorage.setItem('agrotrace_role', 'rt');
   window.location.href = 'agrotrace_prototipo_v3.html';
 }
 
