@@ -516,10 +516,10 @@
         </div>
 
         <div class="field">
-          <label>Usuario</label>
+          <label>Email</label>
           <div class="input-wrap">
             <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
-            <input type="text" id="username" placeholder="nombre.apellido" autocomplete="username"/>
+            <input type="email" id="username" placeholder="correo@ejemplo.com" autocomplete="email"/>
           </div>
         </div>
 
@@ -674,7 +674,13 @@
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
+  const sb = supabase.createClient(
+    'https://jqkyifuyaxxwugrnjfnq.supabase.co',
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impxa3lpZnV5YXh4d3Vncm5qZm5xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYwNTI0NTMsImV4cCI6MjA2MTYyODQ1M30.FMn7vUMiCmHrBi5x2Jjo-BRxmEYW2IbPJL_zx7wMorU'
+  );
+
   let selectedRole = null;
 
   function showView(id) {
@@ -709,15 +715,47 @@
     }
   }
 
-  function doLogin() {
-    // Banco de prueba: sin autenticación real
-    const usuario = document.getElementById('username').value.trim() || 'usuario_prueba';
-    sessionStorage.setItem('agrotrace_role', selectedRole);
-    sessionStorage.setItem('agrotrace_user', usuario);
-    // Limpiar supervisión previa
+  async function doLogin() {
+    const email    = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value;
+    const errEl    = document.getElementById('error-login');
+    const btn      = document.querySelector('#view-login .btn-primary');
+
+    if (!email || !password) {
+      errEl.textContent = 'Ingresá tu email y contraseña.';
+      errEl.classList.add('show'); return;
+    }
+    errEl.classList.remove('show');
+    btn.textContent = 'Ingresando...'; btn.disabled = true;
+
+    const { data, error } = await sb.auth.signInWithPassword({ email, password });
+
+    if (error) {
+      errEl.textContent = 'Email o contraseña incorrectos.';
+      errEl.classList.add('show');
+      btn.textContent = 'Ingresar'; btn.disabled = false;
+      return;
+    }
+
+    // Leer perfil real desde la BD
+    const { data: perfil } = await sb.from('perfiles').select('rol,nombre').eq('id', data.user.id).single();
+    const rol    = perfil?.rol || 'ong';
+    const nombre = perfil?.nombre || email;
+
+    // Verificar que el rol seleccionado en pantalla coincide con el rol real
+    if (selectedRole && selectedRole !== rol && rol !== 'superadmin') {
+      errEl.textContent = 'El perfil seleccionado no coincide con tu cuenta.';
+      errEl.classList.add('show');
+      btn.textContent = 'Ingresar'; btn.disabled = false;
+      await sb.auth.signOut(); return;
+    }
+
+    sessionStorage.setItem('agrotrace_role', rol);
+    sessionStorage.setItem('agrotrace_user', nombre);
     sessionStorage.removeItem('agrotrace_supervisando_ong_id');
     sessionStorage.removeItem('agrotrace_supervisando_ong_nombre');
-    if (selectedRole === 'rt') {
+
+    if (rol === 'rt') {
       window.location.href = 'portal_rt.html';
     } else {
       window.location.href = 'agrotrace_prototipo_v3.html';
@@ -760,14 +798,16 @@
     }
   }
 
-  function doRecover() {
+  async function doRecover() {
     const email = document.getElementById('recover-email').value.trim();
     const err   = document.getElementById('error-recover');
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      err.classList.add('show');
-      return;
+      err.classList.add('show'); return;
     }
     err.classList.remove('show');
+    await sb.auth.resetPasswordForEmail(email, {
+      redirectTo: 'https://gcorreatedesco.github.io/agrotrace-portal/'
+    });
     showView('view-recover-ok');
   }
 </script>
