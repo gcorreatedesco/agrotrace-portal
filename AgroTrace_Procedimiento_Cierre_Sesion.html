@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<title>AgroTrace — Procedimiento de Cierre y Retoma de Sesión</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap');
+
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'DM Sans',sans-serif;background:#F7F4EF;color:#2C1F0E;font-size:13px;padding:40px 20px;}
+  .page{max-width:820px;margin:0 auto;}
+
+  /* HEADER */
+  .header{background:#2C1F0E;border-radius:12px;padding:32px 36px;margin-bottom:32px;display:flex;justify-content:space-between;align-items:flex-end;}
+  .header-left h1{font-family:'DM Serif Display',serif;font-size:2rem;color:#EDF2E8;margin-bottom:4px;}
+  .header-left p{font-size:0.75rem;color:#C8D9BC;font-weight:300;letter-spacing:0.06em;text-transform:uppercase;}
+  .header-right{text-align:right;flex-shrink:0;margin-left:20px;}
+  .header-right .doc-label{font-size:0.6rem;color:#8EAA7B;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px;}
+  .header-right .doc-version{font-family:'DM Serif Display',serif;font-size:1.1rem;color:#EDF2E8;}
+  .header-right .doc-date{font-size:0.65rem;color:#8EAA7B;margin-top:2px;}
+
+  /* SECTION TITLE */
+  .section-title{font-size:0.6rem;font-weight:500;text-transform:uppercase;letter-spacing:0.14em;color:#6B7F5E;margin-bottom:10px;padding-left:2px;margin-top:28px;}
+
+  /* INTRO */
+  .intro{background:white;border:1px solid rgba(0,0,0,0.07);border-radius:10px;padding:18px 22px;margin-bottom:20px;font-size:0.8rem;color:#4A3520;line-height:1.7;}
+  .intro strong{color:#2C1F0E;}
+
+  /* SEÑALES */
+  .signals-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;}
+  .signal-card{background:white;border:1px solid rgba(0,0,0,0.07);border-radius:10px;padding:14px 16px;}
+  .signal-card .sc-label{font-size:0.58rem;font-weight:500;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px;}
+  .sc-warn{color:#854F0B;}
+  .sc-ok{color:#4E7C3F;}
+  .signal-card ul{list-style:none;display:flex;flex-direction:column;gap:5px;}
+  .signal-card li{font-size:0.72rem;color:#4A3520;display:flex;align-items:flex-start;gap:7px;line-height:1.5;}
+  .signal-card.warn-card li::before{content:'⚠';font-size:0.7rem;flex-shrink:0;margin-top:1px;}
+  .signal-card.ok-card li::before{content:'✓';color:#4E7C3F;flex-shrink:0;margin-top:1px;}
+
+  /* PASOS */
+  .paso{background:white;border:1px solid rgba(0,0,0,0.07);border-radius:10px;overflow:hidden;margin-bottom:14px;}
+  .paso-header{display:flex;align-items:stretch;}
+  .paso-num{width:52px;display:flex;align-items:center;justify-content:center;font-family:'DM Serif Display',serif;font-size:1.8rem;flex-shrink:0;}
+  .p1 .paso-num{background:#2C1F0E;color:#EDF2E8;}
+  .p2 .paso-num{background:#4A3520;color:#EDF2E8;}
+  .p3 .paso-num{background:#4E7C3F;color:white;}
+  .p4 .paso-num{background:#534AB7;color:white;}
+  .p5 .paso-num{background:#6B7F5E;color:white;}
+  .paso-head-body{padding:12px 16px;flex:1;border-bottom:1px solid rgba(0,0,0,0.07);}
+  .paso-title{font-size:0.9rem;font-weight:500;color:#2C1F0E;margin-bottom:2px;}
+  .paso-sub{font-size:0.7rem;color:#6B7F5E;}
+  .paso-body{padding:14px 16px;}
+  .paso-desc{font-size:0.75rem;color:#4A3520;line-height:1.7;margin-bottom:12px;}
+
+  /* PROMPT BOX */
+  .prompt-box{background:#1e1e2e;border-radius:8px;padding:16px 18px;margin:10px 0;position:relative;}
+  .prompt-box pre{font-family:'Courier New',monospace;font-size:0.72rem;line-height:1.8;color:#cdd6f4;white-space:pre-wrap;word-break:break-word;}
+  .prompt-box .copy-btn{position:absolute;top:10px;right:10px;background:#4E7C3F;color:white;border:none;border-radius:5px;padding:4px 10px;font-size:0.62rem;font-family:'DM Sans',sans-serif;cursor:pointer;letter-spacing:0.05em;}
+  .prompt-box .copy-btn:hover{background:#6B7F5E;}
+  .prompt-box .copy-btn.copied{background:#534AB7;}
+  .prompt-label{font-size:0.6rem;font-weight:500;text-transform:uppercase;letter-spacing:0.1em;color:#8EAA7B;margin-bottom:6px;}
+
+  /* CHECKLIST */
+  .checklist{list-style:none;display:flex;flex-direction:column;gap:7px;margin:8px 0;}
+  .checklist li{font-size:0.75rem;color:#4A3520;display:flex;align-items:flex-start;gap:8px;line-height:1.6;}
+  .checklist li input[type=checkbox]{margin-top:3px;accent-color:#4E7C3F;flex-shrink:0;width:13px;height:13px;cursor:pointer;}
+
+  /* TEMPLATE */
+  .template-box{background:#F1EFE8;border:1px solid rgba(0,0,0,0.1);border-radius:8px;padding:14px 16px;margin:10px 0;}
+  .template-box .tpl-section{font-size:0.6rem;font-weight:500;text-transform:uppercase;letter-spacing:0.1em;color:#6B7F5E;margin-top:12px;margin-bottom:4px;}
+  .template-box .tpl-section:first-child{margin-top:0;}
+  .template-box .tpl-line{font-size:0.72rem;color:#4A3520;line-height:1.6;font-style:italic;}
+  .template-box .tpl-field{display:inline-block;background:rgba(78,124,63,0.12);border-radius:3px;padding:0 5px;color:#4E7C3F;font-style:normal;font-weight:500;}
+
+  /* NOTA */
+  .nota{background:#EDF2E8;border:1px solid rgba(78,124,63,0.2);border-radius:8px;padding:10px 14px;font-size:0.72rem;color:#4A3520;line-height:1.6;margin-top:10px;}
+  .nota strong{color:#4E7C3F;}
+  .warn{background:#FAEEDA;border:1px solid rgba(133,79,11,0.2);border-radius:8px;padding:10px 14px;font-size:0.72rem;color:#4A3520;line-height:1.6;margin-top:10px;}
+  .warn strong{color:#854F0B;}
+  .info{background:#ECEAF7;border:1px solid rgba(83,74,183,0.2);border-radius:8px;padding:10px 14px;font-size:0.72rem;color:#4A3520;line-height:1.6;margin-top:10px;}
+  .info strong{color:#534AB7;}
+
+  /* TABLA */
+  .table-wrap{background:white;border:1px solid rgba(0,0,0,0.07);border-radius:10px;overflow:hidden;margin-bottom:14px;}
+  .table-wrap table{width:100%;border-collapse:collapse;}
+  .table-wrap th{background:#2C1F0E;color:#C8D9BC;font-size:0.6rem;font-weight:500;text-transform:uppercase;letter-spacing:0.08em;padding:10px 14px;text-align:left;}
+  .table-wrap td{padding:9px 14px;font-size:0.72rem;border-bottom:1px solid rgba(0,0,0,0.05);vertical-align:top;line-height:1.6;}
+  .table-wrap tr:last-child td{border-bottom:none;}
+  .table-wrap tr:nth-child(even) td{background:#FAFAF8;}
+  .chip{display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.62rem;font-weight:500;}
+  .chip-green{background:#EDF2E8;color:#4E7C3F;}
+  .chip-amber{background:#FAEEDA;color:#854F0B;}
+  .chip-purple{background:#ECEAF7;color:#534AB7;}
+
+  /* DIVIDER */
+  .divider{border:none;border-top:1px solid rgba(0,0,0,0.08);margin:24px 0;}
+
+  /* FLUJO RETOMA */
+  .flow-row{display:flex;align-items:center;gap:0;margin:12px 0;}
+  .flow-step{background:white;border:1px solid rgba(0,0,0,0.1);border-radius:8px;padding:10px 14px;font-size:0.72rem;color:#2C1F0E;flex:1;text-align:center;line-height:1.5;}
+  .flow-step strong{display:block;font-size:0.65rem;text-transform:uppercase;letter-spacing:0.08em;color:#6B7F5E;margin-bottom:3px;}
+  .flow-arrow{font-size:1rem;color:#C8D9BC;padding:0 6px;flex-shrink:0;}
+
+  @media(max-width:600px){
+    .signals-grid{grid-template-columns:1fr;}
+    .header{flex-direction:column;gap:16px;}
+    .header-right{text-align:left;}
+    .flow-row{flex-direction:column;}
+    .flow-arrow{transform:rotate(90deg);}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-left">
+      <h1>Cierre y Retoma de Sesión</h1>
+      <p>Procedimiento para sesiones de vibe-coding con Claude</p>
+    </div>
+    <div class="header-right">
+      <div class="doc-label">Documento</div>
+      <div class="doc-version">v1.0</div>
+      <div class="doc-date">AgroTrace · 2026</div>
+    </div>
+  </div>
+
+  <!-- INTRO -->
+  <div class="intro">
+    Una sesión larga de vibe-coding acumula contexto valioso: decisiones tomadas, código producido, problemas resueltos, ramas sin terminar.
+    Si no se captura al final, la próxima sesión empieza a ciegas y se gasta buena parte del tiempo reconstruyendo lo que ya estaba claro.
+    <br><br>
+    Este procedimiento toma <strong>5-10 minutos al cerrar</strong> y ahorra 20-30 al retomar. Hacerlo como último acto de cada sesión productiva.
+  </div>
+
+  <!-- CUÁNDO ACTIVAR -->
+  <div class="section-title">Cuándo activar el procedimiento</div>
+  <div class="signals-grid">
+    <div class="signal-card warn-card">
+      <div class="sc-label sc-warn">Señales de que es momento de cerrar</div>
+      <ul>
+        <li>Claude empieza a repetir cosas ya discutidas o "olvida" decisiones tomadas</li>
+        <li>Las respuestas se vuelven más genéricas o menos precisas que al inicio</li>
+        <li>La sesión lleva más de 90 minutos activos</li>
+        <li>Se terminó una funcionalidad importante y hay una pausa natural</li>
+        <li>Aparece el aviso de contexto comprimido en la sesión</li>
+      </ul>
+    </div>
+    <div class="signal-card ok-card">
+      <div class="sc-label sc-ok">También hacerlo aunque la sesión esté "fresca"</div>
+      <ul>
+        <li>Al terminar el día aunque haya sido una sesión corta</li>
+        <li>Antes de una pausa de más de 24 horas</li>
+        <li>Después de implementar un módulo completo</li>
+        <li>Cuando se tomaron decisiones de arquitectura importantes</li>
+        <li>Si hubo cambios en la base de datos (schema, RLS, migraciones)</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- PASO 1 -->
+  <div class="section-title">Procedimiento de cierre — paso a paso</div>
+
+  <div class="paso p1">
+    <div class="paso-header">
+      <div class="paso-num">1</div>
+      <div class="paso-head-body">
+        <div class="paso-title">Pedirle el resumen a Claude</div>
+        <div class="paso-sub">Copiar y pegar este prompt al final de la sesión</div>
+      </div>
+    </div>
+    <div class="paso-body">
+      <div class="paso-desc">
+        Usá este prompt exacto. Está diseñado para extraer todo lo relevante sin ambigüedad.
+        Claude tiene el contexto completo de la sesión en memoria en ese momento — es el mejor momento para pedirlo.
+      </div>
+      <div class="prompt-label">Prompt de cierre — copiar tal cual</div>
+      <div class="prompt-box">
+        <button class="copy-btn" onclick="copyPrompt(this)">Copiar</button>
+        <pre id="prompt-cierre">Antes de cerrar la sesión, necesito que hagas un resumen estructurado para poder retomar sin perder contexto. Incluí:
+
+1. QUÉ CONSTRUIMOS HOY — lista de funcionalidades o cambios implementados, con una línea de descripción cada uno. Si hay código guardado en archivos, mencioná los archivos afectados.
+
+2. DECISIONES TOMADAS — decisiones de diseño, arquitectura o negocio que se tomaron durante la sesión y por qué (aunque parezcan obvias, anotarlas evita volver a discutirlas).
+
+3. ESTADO ACTUAL — para cada módulo o área del sistema: qué está completo, qué está en progreso, qué está pendiente.
+
+4. PROBLEMAS O BUGS ENCONTRADOS — si quedó algo sin resolver o con una solución provisoria, documentarlo.
+
+5. PRÓXIMOS PASOS — lista ordenada por prioridad de lo que queda por hacer, con suficiente detalle para retomar sin preguntar.
+
+6. COMANDOS O CONFIGURACIONES A RECORDAR — cualquier comando de terminal, SQL, configuración de servicio externo, o URL relevante que se usó hoy.
+
+Formatealo en Markdown limpio para guardarlo en summary.md.</pre>
+      </div>
+      <div class="nota"><strong>Tip:</strong> Si la sesión fue muy larga y Claude ya tiene contexto comprimido, el resumen puede estar incompleto. En ese caso, scrolleá hacia arriba en la conversación y agregá manualmente lo que falta en el paso siguiente.</div>
+    </div>
+  </div>
+
+  <!-- PASO 2 -->
+  <div class="paso p2">
+    <div class="paso-header">
+      <div class="paso-num">2</div>
+      <div class="paso-head-body">
+        <div class="paso-title">Revisar y completar el resumen</div>
+        <div class="paso-sub">El resumen de Claude es un borrador — revisarlo antes de guardar</div>
+      </div>
+    </div>
+    <div class="paso-body">
+      <div class="paso-desc">
+        Chequeá que el resumen generado contenga todo lo relevante. Esta lista ayuda a detectar lo que Claude puede haber omitido.
+      </div>
+      <ul class="checklist">
+        <li><input type="checkbox"> ¿Están todos los archivos modificados? (no solo los nuevos, también los editados)</li>
+        <li><input type="checkbox"> ¿Las decisiones de negocio tienen el "por qué"? (no solo el "qué")</li>
+        <li><input type="checkbox"> ¿Quedó algún workaround o solución temporal sin documentar?</li>
+        <li><input type="checkbox"> ¿Hay migraciones SQL que se ejecutaron en Supabase que no están en el schema?</li>
+        <li><input type="checkbox"> ¿Los próximos pasos son suficientemente concretos para retomar sin preguntar?</li>
+        <li><input type="checkbox"> ¿Hay algún servicio externo (Supabase, Resend, GitHub) con configuración que cambió?</li>
+        <li><input type="checkbox"> ¿Quedó algo "a medio hacer" que puede romper algo si se toca sin saber el contexto?</li>
+      </ul>
+      <div class="warn"><strong>Atención:</strong> Si quedó código incompleto o con TODOs, marcarlo explícitamente en el resumen. "Función X está comentada hasta que se resuelva Y" es información crítica que evita horas de debug en la próxima sesión.</div>
+    </div>
+  </div>
+
+  <!-- PASO 3 -->
+  <div class="paso p3">
+    <div class="paso-header">
+      <div class="paso-num">3</div>
+      <div class="paso-head-body">
+        <div class="paso-title">Guardar los archivos de contexto</div>
+        <div class="paso-sub">Dos archivos a actualizar antes de cerrar</div>
+      </div>
+    </div>
+    <div class="paso-body">
+      <div class="paso-desc">El repositorio tiene dos archivos de contexto que deben mantenerse actualizados. Claude puede escribirlos directamente si se le pide.</div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Archivo</th>
+              <th>Qué contiene</th>
+              <th>Cuándo actualizar</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>summary.md</strong></td>
+              <td>Resumen acumulativo de todo lo construido. Siempre se sobreescribe con la versión más completa y actualizada.</td>
+              <td>Al final de cada sesión productiva</td>
+            </tr>
+            <tr>
+              <td><strong>Proximospasos.md</strong></td>
+              <td>Lista ordenada de próximos pasos con suficiente detalle para retomar. Refleja el estado real, no aspiracional.</td>
+              <td>Cada vez que cambia la prioridad o se completan ítems</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="prompt-label">Prompt para que Claude actualice los archivos</div>
+      <div class="prompt-box">
+        <button class="copy-btn" onclick="copyPrompt(this)">Copiar</button>
+        <pre id="prompt-archivos">Con el resumen que acabas de generar, actualizá los dos archivos de contexto del repositorio:
+
+1. Sobreescribí summary.md con el resumen completo en formato Markdown.
+2. Actualizá Proximospasos.md con los próximos pasos en orden de prioridad, con suficiente detalle para retomar sin preguntas. Eliminá los ítems ya completados.
+
+Después hacé git add y git commit con mensaje "docs: actualizar resumen y próximos pasos — [fecha de hoy]".</pre>
+      </div>
+      <div class="nota"><strong>Nota sobre la memoria automática:</strong> Claude Code guarda memorias en <code>~/.claude/projects/.../memory/</code>. Estas persisten entre sesiones y complementan los archivos del repo. Si tomaste una decisión importante de diseño o preferencia de trabajo, pedile a Claude que la guarde en memoria: <em>"recordá que decidimos X porque Y"</em>.</div>
+    </div>
+  </div>
+
+  <!-- PASO 4 -->
+  <div class="paso p4">
+    <div class="paso-header">
+      <div class="paso-num">4</div>
+      <div class="paso-head-body">
+        <div class="paso-title">Commit y push</div>
+        <div class="paso-sub">Dejar el repositorio limpio antes de cerrar</div>
+      </div>
+    </div>
+    <div class="paso-body">
+      <div class="paso-desc">
+        Nunca cerrar una sesión con cambios sin commitear. Un cambio sin commit es trabajo perdido si algo falla.
+        El push a main también actualiza GitHub Pages automáticamente.
+      </div>
+      <ul class="checklist">
+        <li><input type="checkbox"> git status — confirmar qué archivos cambiaron</li>
+        <li><input type="checkbox"> Revisar que no haya archivos de credenciales o .env en el staging area</li>
+        <li><input type="checkbox"> git add de los archivos modificados (específicos, no <code>git add .</code> a ciegas)</li>
+        <li><input type="checkbox"> git commit con mensaje descriptivo</li>
+        <li><input type="checkbox"> git push a main</li>
+        <li><input type="checkbox"> Verificar en GitHub Pages que el deploy esté OK (1-2 minutos)</li>
+      </ul>
+      <div class="warn"><strong>Regla:</strong> Si hay cambios que deliberadamente no se quieren commitear todavía (trabajo en progreso, experimento), dejar un comentario en el código con <code>// WIP: [descripción]</code> y mencionarlo en el resumen. No dejar cambios "flotando" sin documentar.</div>
+    </div>
+  </div>
+
+  <!-- PASO 5 -->
+  <div class="paso p5">
+    <div class="paso-header">
+      <div class="paso-num">5</div>
+      <div class="paso-head-body">
+        <div class="paso-title">Verificar que todo funciona</div>
+        <div class="paso-sub">30 segundos que evitan arrancar la próxima sesión debuggeando</div>
+      </div>
+    </div>
+    <div class="paso-body">
+      <div class="paso-desc">
+        Abrir la URL de producción y hacer un smoke test rápido de lo que se modificó hoy.
+      </div>
+      <ul class="checklist">
+        <li><input type="checkbox"> Abrir <a href="https://gcorreatedesco.github.io/agrotrace-portal/" target="_blank">GitHub Pages</a> y verificar que carga sin errores</li>
+        <li><input type="checkbox"> Abrir la consola del navegador (F12) — no debería haber errores en rojo</li>
+        <li><input type="checkbox"> Probar la funcionalidad principal que se modificó hoy</li>
+        <li><input type="checkbox"> Si se modificó algo de Supabase: verificar que las queries siguen funcionando</li>
+      </ul>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- RETOMA -->
+  <div class="section-title">Procedimiento de retoma — inicio de sesión</div>
+
+  <div class="intro" style="margin-bottom:16px;">
+    Al abrir una nueva sesión, Claude arranca sin contexto de la anterior. El objetivo es dárselo de forma eficiente en
+    <strong>un solo mensaje</strong>, no en varias idas y vueltas.
+  </div>
+
+  <div class="flow-row">
+    <div class="flow-step"><strong>1</strong>Abrir Claude Code en el proyecto</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step"><strong>2</strong>Enviar el prompt de retoma</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step"><strong>3</strong>Claude lee los archivos y toma contexto</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step"><strong>4</strong>Confirmar entendimiento y arrancar</div>
+  </div>
+
+  <div style="margin-top:16px;">
+    <div class="prompt-label">Prompt de retoma — copiar al inicio de la nueva sesión</div>
+    <div class="prompt-box">
+      <button class="copy-btn" onclick="copyPrompt(this)">Copiar</button>
+      <pre id="prompt-retoma">Retomamos el proyecto AgroTrace. Antes de arrancar, leé estos archivos para tomar contexto:
+- summary.md → qué está construido y cómo funciona
+- Proximospasos.md → qué sigue y en qué orden
+- CLAUDE.md → reglas del proyecto, stack y convenciones
+
+Cuando los hayas leído, confirmame en 3-4 líneas qué entendés que es el estado actual y cuál sería el primer paso lógico para hoy. Yo te confirmo o corrijo antes de arrancar.</pre>
+    </div>
+  </div>
+
+  <div class="nota" style="margin-top:10px;"><strong>Por qué pedir confirmación:</strong> Claude puede leer los archivos pero interpretarlos distinto a lo que vos tenés en mente. Ese intercambio de 2 mensajes al inicio alinea el entendimiento y evita que Claude arranque implementando algo en la dirección equivocada.</div>
+
+  <hr class="divider">
+
+  <!-- TABLA REFERENCIA RÁPIDA -->
+  <div class="section-title">Referencia rápida — archivos de contexto del proyecto</div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Archivo</th>
+          <th>Propósito</th>
+          <th>Quién lo lee</th>
+          <th>Frecuencia de update</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>CLAUDE.md</strong></td>
+          <td>Reglas fijas del proyecto: stack, paleta, convenciones, arquitectura. No cambia frecuentemente.</td>
+          <td><span class="chip chip-purple">Claude (automático)</span></td>
+          <td>Solo cuando cambia el stack o las convenciones</td>
+        </tr>
+        <tr>
+          <td><strong>summary.md</strong></td>
+          <td>Resumen acumulativo de lo construido. La "memoria viva" del proyecto.</td>
+          <td><span class="chip chip-green">Claude (manual)</span></td>
+          <td>Al final de cada sesión</td>
+        </tr>
+        <tr>
+          <td><strong>Proximospasos.md</strong></td>
+          <td>Lista priorizada de próximos pasos. Refleja el estado real del backlog.</td>
+          <td><span class="chip chip-green">Claude (manual)</span></td>
+          <td>Cada vez que cambian las prioridades</td>
+        </tr>
+        <tr>
+          <td><strong>memory/*.md</strong></td>
+          <td>Memorias persistentes: preferencias, decisiones, perfil de usuario. Automáticas.</td>
+          <td><span class="chip chip-purple">Claude (automático)</span></td>
+          <td>Claude las actualiza solo al aprender algo nuevo</td>
+        </tr>
+        <tr>
+          <td><strong>supabase_schema.sql</strong></td>
+          <td>Schema completo de la base de datos. Fuente de verdad del modelo de datos.</td>
+          <td><span class="chip chip-amber">Consulta</span></td>
+          <td>Cada vez que se modifica la base de datos</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ANTI-PATRONES -->
+  <div class="section-title">Errores comunes a evitar</div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Anti-patrón</th>
+          <th>Por qué es un problema</th>
+          <th>Qué hacer en cambio</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Arrancar la sesión nueva sin prompt de retoma</td>
+          <td>Claude no tiene contexto — empieza genérico y hace preguntas básicas que ya tienen respuesta</td>
+          <td>Siempre enviar el prompt de retoma como primer mensaje</td>
+        </tr>
+        <tr>
+          <td>Pedirle a Claude que "recuerde" algo sin guardarlo en un archivo</td>
+          <td>La memoria de sesión no persiste. Al cerrar la pestaña, se pierde.</td>
+          <td>Todo lo importante va a summary.md, Proximospasos.md o memory/</td>
+        </tr>
+        <tr>
+          <td>Hacer muchos cambios sin commitear y cerrar</td>
+          <td>Si el browser crashea o se cierra sin guardar, el trabajo se pierde</td>
+          <td>Commit al terminar cada funcionalidad, no al final del día</td>
+        </tr>
+        <tr>
+          <td>Continuar una sesión que ya está muy degradada</td>
+          <td>Claude empieza a contradecirse o a ignorar restricciones ya establecidas</td>
+          <td>Detectar las señales de la tabla anterior y cerrar antes de que empeore</td>
+        </tr>
+        <tr>
+          <td>Resumen demasiado largo y narrativo</td>
+          <td>Claude tarda más en procesarlo y pierde los puntos clave en el ruido</td>
+          <td>Listas cortas, puntos concretos, sin prosa innecesaria</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="info" style="margin-top:4px;">
+    <strong>Sobre el contexto comprimido:</strong> Claude Code comprime automáticamente conversaciones largas para no exceder el límite de contexto. Cuando eso pasa, el historial detallado desaparece pero los archivos del repo siguen disponibles. Por eso los archivos de contexto son más confiables que "lo que Claude recuerda de la sesión".
+  </div>
+
+</div>
+
+<script>
+function copyPrompt(btn) {
+  // Find the pre element sibling
+  const box = btn.parentElement;
+  const pre = box.querySelector('pre');
+  navigator.clipboard.writeText(pre.textContent.trim()).then(() => {
+    const orig = btn.textContent;
+    btn.textContent = '¡Copiado!';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.textContent = orig;
+      btn.classList.remove('copied');
+    }, 1800);
+  });
+}
+</script>
+</body>
+</html>
