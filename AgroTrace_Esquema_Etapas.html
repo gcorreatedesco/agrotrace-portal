@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AgroTrace — Esquema de Etapas Productivas</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --soil:#2C1F0E; --bark:#4A3520; --sage:#6B7F5E; --leaf:#8EAA7B;
+  --mist:#C8D9BC; --dew:#EDF2E8; --cream:#F7F4EF; --accent:#4E7C3F;
+  --amber:#854F0B; --amber-bg:#FDF3E3; --purple:#534AB7; --error:#B94A3A;
+  --radius:8px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--soil);font-size:14px;line-height:1.5;padding:0 0 60px;}
+
+/* ── HEADER ── */
+.doc-header{background:var(--soil);color:var(--dew);padding:32px 40px 28px;}
+.doc-title{font-family:'DM Serif Display',serif;font-size:1.8rem;color:#fff;margin-bottom:4px;}
+.doc-sub{font-size:0.8rem;color:var(--mist);opacity:.8;}
+.doc-meta{display:flex;gap:24px;margin-top:18px;flex-wrap:wrap;}
+.doc-meta span{font-size:0.72rem;color:var(--leaf);display:flex;align-items:center;gap:5px;}
+
+/* ── LAYOUT ── */
+.container{max-width:1100px;margin:0 auto;padding:32px 24px 0;}
+h2{font-family:'DM Serif Display',serif;font-size:1.25rem;color:var(--soil);margin-bottom:6px;}
+.section-desc{font-size:0.78rem;color:var(--sage);margin-bottom:20px;line-height:1.6;}
+
+/* ── FLOW DIAGRAM ── */
+.flow-wrap{overflow-x:auto;padding-bottom:12px;}
+.flow{display:flex;align-items:flex-start;gap:0;min-width:900px;position:relative;}
+
+.stage{flex:1;display:flex;flex-direction:column;position:relative;}
+
+.arrow-connector{width:28px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding-top:52px;}
+.arrow-line{height:2px;width:100%;background:var(--mist);}
+.arrow-head{width:0;height:0;border-top:5px solid transparent;border-bottom:5px solid transparent;border-left:7px solid var(--mist);}
+.arrow-propagate{font-size:0.58rem;color:var(--sage);text-align:center;margin-top:4px;line-height:1.3;white-space:nowrap;}
+
+.stage-box{border-radius:var(--radius);overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.1);border:1px solid rgba(0,0,0,0.08);}
+.stage-header{padding:9px 12px;color:#fff;font-size:0.7rem;font-weight:500;text-transform:uppercase;letter-spacing:.05em;display:flex;align-items:center;gap:6px;}
+.stage-num{width:20px;height:20px;border-radius:50%;background:rgba(255,255,255,0.22);display:flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:700;flex-shrink:0;}
+.stage-body{background:#fff;padding:10px 12px;}
+.stage-label{font-size:0.68rem;color:var(--sage);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;font-weight:500;}
+.field-row{display:flex;align-items:flex-start;gap:5px;margin-bottom:4px;font-size:0.72rem;color:var(--bark);line-height:1.4;}
+.field-row.req::before{content:'*';color:var(--accent);font-weight:700;flex-shrink:0;margin-top:1px;}
+.field-row.opt::before{content:'○';color:var(--mist);font-size:.6rem;flex-shrink:0;margin-top:2px;}
+.field-row.calc::before{content:'=';color:var(--amber);font-size:.75rem;font-weight:700;flex-shrink:0;}
+.divider{border:none;border-top:1px solid rgba(0,0,0,0.06);margin:8px 0;}
+.stage-footer{background:var(--dew);padding:7px 12px;font-size:0.66rem;color:var(--accent);border-top:1px solid rgba(0,0,0,0.06);}
+.stage-footer strong{display:block;font-size:0.62rem;text-transform:uppercase;letter-spacing:.04em;color:var(--sage);margin-bottom:2px;}
+
+/* colors per stage */
+.h-nur{background:#3D6B4F;}
+.h-veg{background:#4E7C3F;}
+.h-flo{background:#6B4FA3;}
+.h-cos{background:#A0522D;}
+.h-cur{background:#7B6B3D;}
+.h-fls{background:#2C6B8A;}
+
+/* ── PROPAGATION DETAIL TABLE ── */
+.prop-table{width:100%;border-collapse:collapse;margin-top:20px;font-size:0.75rem;}
+.prop-table th{background:var(--soil);color:var(--dew);padding:8px 12px;text-align:left;font-weight:500;font-size:0.68rem;text-transform:uppercase;letter-spacing:.04em;}
+.prop-table td{padding:8px 12px;border-bottom:1px solid rgba(0,0,0,0.06);vertical-align:top;color:var(--bark);}
+.prop-table tr:last-child td{border-bottom:none;}
+.prop-table tr:nth-child(even) td{background:rgba(0,0,0,0.02);}
+.tag{display:inline-block;padding:2px 7px;border-radius:20px;font-size:0.63rem;font-weight:500;}
+.tag-auto{background:var(--dew);color:var(--accent);}
+.tag-manual{background:rgba(0,0,0,0.06);color:var(--bark);}
+.tag-calc{background:var(--amber-bg);color:var(--amber);}
+
+/* ── ERD CHANGE TABLE ── */
+.erd-section{margin-top:36px;}
+.erd-table{width:100%;border-collapse:collapse;font-size:0.75rem;margin-top:12px;}
+.erd-table th{background:var(--bark);color:#fff;padding:8px 12px;text-align:left;font-size:0.68rem;text-transform:uppercase;letter-spacing:.04em;}
+.erd-table td{padding:9px 12px;border-bottom:1px solid rgba(0,0,0,0.07);vertical-align:top;}
+.erd-table tr:last-child td{border-bottom:none;}
+.change-new{color:var(--accent);font-weight:500;}
+.change-mod{color:var(--amber);font-weight:500;}
+.change-del{color:var(--error);text-decoration:line-through;font-weight:500;}
+
+/* ── TABLE SCHEMAS ── */
+.tables-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;margin-top:16px;}
+.table-card{background:#fff;border-radius:var(--radius);border:1px solid rgba(0,0,0,0.08);overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.06);}
+.table-card-header{padding:8px 12px;font-size:0.72rem;font-weight:500;display:flex;align-items:center;gap:6px;}
+.table-card-header .tbl-ico{font-size:1rem;}
+.tc-nur{background:#EEF5EC;color:#3D6B4F;border-bottom:2px solid #3D6B4F;}
+.tc-veg{background:#EDF2E8;color:var(--accent);border-bottom:2px solid var(--accent);}
+.tc-flo{background:#F0EDF9;color:#6B4FA3;border-bottom:2px solid #6B4FA3;}
+.tc-cos{background:#FDF0E8;color:#A0522D;border-bottom:2px solid #A0522D;}
+.tc-cur{background:#F5F3E8;color:#7B6B3D;border-bottom:2px solid #7B6B3D;}
+.tc-fls{background:#E8F2F7;color:#2C6B8A;border-bottom:2px solid #2C6B8A;}
+.tc-new{background:#EEF5EC;border-bottom:2px dashed var(--accent);}
+.tc-mod{background:var(--amber-bg);border-bottom:2px dashed var(--amber);}
+.col-row{display:flex;justify-content:space-between;align-items:flex-start;padding:5px 12px;border-bottom:1px solid rgba(0,0,0,0.04);font-size:0.7rem;}
+.col-row:last-child{border-bottom:none;}
+.col-name{color:var(--soil);font-family:monospace;font-size:0.72rem;}
+.col-type{color:var(--sage);font-size:0.65rem;font-style:italic;}
+.col-pk{color:var(--accent);font-weight:700;font-size:0.62rem;}
+.col-fk{color:#6B4FA3;font-size:0.62rem;}
+.col-new{background:rgba(78,124,63,0.06);}
+.col-mod{background:rgba(133,79,11,0.06);}
+.badge-new{font-size:0.58rem;padding:1px 5px;background:var(--dew);color:var(--accent);border-radius:3px;margin-left:4px;}
+.badge-chg{font-size:0.58rem;padding:1px 5px;background:var(--amber-bg);color:var(--amber);border-radius:3px;margin-left:4px;}
+
+/* ── NOTE BOXES ── */
+.note{background:var(--dew);border-left:3px solid var(--accent);border-radius:0 var(--radius) var(--radius) 0;padding:10px 14px;font-size:0.75rem;color:var(--bark);margin-top:14px;line-height:1.6;}
+.note strong{color:var(--accent);}
+.note-warn{background:var(--amber-bg);border-left-color:var(--amber);}
+.note-warn strong{color:var(--amber);}
+
+.section{margin-top:40px;}
+.legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:10px;margin-bottom:18px;}
+.leg-item{display:flex;align-items:center;gap:5px;font-size:0.68rem;color:var(--sage);}
+.leg-dot{width:10px;height:10px;border-radius:2px;}
+</style>
+</head>
+<body>
+
+<div class="doc-header">
+  <div class="doc-title">AgroTrace — Esquema de Etapas Productivas</div>
+  <div class="doc-sub">Documento de referencia · Flujo de material y trazabilidad por etapa</div>
+  <div class="doc-meta">
+    <span>📋 6 etapas de producción</span>
+    <span>🌿 Unidad de trazabilidad: Lote</span>
+    <span>📐 Marco regulatorio: REPROCANN (Argentina)</span>
+    <span>🗓 Versión con Cosecha y Curado/Secado separados</span>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- ══════════════════════════════════════════════
+       SECCIÓN 1 — DIAGRAMA DE FLUJO
+  ══════════════════════════════════════════════ -->
+  <div class="section">
+    <h2>Flujo de producción</h2>
+    <p class="section-desc">Cada lote atraviesa 6 etapas secuenciales. El material (plántulas → plantas → flores) fluye de etapa en etapa, y ciertos campos se propagan automáticamente como punto de partida de la etapa siguiente.</p>
+
+    <div class="legend">
+      <div class="leg-item"><div class="leg-dot" style="background:var(--accent);"></div>* Campo obligatorio</div>
+      <div class="leg-item"><div class="leg-dot" style="background:var(--mist);"></div>○ Campo opcional</div>
+      <div class="leg-item"><div class="leg-dot" style="background:var(--amber);"></div>= Calculado automáticamente</div>
+    </div>
+
+    <div class="flow-wrap">
+    <div class="flow">
+
+      <!-- ── ETAPA 1: NURSERY ── -->
+      <div class="stage">
+        <div class="stage-box">
+          <div class="stage-header h-nur"><div class="stage-num">1</div>Nursery</div>
+          <div class="stage-body">
+            <div class="stage-label">Ingreso</div>
+            <div class="field-row req">Origen material</div>
+            <div class="field-row req">Método ingreso</div>
+            <div class="field-row req">Cantidad ingreso</div>
+            <div class="field-row req">Fecha inicio</div>
+            <hr class="divider">
+            <div class="stage-label">Egreso</div>
+            <div class="field-row req">Fecha fin</div>
+            <div class="field-row req">Cantidad egreso</div>
+            <div class="field-row opt">Bajas</div>
+            <div class="field-row opt">Notas</div>
+          </div>
+          <div class="stage-footer">
+            <strong>Descuenta stock de</strong>
+            Material básico (semillas / esquejes / PM)
+          </div>
+        </div>
+      </div>
+
+      <div class="arrow-connector">
+        <div style="display:flex;align-items:center;width:100%;">
+          <div class="arrow-line"></div>
+          <div class="arrow-head"></div>
+        </div>
+        <div class="arrow-propagate">fecha fin →<br>cant. egreso →</div>
+      </div>
+
+      <!-- ── ETAPA 2: VEGETATIVA ── -->
+      <div class="stage">
+        <div class="stage-box">
+          <div class="stage-header h-veg"><div class="stage-num">2</div>Vegetativa</div>
+          <div class="stage-body">
+            <div class="stage-label">Ingreso (auto desde Nursery)</div>
+            <div class="field-row req">Fecha inicio = fin Nursery</div>
+            <div class="field-row req">Cantidad ingreso = egreso Nursery</div>
+            <hr class="divider">
+            <div class="stage-label">Egreso</div>
+            <div class="field-row req">Fecha fin</div>
+            <div class="field-row req">Cantidad egreso</div>
+            <div class="field-row opt">Bajas</div>
+            <div class="field-row opt">Notas</div>
+          </div>
+          <div class="stage-footer">
+            <strong>Duración típica</strong>
+            4 – 8 semanas según genotipo
+          </div>
+        </div>
+      </div>
+
+      <div class="arrow-connector">
+        <div style="display:flex;align-items:center;width:100%;">
+          <div class="arrow-line"></div>
+          <div class="arrow-head"></div>
+        </div>
+        <div class="arrow-propagate">fecha fin →<br>cant. egreso →</div>
+      </div>
+
+      <!-- ── ETAPA 3: FLORACIÓN ── -->
+      <div class="stage">
+        <div class="stage-box">
+          <div class="stage-header h-flo"><div class="stage-num">3</div>Floración</div>
+          <div class="stage-body">
+            <div class="stage-label">Ingreso (auto desde Vegetativa)</div>
+            <div class="field-row req">Fecha inicio = fin Vegetativa</div>
+            <div class="field-row req">Cantidad ingreso = egreso Veg.</div>
+            <hr class="divider">
+            <div class="stage-label">Egreso</div>
+            <div class="field-row req">Fecha fin (= inicio cosecha)</div>
+            <div class="field-row req">Cantidad egreso</div>
+            <div class="field-row opt">Bajas</div>
+            <div class="field-row opt">Notas</div>
+          </div>
+          <div class="stage-footer">
+            <strong>Inducción lumínica</strong>
+            12h luz / 12h oscuridad
+          </div>
+        </div>
+      </div>
+
+      <div class="arrow-connector">
+        <div style="display:flex;align-items:center;width:100%;">
+          <div class="arrow-line"></div>
+          <div class="arrow-head"></div>
+        </div>
+        <div class="arrow-propagate">fecha fin →<br>cant. cosechada →</div>
+      </div>
+
+      <!-- ── ETAPA 4: COSECHA ── -->
+      <div class="stage">
+        <div class="stage-box">
+          <div class="stage-header h-cos"><div class="stage-num">4</div>Cosecha</div>
+          <div class="stage-body">
+            <div class="stage-label">Ingreso (auto desde Floración)</div>
+            <div class="field-row req">Fecha inicio = fin Floración</div>
+            <div class="field-row req">Cantidad plantas cosechadas</div>
+            <hr class="divider">
+            <div class="stage-label">Datos de cosecha</div>
+            <div class="field-row req">Fecha fin cosecha</div>
+            <div class="field-row req">Peso fresco total (g)</div>
+            <div class="field-row opt">Método de corte</div>
+            <div class="field-row opt">Responsable cosecha</div>
+            <div class="field-row opt">Notas</div>
+          </div>
+          <div class="stage-footer">
+            <strong>Unidad de salida</strong>
+            Gramos de material fresco (con humedad)
+          </div>
+        </div>
+      </div>
+
+      <div class="arrow-connector">
+        <div style="display:flex;align-items:center;width:100%;">
+          <div class="arrow-line"></div>
+          <div class="arrow-head"></div>
+        </div>
+        <div class="arrow-propagate">peso fresco →<br>fecha →</div>
+      </div>
+
+      <!-- ── ETAPA 5: CURADO Y SECADO ── -->
+      <div class="stage">
+        <div class="stage-box">
+          <div class="stage-header h-cur"><div class="stage-num">5</div>Curado / Secado</div>
+          <div class="stage-body">
+            <div class="stage-label">Ingreso (auto desde Cosecha)</div>
+            <div class="field-row req">Fecha inicio = fin Cosecha</div>
+            <div class="field-row req">Peso inicial (= fresco Cosecha)</div>
+            <hr class="divider">
+            <div class="stage-label">Condiciones proceso</div>
+            <div class="field-row opt">Temperatura (°C)</div>
+            <div class="field-row opt">Humedad relativa (%)</div>
+            <div class="field-row opt">Método (colgado / bandejas)</div>
+            <hr class="divider">
+            <div class="stage-label">Resultado</div>
+            <div class="field-row req">Fecha fin curado</div>
+            <div class="field-row req">Peso seco final (g)</div>
+            <div class="field-row opt">Tara empaque (g)</div>
+            <div class="field-row calc">Peso seco neto = seco − tara</div>
+            <div class="field-row opt">Notas</div>
+          </div>
+          <div class="stage-footer">
+            <strong>Merma típica</strong>
+            60–75% pérdida de peso por evaporación
+          </div>
+        </div>
+      </div>
+
+      <div class="arrow-connector">
+        <div style="display:flex;align-items:center;width:100%;">
+          <div class="arrow-line"></div>
+          <div class="arrow-head"></div>
+        </div>
+        <div class="arrow-propagate">peso seco<br>neto →</div>
+      </div>
+
+      <!-- ── ETAPA 6: FLORES COSECHADAS ── -->
+      <div class="stage">
+        <div class="stage-box">
+          <div class="stage-header h-fls"><div class="stage-num">6</div>Flores Cosechadas</div>
+          <div class="stage-body">
+            <div class="stage-label">Stock inicial (auto desde Curado)</div>
+            <div class="field-row calc">Stock inicial = peso seco neto</div>
+            <div class="field-row opt">Fecha disponible</div>
+            <hr class="divider">
+            <div class="stage-label">Gestión de entregas</div>
+            <div class="field-row req">Nro. REPROCANN paciente</div>
+            <div class="field-row req">Fecha de entrega</div>
+            <div class="field-row req">Cantidad entregada (g)</div>
+            <div class="field-row opt">Nombre entregador</div>
+            <div class="field-row opt">Notas</div>
+            <hr class="divider">
+            <div class="stage-label">Análisis de calidad</div>
+            <div class="field-row req">THC % / CBD % / Humedad %</div>
+            <div class="field-row opt">Otros compuestos</div>
+            <div class="field-row opt">Informe adjunto (PDF)</div>
+          </div>
+          <div class="stage-footer">
+            <strong>Stock actual</strong>
+            = inicial − Σ entregas
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /flow -->
+    </div><!-- /flow-wrap -->
+  </div>
+
+  <!-- ══════════════════════════════════════════════
+       SECCIÓN 2 — PROPAGACIÓN ENTRE ETAPAS
+  ══════════════════════════════════════════════ -->
+  <div class="section">
+    <h2>Propagación de datos entre etapas</h2>
+    <p class="section-desc">Al confirmar cada etapa y avanzar a la siguiente, estos campos se copian automáticamente como valor de partida (editable si es necesario corregir).</p>
+
+    <table class="prop-table">
+      <thead>
+        <tr>
+          <th>Etapa origen</th>
+          <th>Campo origen</th>
+          <th>Etapa destino</th>
+          <th>Campo destino</th>
+          <th>Tipo</th>
+          <th>Nota</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Nursery</td>
+          <td><code>fecha_fin</code></td>
+          <td>Vegetativa</td>
+          <td><code>fecha_inicio</code></td>
+          <td><span class="tag tag-auto">automático</span></td>
+          <td>El trasplante ocurre al salir de Nursery</td>
+        </tr>
+        <tr>
+          <td>Nursery</td>
+          <td><code>cantidad_egreso</code></td>
+          <td>Vegetativa</td>
+          <td><code>cantidad_ingreso</code></td>
+          <td><span class="tag tag-auto">automático</span></td>
+          <td>Genera inconsistencia si se corrige Nursery luego</td>
+        </tr>
+        <tr>
+          <td>Vegetativa</td>
+          <td><code>fecha_fin</code></td>
+          <td>Floración</td>
+          <td><code>fecha_inicio</code></td>
+          <td><span class="tag tag-auto">automático</span></td>
+          <td>Inicio de inducción lumínica</td>
+        </tr>
+        <tr>
+          <td>Vegetativa</td>
+          <td><code>cantidad_egreso</code></td>
+          <td>Floración</td>
+          <td><code>cantidad_ingreso</code></td>
+          <td><span class="tag tag-auto">automático</span></td>
+          <td>Genera inconsistencia si se corrige Vegetativa luego</td>
+        </tr>
+        <tr>
+          <td>Floración</td>
+          <td><code>fecha_fin</code></td>
+          <td>Cosecha</td>
+          <td><code>fecha_inicio_cosecha</code></td>
+          <td><span class="tag tag-auto">automático</span></td>
+          <td>La cosecha comienza al finalizar floración</td>
+        </tr>
+        <tr>
+          <td>Floración</td>
+          <td><code>cantidad_egreso</code></td>
+          <td>Cosecha</td>
+          <td><code>cantidad_plantas_cosechadas</code></td>
+          <td><span class="tag tag-auto">automático</span></td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td>Cosecha</td>
+          <td><code>fecha_fin_cosecha</code></td>
+          <td>Curado / Secado</td>
+          <td><code>fecha_inicio_curado</code></td>
+          <td><span class="tag tag-auto">automático</span></td>
+          <td>El curado inicia inmediatamente después de cosecha</td>
+        </tr>
+        <tr>
+          <td>Cosecha</td>
+          <td><code>peso_fresco_total</code></td>
+          <td>Curado / Secado</td>
+          <td><code>peso_inicial_curado</code></td>
+          <td><span class="tag tag-auto">automático</span></td>
+          <td>Punto de referencia para calcular merma</td>
+        </tr>
+        <tr>
+          <td>Curado / Secado</td>
+          <td><code>peso_seco_neto</code></td>
+          <td>Flores Cosechadas</td>
+          <td><code>stock_inicial</code></td>
+          <td><span class="tag tag-calc">calculado</span></td>
+          <td>peso_seco_final − tara_empaque; base de todas las entregas</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ══════════════════════════════════════════════
+       SECCIÓN 3 — IMPACTO EN EL ERD
+  ══════════════════════════════════════════════ -->
+  <div class="section erd-section">
+    <h2>Impacto en el ERD — cambios requeridos</h2>
+    <p class="section-desc">Separar Cosecha de Curado/Secado requiere los siguientes cambios al schema SQL y a la aplicación.</p>
+
+    <table class="erd-table">
+      <thead>
+        <tr>
+          <th>Elemento</th>
+          <th>Antes</th>
+          <th>Después</th>
+          <th>Tipo</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Tabla</td>
+          <td><code>etapa_cosecha_curado</code></td>
+          <td><span class="change-del">etapa_cosecha_curado</span> → <span class="change-new">etapa_cosecha</span> + <span class="change-new">etapa_curado_secado</span></td>
+          <td><span style="color:var(--amber);font-weight:500;">Reemplazar</span></td>
+        </tr>
+        <tr>
+          <td>FK en <code>flores_cosechadas</code></td>
+          <td><code>cosecha_curado_id → etapa_cosecha_curado.id</code></td>
+          <td><span class="change-new"><code>curado_secado_id → etapa_curado_secado.id</code></span></td>
+          <td><span style="color:var(--amber);font-weight:500;">Cambiar</span></td>
+        </tr>
+        <tr>
+          <td>Enum <code>lotes_produccion.etapa_actual</code></td>
+          <td><code>'cosecha_curado'</code></td>
+          <td><span class="change-new"><code>'cosecha'</code></span> y <span class="change-new"><code>'curado_secado'</code></span></td>
+          <td><span style="color:var(--amber);font-weight:500;">Ampliar</span></td>
+        </tr>
+        <tr>
+          <td>Timeline en la app</td>
+          <td>5 etapas en la barra de progreso</td>
+          <td><span class="change-new">6 etapas</span> — agrega nodo "Curado / Secado" entre Cosecha y Flores</td>
+          <td><span style="color:var(--accent);font-weight:500;">Agregar</span></td>
+        </tr>
+        <tr>
+          <td>Función <code>guardarAvanzar()</code></td>
+          <td>Cosecha → Flores directamente</td>
+          <td><span class="change-new">Cosecha → Curado/Secado → Flores</span></td>
+          <td><span style="color:var(--accent);font-weight:500;">Agregar</span></td>
+        </tr>
+        <tr>
+          <td>Panel de vista</td>
+          <td><code>panelCosecha()</code> incluye campos de curado</td>
+          <td><span class="change-new"><code>panelCosecha()</code></span> solo cosecha + <span class="change-new"><code>panelCurado()</code></span> nuevo</td>
+          <td><span style="color:var(--accent);font-weight:500;">Agregar</span></td>
+        </tr>
+        <tr>
+          <td>RLS policies</td>
+          <td>Policy sobre <code>etapa_cosecha_curado</code></td>
+          <td>Policies sobre <span class="change-new"><code>etapa_cosecha</code></span> y <span class="change-new"><code>etapa_curado_secado</code></span></td>
+          <td><span style="color:var(--accent);font-weight:500;">Agregar</span></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="note note-warn" style="margin-top:16px;">
+      <strong>Datos existentes en Supabase:</strong> Los registros ya cargados en <code>etapa_cosecha_curado</code> necesitan migración. En el estado actual (modo demo, datos de prueba) esto no es un problema — se puede hacer un DROP TABLE y recrear. Antes de migrar a producción con datos reales hay que escribir un script de migración.
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════
+       SECCIÓN 4 — SCHEMAS DE LAS TABLAS NUEVAS
+  ══════════════════════════════════════════════ -->
+  <div class="section">
+    <h2>Schema de las tablas nuevas / modificadas</h2>
+    <p class="section-desc">Solo se detallan las tablas que cambian. El resto del ERD (lotes_produccion, etapa_nursery, etapa_vegetativa, etapa_floracion, flores_cosechadas, entregas, analisis_calidad) permanece igual.</p>
+
+    <div class="tables-grid">
+
+      <!-- etapa_cosecha (nueva) -->
+      <div class="table-card">
+        <div class="table-card-header tc-cos tc-new">
+          <span class="tbl-ico">🌿</span>
+          etapa_cosecha <span class="badge-new">NUEVA</span>
+        </div>
+        <div class="col-row col-new"><span class="col-name">id</span><span class="col-pk">PK · UUID</span></div>
+        <div class="col-row"><span class="col-name">lote_id</span><span class="col-fk">FK → lotes_produccion</span></div>
+        <div class="col-row"><span class="col-name">fecha_inicio_cosecha</span><span class="col-type">DATE</span></div>
+        <div class="col-row"><span class="col-name">fecha_fin_cosecha</span><span class="col-type">DATE</span></div>
+        <div class="col-row"><span class="col-name">cantidad_plantas_cosechadas</span><span class="col-type">INTEGER</span></div>
+        <div class="col-row"><span class="col-name">peso_fresco_total</span><span class="col-type">NUMERIC(10,2) g</span></div>
+        <div class="col-row"><span class="col-name">metodo_corte</span><span class="col-type">TEXT · opcional</span></div>
+        <div class="col-row"><span class="col-name">responsable</span><span class="col-type">TEXT · opcional</span></div>
+        <div class="col-row"><span class="col-name">notas</span><span class="col-type">TEXT · opcional</span></div>
+        <div class="col-row"><span class="col-name">created_at</span><span class="col-type">TIMESTAMPTZ</span></div>
+      </div>
+
+      <!-- etapa_curado_secado (nueva) -->
+      <div class="table-card">
+        <div class="table-card-header tc-cur tc-new">
+          <span class="tbl-ico">🍃</span>
+          etapa_curado_secado <span class="badge-new">NUEVA</span>
+        </div>
+        <div class="col-row col-new"><span class="col-name">id</span><span class="col-pk">PK · UUID</span></div>
+        <div class="col-row"><span class="col-name">lote_id</span><span class="col-fk">FK → lotes_produccion</span></div>
+        <div class="col-row"><span class="col-name">fecha_inicio_curado</span><span class="col-type">DATE</span></div>
+        <div class="col-row"><span class="col-name">fecha_fin_curado</span><span class="col-type">DATE</span></div>
+        <div class="col-row"><span class="col-name">peso_inicial_curado</span><span class="col-type">NUMERIC(10,2) g</span></div>
+        <div class="col-row"><span class="col-name">temperatura_c</span><span class="col-type">NUMERIC(4,1) · opcional</span></div>
+        <div class="col-row"><span class="col-name">humedad_relativa_pct</span><span class="col-type">NUMERIC(4,1) · opcional</span></div>
+        <div class="col-row"><span class="col-name">metodo_curado</span><span class="col-type">TEXT · opcional</span></div>
+        <div class="col-row"><span class="col-name">tiene_empaque</span><span class="col-type">BOOLEAN</span></div>
+        <div class="col-row"><span class="col-name">tara_empaque</span><span class="col-type">NUMERIC(8,2) g · opcional</span></div>
+        <div class="col-row"><span class="col-name">peso_seco_final</span><span class="col-type">NUMERIC(10,2) g</span></div>
+        <div class="col-row"><span class="col-name">notas</span><span class="col-type">TEXT · opcional</span></div>
+        <div class="col-row"><span class="col-name">created_at</span><span class="col-type">TIMESTAMPTZ</span></div>
+      </div>
+
+      <!-- flores_cosechadas (modificada) -->
+      <div class="table-card">
+        <div class="table-card-header tc-fls tc-mod">
+          <span class="tbl-ico">🌸</span>
+          flores_cosechadas <span class="badge-chg">MODIFICADA</span>
+        </div>
+        <div class="col-row"><span class="col-name">id</span><span class="col-pk">PK · UUID</span></div>
+        <div class="col-row"><span class="col-name">lote_id</span><span class="col-fk">FK → lotes_produccion</span></div>
+        <div class="col-row col-mod">
+          <span class="col-name">curado_secado_id <span class="badge-chg">antes: cosecha_curado_id</span></span>
+          <span class="col-fk">FK → etapa_curado_secado</span>
+        </div>
+        <div class="col-row"><span class="col-name">stock_inicial</span><span class="col-type">NUMERIC(10,2) g</span></div>
+        <div class="col-row"><span class="col-name">stock_actual</span><span class="col-type">NUMERIC(10,2) g</span></div>
+        <div class="col-row"><span class="col-name">fecha_disponible</span><span class="col-type">DATE · opcional</span></div>
+        <div class="col-row"><span class="col-name">created_at</span><span class="col-type">TIMESTAMPTZ</span></div>
+      </div>
+
+      <!-- lotes_produccion (enum modificado) -->
+      <div class="table-card">
+        <div class="table-card-header" style="background:#F5F5F0;border-bottom:2px dashed var(--amber);color:var(--bark);">
+          <span class="tbl-ico">📋</span>
+          lotes_produccion · etapa_actual <span class="badge-chg">ENUM MODIFICADO</span>
+        </div>
+        <div class="col-row"><span class="col-name">'nursery'</span><span class="col-type">sin cambio</span></div>
+        <div class="col-row"><span class="col-name">'vegetativa'</span><span class="col-type">sin cambio</span></div>
+        <div class="col-row"><span class="col-name">'floracion'</span><span class="col-type">sin cambio</span></div>
+        <div class="col-row col-new"><span class="col-name">'cosecha' <span class="badge-new">NUEVO</span></span><span class="col-type">antes incluido en cosecha_curado</span></div>
+        <div class="col-row col-new"><span class="col-name">'curado_secado' <span class="badge-new">NUEVO</span></span><span class="col-type">etapa nueva</span></div>
+        <div class="col-row col-mod"><span class="col-name"><span style="text-decoration:line-through;color:var(--error);">'cosecha_curado'</span></span><span class="col-type">ELIMINAR</span></div>
+        <div class="col-row"><span class="col-name">'flores'</span><span class="col-type">sin cambio</span></div>
+        <div class="col-row"><span class="col-name">'completado'</span><span class="col-type">sin cambio</span></div>
+        <div class="col-row"><span class="col-name">'cerrado'</span><span class="col-type">sin cambio</span></div>
+      </div>
+
+    </div>
+
+    <div class="note" style="margin-top:20px;">
+      <strong>SQL a ejecutar en Supabase para aplicar los cambios:</strong> DROP TABLE etapa_cosecha_curado → CREATE TABLE etapa_cosecha → CREATE TABLE etapa_curado_secado → ALTER TABLE flores_cosechadas RENAME COLUMN cosecha_curado_id TO curado_secado_id + DROP CONSTRAINT + ADD CONSTRAINT. El enum de etapa_actual también necesita un ALTER TYPE para agregar y quitar valores.
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════
+       SECCIÓN 5 — LÓGICA DE NEGOCIO CLAVE
+  ══════════════════════════════════════════════ -->
+  <div class="section">
+    <h2>Lógica de negocio por etapa</h2>
+    <p class="section-desc">Restricciones, cálculos automáticos y validaciones que el sistema debe respetar.</p>
+
+    <table class="erd-table">
+      <thead>
+        <tr>
+          <th>Etapa</th>
+          <th>Restricción / lógica</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Nursery</strong></td>
+          <td>Al confirmar, descuenta <code>material_utilizado</code> de la tabla de material básico correspondiente (semillas, esquejes o plantas madre). Si origen es Planta Madre, no descuenta sino que incrementa <code>esquejes_extraidos</code>.</td>
+        </tr>
+        <tr>
+          <td><strong>Vegetativa · Floración</strong></td>
+          <td>Fecha inicio y cantidad ingreso se propagan automáticamente desde la etapa anterior. El usuario puede confirmar o corregir. Si corrige, el sistema detecta la inconsistencia y muestra banner de advertencia.</td>
+        </tr>
+        <tr>
+          <td><strong>Cosecha</strong></td>
+          <td><code>peso_fresco_total</code> es el peso bruto de todo el material cortado, sin secar. Este campo alimenta directamente <code>peso_inicial_curado</code> de la siguiente etapa.</td>
+        </tr>
+        <tr>
+          <td><strong>Curado / Secado</strong></td>
+          <td><code>peso_seco_neto = peso_seco_final − tara_empaque</code>. La merma típica es 60–75% del peso fresco. Este neto alimenta <code>stock_inicial</code> de Flores Cosechadas. El sistema puede mostrar la merma calculada como control de sanidad.</td>
+        </tr>
+        <tr>
+          <td><strong>Flores Cosechadas</strong></td>
+          <td><code>stock_actual = stock_inicial − Σ entregas</code>. Cada entrega requiere <code>nro_reprocann</code> del paciente (obligatorio por REPROCANN). Cuando stock_actual ≤ 0, se ofrece cerrar el lote. No se permite entregar más de lo disponible.</td>
+        </tr>
+        <tr>
+          <td><strong>Sublotes</strong></td>
+          <td>Se pueden crear desde cualquier etapa. La suma de plantas de todos los sublotes debe igualar las disponibles en el lote padre. El lote padre queda "cerrado en [etapa]" y no avanza más.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div style="margin-top:48px;padding-top:20px;border-top:1px solid rgba(0,0,0,0.07);font-size:0.68rem;color:var(--sage);display:flex;justify-content:space-between;align-items:center;">
+    <div>AgroTrace · Documento de referencia interno · No publicar</div>
+    <div>Generado con Claude Code · Versión con 6 etapas (Cosecha separado de Curado/Secado)</div>
+  </div>
+
+</div><!-- /container -->
+</body>
+</html>
