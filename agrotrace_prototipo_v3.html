@@ -1210,8 +1210,8 @@ async function openLote(id){
   HIST_DATA={};
   INCONSISTENCIAS={};
   CORRECCIONES_LOG={};
-  const emap={nursery:'Nursery · orden 1',vegetativa:'Vegetativa · orden 2',floracion:'Floración · orden 3',cosecha:'Cosecha y Curado · orden 4',cosecha_curado:'Cosecha y Curado · orden 4',flores:'Flores Cosechadas · orden 5',completado:'Ciclo completado',cerrado:'Cerrado anticipadamente'};
-  const bmap={nursery:'b-nur',vegetativa:'b-veg',floracion:'b-flo',cosecha:'b-cos',cosecha_curado:'b-cos',flores:'b-fl2',completado:'b-com',cerrado:'b-cia'};
+  const emap={nursery:'Nursery · orden 1',vegetativa:'Vegetativa · orden 2',floracion:'Floración · orden 3',cosecha:'Cosecha · orden 4',curado_secado:'Curado/Secado · orden 5',flores:'Flores Cosechadas · orden 6',completado:'Ciclo completado',cerrado:'Cerrado anticipadamente'};
+  const bmap={nursery:'b-nur',vegetativa:'b-veg',floracion:'b-flo',cosecha:'b-cos',curado_secado:'b-cos',flores:'b-fl2',completado:'b-com',cerrado:'b-cia'};
   document.getElementById('det-nombre').textContent=lote.n;
   document.getElementById('det-sub').textContent=lote.o;
   const eEl=document.getElementById('det-etapa');
@@ -1221,15 +1221,16 @@ async function openLote(id){
   if(cw)cw.style.display=(lote.etapaRaw==='completado'||lote.etapaRaw==='cerrado')?'none':'block';
   sv('detalle');
   document.getElementById('det-panel').innerHTML='<div style="padding:24px;text-align:center;color:var(--sage);font-size:0.78rem;">Cargando datos...</div>';
-  const etIdx={nursery:1,vegetativa:2,floracion:3,cosecha_curado:4,flores:5,completado:5,cerrado:5}[lote.etapaRaw]||1;
+  const etIdx={nursery:1,vegetativa:2,floracion:3,cosecha:4,curado_secado:5,flores:6,completado:6,cerrado:6}[lote.etapaRaw]||1;
   const reqs=[];
   if(etIdx>=1)reqs.push(sb.from('etapa_nursery').select('*').eq('lote_id',id).maybeSingle());
   if(etIdx>=2)reqs.push(sb.from('etapa_vegetativa').select('*').eq('lote_id',id).maybeSingle());
   if(etIdx>=3)reqs.push(sb.from('etapa_floracion').select('*').eq('lote_id',id).maybeSingle());
-  if(etIdx>=4)reqs.push(sb.from('etapa_cosecha_curado').select('*').eq('lote_id',id).maybeSingle());
-  if(etIdx>=5)reqs.push(sb.from('flores_cosechadas').select('*').eq('lote_id',id).maybeSingle());
+  if(etIdx>=4)reqs.push(sb.from('etapa_cosecha').select('*').eq('lote_id',id).maybeSingle());
+  if(etIdx>=5)reqs.push(sb.from('etapa_curado_secado').select('*').eq('lote_id',id).maybeSingle());
+  if(etIdx>=6)reqs.push(sb.from('flores_cosechadas').select('*').eq('lote_id',id).maybeSingle());
   const results=await Promise.all(reqs);
-  const keys=['nursery','vegetativa','floracion','cosecha_curado','flores'];
+  const keys=['nursery','vegetativa','floracion','cosecha','curado_secado','flores'];
   for(let i=0;i<results.length;i++){if(results[i].data)HIST_DATA[keys[i]]=results[i].data;}
   checkInconsistencias();
   renderTimeline(lote.etapaRaw);
@@ -1237,9 +1238,9 @@ async function openLote(id){
 }
 
 function renderTimeline(etapa){
-  const stages=[{key:'nursery',label:'Nursery',ord:1},{key:'vegetativa',label:'Vegetativa',ord:2},{key:'floracion',label:'Floración',ord:3},{key:'cosecha_curado',label:'Cosecha y Curado',ord:4},{key:'flores',label:'Flores Cosechadas',ord:5}];
+  const stages=[{key:'nursery',label:'Nursery',ord:1},{key:'vegetativa',label:'Vegetativa',ord:2},{key:'floracion',label:'Floración',ord:3},{key:'cosecha',label:'Cosecha',ord:4},{key:'curado_secado',label:'Curado/Secado',ord:5},{key:'flores',label:'Flores',ord:6}];
   const esHist=etapa==='completado'||etapa==='cerrado';
-  const curIdx=esHist?5:({nursery:1,vegetativa:2,floracion:3,cosecha_curado:4,flores:5}[etapa]||1);
+  const curIdx=esHist?6:({nursery:1,vegetativa:2,floracion:3,cosecha:4,curado_secado:5,flores:6}[etapa]||1);
   document.getElementById('det-timeline').innerHTML=stages.map(s=>{
     let cls='tli future',ico=s.ord;
     if(etapa==='completado'){cls='tli done';ico='✓';}
@@ -1261,7 +1262,8 @@ function renderPanelActivo(){
   if(et==='nursery')el.innerHTML=panelNursery();
   else if(et==='vegetativa')el.innerHTML=panelVegetativa();
   else if(et==='floracion')el.innerHTML=panelFloracion();
-  else if(et==='cosecha_curado')el.innerHTML=panelCosecha();
+  else if(et==='cosecha')el.innerHTML=panelCosecha();
+  else if(et==='curado_secado')el.innerHTML=panelCuradoSecado();
   else if(et==='flores'){el.innerHTML=panelFlores();cargarAnalisis();}
   else if(et==='completado'){el.innerHTML=panelFlores();cargarAnalisis();}
   else if(et==='cerrado')el.innerHTML=panelCerrado();
@@ -1461,25 +1463,60 @@ function panelFloracion(hist=false){
 }
 
 function panelCosecha(hist=false){
-  const d=HIST_DATA.cosecha_curado||{};
+  const d=HIST_DATA.cosecha||{};
+  const fIniSug=d.fecha_inicio||HIST_DATA.floracion?.fecha_fin||'';
   const ab=hist
-    ?`<button class="btn btn-secondary" onclick="openEtapaHist('cosecha_curado')">Cancelar</button><button class="btn btn-primary" onclick="guardarEtapaHist('cosecha_curado')">Guardar corrección</button>`
+    ?`<button class="btn btn-secondary" onclick="openEtapaHist('cosecha')">Cancelar</button><button class="btn btn-primary" onclick="guardarEtapaHist('cosecha')">Guardar corrección</button>`
+    :`<button class="btn btn-secondary" onclick="guardarBorrador()">Guardar borrador</button><button class="btn btn-advance" onclick="guardarAvanzar()">Guardar y avanzar a Curado/Secado →</button>`;
+  const modoBadge=hist?`<div class="modo-correc">✏ Modo corrección — los cambios quedan registrados en el historial</div>`:'';
+  return`<div class="panel">
+    ${modoBadge}<div class="pt">${hist?'Cosecha — editar datos':'Etapa Cosecha'}<span style="font-size:0.62rem;color:var(--sage);font-weight:400;text-transform:none;"> · * obligatorio</span></div>
+    <div class="form-2col">
+      <div>
+        <div class="form-col-hdr">Fechas</div>
+        <div class="field"><label>Fecha inicio cosecha<span class="req">*</span></label><input type="date" id="cos-fecha-ini" value="${fIniSug}" onchange="mostrarWarnFecha('cos-wi',null);mostrarWarnFecha('cos-wo',null);"/><div id="cos-wi" class="warn-fecha" style="display:none;"></div></div>
+        <div class="field"><label>Fecha fin cosecha<span class="req">*</span></label><input type="date" id="cos-fecha-fin" value="${d.fecha_fin||''}" onchange="mostrarWarnFecha('cos-wf',warnFechaFutura(this.value)||warnFechaOrden(document.getElementById('cos-fecha-ini').value,this.value)||warnDiasMinimos(document.getElementById('cos-fecha-ini').value,this.value,'Cosecha',7));"/><div id="cos-wf" class="warn-fecha" style="display:none;"></div></div>
+      </div>
+      <div>
+        <div class="form-col-hdr">Peso</div>
+        <div class="field"><label>Peso húmedo total<span class="opt">opcional</span></label><input type="number" id="cos-peso-humedo" value="${d.peso_humedo_total||''}" step="0.1" placeholder="Gramos post-cosecha (informativo)"/></div>
+        <div class="field"><label>Notas<span class="opt">opcional</span></label><input type="text" id="cos-notas" value="${d.notas||''}" placeholder="Observaciones..."/></div>
+      </div>
+    </div>
+    <div class="erb" id="det-validacion" style="display:none;"></div>
+    <div class="ab">${ab}</div>
+  </div>`;
+}
+
+function panelCuradoSecado(hist=false){
+  const d=HIST_DATA.curado_secado||{};
+  const fIniSug=d.fecha_inicio||HIST_DATA.cosecha?.fecha_fin||'';
+  const unidad=d.unidad||'gramos';
+  const pesoSeco=d.peso_seco_final!=null?(unidad==='kg'?(d.peso_seco_final/1000):d.peso_seco_final):'';
+  const ab=hist
+    ?`<button class="btn btn-secondary" onclick="openEtapaHist('curado_secado')">Cancelar</button><button class="btn btn-primary" onclick="guardarEtapaHist('curado_secado')">Guardar corrección</button>`
     :`<button class="btn btn-secondary" onclick="guardarBorrador()">Guardar borrador</button><button class="btn btn-advance" onclick="guardarAvanzar()">Guardar y avanzar a Flores →</button>`;
   const modoBadge=hist?`<div class="modo-correc">✏ Modo corrección — los cambios quedan registrados en el historial</div>`:'';
   return`<div class="panel">
-    ${modoBadge}<div class="pt">${hist?'Cosecha y Curado — editar datos':'Etapa Cosecha y Curado'}<span style="font-size:0.62rem;color:var(--sage);font-weight:400;text-transform:none;">* obligatorio</span></div>
-    <div class="g2">
-      <div class="field"><label>Fecha inicio cosecha</label><input type="date" id="cos-fecha-ini" value="${d.fecha_inicio_cosecha||''}"/></div>
-      <div class="field"><label>Fecha fin cosecha<span class="opt">opcional</span></label><input type="date" id="cos-fecha-fin" value="${d.fecha_fin_cosecha||''}"/></div>
+    ${modoBadge}<div class="pt">${hist?'Curado/Secado — editar datos':'Etapa Curado/Secado'}<span style="font-size:0.62rem;color:var(--sage);font-weight:400;text-transform:none;"> · * obligatorio</span></div>
+    <div class="form-2col">
+      <div>
+        <div class="form-col-hdr">Fechas</div>
+        <div class="field"><label>Fecha inicio<span class="opt">opcional</span></label><input type="date" id="cur-fecha-ini" value="${fIniSug}"/></div>
+        <div class="field"><label>Fecha fin<span class="req">*</span></label><input type="date" id="cur-fecha-fin" value="${d.fecha_fin||''}" onchange="mostrarWarnFecha('cur-wf',warnFechaFutura(this.value)||warnFechaOrden(document.getElementById('cur-fecha-ini').value,this.value));"/><div id="cur-wf" class="warn-fecha" style="display:none;"></div></div>
+      </div>
+      <div>
+        <div class="form-col-hdr">Pesos</div>
+        <div class="field"><label>Peso inicial húmedo<span class="opt">opcional</span></label><input type="number" id="cur-peso-ini" value="${d.peso_inicial_humedo||''}" step="0.1" placeholder="g"/></div>
+        <div class="field"><label>¿Tiene empaque?</label><select id="cur-empaque"><option value="false" ${!d.tiene_empaque?'selected':''}>No</option><option value="true" ${d.tiene_empaque?'selected':''}>Sí</option></select></div>
+        <div class="field"><label>Tara empaque<span class="opt">si tiene empaque</span></label><input type="number" id="cur-tara" value="${d.tara_empaque||''}" step="0.1" placeholder="0"/></div>
+        <div class="g2" style="gap:8px;">
+          <div class="field"><label>Unidad<span class="req">*</span></label><select id="cur-unidad"><option value="gramos" ${unidad==='gramos'?'selected':''}>gramos</option><option value="kg" ${unidad==='kg'?'selected':''}>kg</option></select></div>
+          <div class="field"><label>Peso seco final<span class="req">*</span></label><input type="number" id="cur-peso-seco" value="${pesoSeco}" step="0.001" placeholder="Obligatorio"/></div>
+        </div>
+      </div>
     </div>
-    <div class="g2">
-      <div class="field"><label>Peso inicial curado (g)</label><input type="number" id="cos-peso-ini" value="${d.peso_inicial_curado||''}" step="0.1" placeholder="Gramos"/></div>
-      <div class="field"><label>¿Tiene empaque?</label><select id="cos-empaque"><option value="false" ${!d.tiene_empaque?'selected':''}>No</option><option value="true" ${d.tiene_empaque?'selected':''}>Sí</option></select></div>
-    </div>
-    <div class="g2">
-      <div class="field"><label>Tara empaque (g)<span class="opt">si tiene empaque</span></label><input type="number" id="cos-tara" value="${d.tara_empaque||''}" step="0.1" placeholder="0"/></div>
-      <div class="field"><label>Notas<span class="opt">opcional</span></label><input type="text" id="cos-notas" value="${d.notas||''}" placeholder="Observaciones..."/></div>
-    </div>
+    <div class="field" style="margin-top:4px;"><label>Notas<span class="opt">opcional</span></label><input type="text" id="cur-notas" value="${d.notas||''}" placeholder="Observaciones..."/></div>
     <div class="erb" id="det-validacion" style="display:none;"></div>
     <div class="ab">${ab}</div>
   </div>`;
@@ -1904,6 +1941,12 @@ function checkInconsistencias(){
     if(!INCONSISTENCIAS.floracion)INCONSISTENCIAS.floracion={msgs:[]};
     INCONSISTENCIAS.floracion.msgs.push(`La fecha de inicio (${fmtDate(flo.fecha_inicio)}) no coincide con la fecha fin corregida de Vegetativa (${fmtDate(veg.fecha_fin)}).`);
   }
+  const cos=HIST_DATA.cosecha||{};
+  const cur=HIST_DATA.curado_secado||{};
+  if(cos.fecha_fin&&cur.fecha_inicio&&cos.fecha_fin!==cur.fecha_inicio){
+    if(!INCONSISTENCIAS.curado_secado)INCONSISTENCIAS.curado_secado={msgs:[]};
+    INCONSISTENCIAS.curado_secado.msgs.push(`La fecha de inicio de Curado/Secado (${fmtDate(cur.fecha_inicio)}) no coincide con la fecha fin de Cosecha (${fmtDate(cos.fecha_fin)}).`);
+  }
 }
 
 function renderInconsistenciaBanner(key){
@@ -1916,7 +1959,7 @@ function renderInconsistenciaBanner(key){
 function panelReadOnly(key){
   const d=HIST_DATA[key]||{};
   const banner=renderInconsistenciaBanner(key);
-  const NM={nursery:'Nursery',vegetativa:'Vegetativa',floracion:'Floración',cosecha_curado:'Cosecha y Curado'};
+  const NM={nursery:'Nursery',vegetativa:'Vegetativa',floracion:'Floración',cosecha:'Cosecha',curado_secado:'Curado/Secado'};
   let campos='';
   if(key==='nursery'){
     const metodo=d.metodo_ingreso==='bandejas'?`${d.bandejas||0} bandejas × ${d.alveolos||0} alveolos`:(d.metodo_ingreso||'—');
@@ -1935,11 +1978,17 @@ function panelReadOnly(key){
     <hr style="border:none;border-top:1px solid rgba(0,0,0,0.07);margin:10px 0;">
     <div class="g2"><div class="field"><label>Fecha fin (Cosecha)</label><div class="ro-val">${fmtDate(d.fecha_fin)||'—'}</div></div><div class="field"><label>Cantidad egreso</label><div class="ro-val">${d.cantidad_egreso!=null?d.cantidad_egreso+' plantas':'—'}</div></div></div>
     <div class="g2"><div class="field"><label>Bajas</label><div class="ro-val">${d.bajas!=null?d.bajas:0}</div></div><div class="field"><label>Notas</label><div class="ro-val">${d.notas||'—'}</div></div></div>`;
-  } else if(key==='cosecha_curado'){
-    const ps=d.tiene_empaque?((d.peso_inicial_curado||0)-(d.tara_empaque||0)).toFixed(1):null;
-    campos=`<div class="g2"><div class="field"><label>Fecha inicio cosecha</label><div class="ro-val">${fmtDate(d.fecha_inicio_cosecha)||'—'}</div></div><div class="field"><label>Fecha fin cosecha</label><div class="ro-val">${fmtDate(d.fecha_fin_cosecha)||'—'}</div></div></div>
-    <div class="g2"><div class="field"><label>Peso inicial curado</label><div class="ro-val">${d.peso_inicial_curado!=null?d.peso_inicial_curado+' g':'—'}</div></div><div class="field"><label>¿Tiene empaque?</label><div class="ro-val">${d.tiene_empaque?'Sí':'No'}</div></div></div>
-    ${d.tiene_empaque?`<div class="g2"><div class="field"><label>Tara empaque</label><div class="ro-val">${d.tara_empaque!=null?d.tara_empaque+' g':'—'}</div></div><div class="field"><label>Peso seco final</label><div class="ro-val">${ps} g</div></div></div>`:''}
+  } else if(key==='cosecha'){
+    campos=`<div class="g2"><div class="field"><label>Fecha inicio</label><div class="ro-val">${fmtDate(d.fecha_inicio)||'—'}</div></div><div class="field"><label>Fecha fin</label><div class="ro-val">${fmtDate(d.fecha_fin)||'—'}</div></div></div>
+    ${d.peso_humedo_total!=null?`<div class="field"><label>Peso húmedo total</label><div class="ro-val">${d.peso_humedo_total} g</div></div>`:''}
+    <div class="field"><label>Notas</label><div class="ro-val">${d.notas||'—'}</div></div>`;
+  } else if(key==='curado_secado'){
+    const unidad=d.unidad||'gramos';
+    const pesoDisp=d.peso_seco_final!=null?(unidad==='kg'?(d.peso_seco_final/1000).toFixed(3)+' kg':d.peso_seco_final+' g'):'—';
+    campos=`<div class="g2"><div class="field"><label>Fecha inicio</label><div class="ro-val">${fmtDate(d.fecha_inicio)||'—'}</div></div><div class="field"><label>Fecha fin</label><div class="ro-val">${fmtDate(d.fecha_fin)||'—'}</div></div></div>
+    ${d.peso_inicial_humedo!=null?`<div class="field"><label>Peso inicial húmedo</label><div class="ro-val">${d.peso_inicial_humedo} g</div></div>`:''}
+    <div class="g2"><div class="field"><label>¿Tiene empaque?</label><div class="ro-val">${d.tiene_empaque?'Sí':'No'}</div></div>${d.tiene_empaque?`<div class="field"><label>Tara empaque</label><div class="ro-val">${d.tara_empaque!=null?d.tara_empaque+' g':'—'}</div></div>`:''}</div>
+    <div class="field"><label>Peso seco final</label><div class="ro-val" style="font-weight:600;">${pesoDisp}</div></div>
     <div class="field"><label>Notas</label><div class="ro-val">${d.notas||'—'}</div></div>`;
   }
   const nCorr=CORRECCIONES_LOG[LOTE_ACTIVO?.id+':'+key]||0;
@@ -1952,7 +2001,8 @@ function activarCorreccion(key){
   if(key==='nursery')el.innerHTML=panelNursery(true);
   else if(key==='vegetativa')el.innerHTML=panelVegetativa(true);
   else if(key==='floracion')el.innerHTML=panelFloracion(true);
-  else if(key==='cosecha_curado')el.innerHTML=panelCosecha(true);
+  else if(key==='cosecha')el.innerHTML=panelCosecha(true);
+  else if(key==='curado_secado')el.innerHTML=panelCuradoSecado(true);
 }
 
 function openEtapaHist(key){
@@ -1973,18 +2023,27 @@ async function guardarEtapaHist(key){
   } else if(key==='floracion'){
     const d=HIST_DATA.floracion;
     if(d){const ci=parseInt(document.getElementById('flo-cant-ini').value)||null;const eg=parseInt(document.getElementById('flo-egreso').value)||null;const bj=ci!=null&&eg!=null?ci-eg:0;({error:dbErr}=await sb.from('etapa_floracion').update({fecha_inicio:document.getElementById('flo-fecha-ini').value||null,cantidad_ingreso:ci,fecha_fin:document.getElementById('flo-fecha-fin').value||null,cantidad_egreso:eg,bajas:bj,notas:document.getElementById('flo-notas').value||null}).eq('id',d.id));}
-  } else if(key==='cosecha_curado'){
-    const d=HIST_DATA.cosecha_curado;
-    if(d){({error:dbErr}=await sb.from('etapa_cosecha_curado').update({fecha_inicio_cosecha:document.getElementById('cos-fecha-ini').value||null,fecha_fin_cosecha:document.getElementById('cos-fecha-fin').value||null,peso_inicial_curado:parseFloat(document.getElementById('cos-peso-ini').value)||null,tiene_empaque:document.getElementById('cos-empaque').value==='true',tara_empaque:parseFloat(document.getElementById('cos-tara').value)||null,notas:document.getElementById('cos-notas').value||null}).eq('id',d.id));}
+  } else if(key==='cosecha'){
+    const d=HIST_DATA.cosecha;
+    if(d){({error:dbErr}=await sb.from('etapa_cosecha').update({fecha_inicio:document.getElementById('cos-fecha-ini').value||null,fecha_fin:document.getElementById('cos-fecha-fin').value||null,peso_humedo_total:parseFloat(document.getElementById('cos-peso-humedo').value)||null,notas:document.getElementById('cos-notas').value||null}).eq('id',d.id));}
+  } else if(key==='curado_secado'){
+    const d=HIST_DATA.curado_secado;
+    if(d){
+      const unidad=document.getElementById('cur-unidad').value;
+      const pesoRaw=parseFloat(document.getElementById('cur-peso-seco').value)||null;
+      const pesoG=pesoRaw!=null?(unidad==='kg'?Math.round(pesoRaw*1000*1000)/1000:pesoRaw):null;
+      const tieneEmp=document.getElementById('cur-empaque').value==='true';
+      ({error:dbErr}=await sb.from('etapa_curado_secado').update({fecha_inicio:document.getElementById('cur-fecha-ini').value||null,fecha_fin:document.getElementById('cur-fecha-fin').value||null,peso_inicial_humedo:parseFloat(document.getElementById('cur-peso-ini').value)||null,tiene_empaque:tieneEmp,tara_empaque:tieneEmp?parseFloat(document.getElementById('cur-tara').value)||null:null,unidad,peso_seco_final:pesoG,notas:document.getElementById('cur-notas').value||null}).eq('id',d.id));
+    }
   }
   if(dbErr){alert('Error al guardar: '+dbErr.message);return;}
-  const tbl={nursery:'etapa_nursery',vegetativa:'etapa_vegetativa',floracion:'etapa_floracion',cosecha_curado:'etapa_cosecha_curado'}[key];
+  const tbl={nursery:'etapa_nursery',vegetativa:'etapa_vegetativa',floracion:'etapa_floracion',cosecha:'etapa_cosecha',curado_secado:'etapa_curado_secado'}[key];
   if(tbl){const{data}=await sb.from(tbl).select('*').eq('lote_id',LOTE_ACTIVO.id).maybeSingle();if(data)HIST_DATA[key]=data;}
   const logKey=LOTE_ACTIVO.id+':'+key;
   CORRECCIONES_LOG[logKey]=(CORRECCIONES_LOG[logKey]||0)+1;
   checkInconsistencias();
-  const adjNM={nursery:'Vegetativa',vegetativa:'Floración',floracion:'Cosecha y Curado'};
-  const adjKey={nursery:'vegetativa',vegetativa:'floracion',floracion:'cosecha_curado'};
+  const adjNM={nursery:'Vegetativa',vegetativa:'Floración',floracion:'Cosecha',cosecha:'Curado/Secado'};
+  const adjKey={nursery:'vegetativa',vegetativa:'floracion',floracion:'cosecha',cosecha:'curado_secado'};
   const adjK=adjKey[key];
   if(adjK&&INCONSISTENCIAS[adjK]){
     const msgs=INCONSISTENCIAS[adjK].msgs.join('\n• ');
@@ -2061,20 +2120,32 @@ async function guardarBorrador(){
     const egF=parseInt(document.getElementById('flo-egreso').value)||null;const bjF=ci!=null&&egF!=null?ci-egF:0;
     if(d){({error:err}=await sb.from('etapa_floracion').update({fecha_inicio:fi||null,cantidad_ingreso:ci,fecha_fin:document.getElementById('flo-fecha-fin').value||null,cantidad_egreso:egF,bajas:bjF,notas:document.getElementById('flo-notas').value||null}).eq('id',d.id));}
     else if(fi&&ci){({error:err}=await sb.from('etapa_floracion').insert({lote_id:LOTE_ACTIVO.id,fecha_inicio:fi,cantidad_ingreso:ci,fecha_fin:document.getElementById('flo-fecha-fin').value||null,cantidad_egreso:egF,bajas:bjF,notas:document.getElementById('flo-notas').value||null}));}
-  } else if(et==='cosecha_curado'){
-    const d=HIST_DATA.cosecha_curado;
+  } else if(et==='cosecha'){
+    const d=HIST_DATA.cosecha;
     const fi=document.getElementById('cos-fecha-ini').value||null;
     const ff=document.getElementById('cos-fecha-fin').value||null;
-    const pi=parseFloat(document.getElementById('cos-peso-ini').value)||null;
-    const tieneEmpB=document.getElementById('cos-empaque').value==='true';
-    const taraB=parseFloat(document.getElementById('cos-tara').value)||null;
-    const notasB=document.getElementById('cos-notas').value||null;
-    if(d){({error:err}=await sb.from('etapa_cosecha_curado').update({fecha_inicio_cosecha:fi,fecha_fin_cosecha:ff,peso_inicial_curado:pi,tiene_empaque:tieneEmpB,tara_empaque:taraB,notas:notasB}).eq('id',d.id));}
-    else if(fi){({error:err}=await sb.from('etapa_cosecha_curado').insert({lote_id:LOTE_ACTIVO.id,fecha_inicio_cosecha:fi,fecha_fin_cosecha:ff,peso_inicial_curado:pi||0,tiene_empaque:tieneEmpB,tara_empaque:taraB,notas:notasB}));}
-    else{alert('Para guardar Cosecha ingresá al menos la Fecha inicio de cosecha.');return;}
+    const ph=parseFloat(document.getElementById('cos-peso-humedo').value)||null;
+    const notasC=document.getElementById('cos-notas').value||null;
+    if(!fi){alert('Para guardar borrador de Cosecha ingresá al menos la Fecha inicio.');return;}
+    if(d){({error:err}=await sb.from('etapa_cosecha').update({fecha_inicio:fi,fecha_fin:ff,peso_humedo_total:ph,notas:notasC}).eq('id',d.id));}
+    else{({error:err}=await sb.from('etapa_cosecha').insert({lote_id:LOTE_ACTIVO.id,fecha_inicio:fi,fecha_fin:ff,peso_humedo_total:ph,notas:notasC}));}
+  } else if(et==='curado_secado'){
+    const d=HIST_DATA.curado_secado;
+    const fi=document.getElementById('cur-fecha-ini').value||null;
+    const ff=document.getElementById('cur-fecha-fin').value||null;
+    const pi=parseFloat(document.getElementById('cur-peso-ini').value)||null;
+    const tieneEmpC=document.getElementById('cur-empaque').value==='true';
+    const taraC=parseFloat(document.getElementById('cur-tara').value)||null;
+    const unidadC=document.getElementById('cur-unidad').value;
+    const pesoRawC=parseFloat(document.getElementById('cur-peso-seco').value)||null;
+    const pesoGC=pesoRawC!=null?(unidadC==='kg'?Math.round(pesoRawC*1000*1000)/1000:pesoRawC):null;
+    const notasCS=document.getElementById('cur-notas').value||null;
+    if(d){({error:err}=await sb.from('etapa_curado_secado').update({fecha_inicio:fi,fecha_fin:ff,peso_inicial_humedo:pi,tiene_empaque:tieneEmpC,tara_empaque:tieneEmpC?taraC:null,unidad:unidadC,peso_seco_final:pesoGC,notas:notasCS}).eq('id',d.id));}
+    else if(fi||ff){({error:err}=await sb.from('etapa_curado_secado').insert({lote_id:LOTE_ACTIVO.id,fecha_inicio:fi,fecha_fin:ff,peso_inicial_humedo:pi,tiene_empaque:tieneEmpC,tara_empaque:tieneEmpC?taraC:null,unidad:unidadC,peso_seco_final:pesoGC,notas:notasCS}));}
+    else{alert('Ingresá al menos una fecha para guardar borrador de Curado/Secado.');return;}
   }
   if(err){alert('Error al guardar: '+err.message);return;}
-  const tbl={nursery:'etapa_nursery',vegetativa:'etapa_vegetativa',floracion:'etapa_floracion',cosecha_curado:'etapa_cosecha_curado'}[et];
+  const tbl={nursery:'etapa_nursery',vegetativa:'etapa_vegetativa',floracion:'etapa_floracion',cosecha:'etapa_cosecha',curado_secado:'etapa_curado_secado'}[et];
   if(tbl){const{data}=await sb.from(tbl).select('*').eq('lote_id',LOTE_ACTIVO.id).maybeSingle();if(data)HIST_DATA[et]=data;}
   renderPanelActivo();
   alert('Borrador guardado correctamente.');
@@ -2157,25 +2228,47 @@ async function guardarAvanzar(){
     alert('¡Floración cerrada! El lote avanzó a Cosecha y Curado.');
     await openLote(loteId);
 
-  } else if(et==='cosecha_curado'){
+  } else if(et==='cosecha'){
     const fi=document.getElementById('cos-fecha-ini').value;
-    const pi=parseFloat(document.getElementById('cos-peso-ini').value)||0;
-    const tieneEmp=document.getElementById('cos-empaque').value==='true';
-    const tara=parseFloat(document.getElementById('cos-tara').value)||0;
+    const ff=document.getElementById('cos-fecha-fin').value;
+    const pesoH=parseFloat(document.getElementById('cos-peso-humedo').value)||null;
     const notas=document.getElementById('cos-notas').value||null;
-    if(!fi||!pi)return showErr('Completá Fecha inicio cosecha y Peso inicial curado.');
-    const pesoSeco=tieneEmp?pi-tara:pi;
-    const d=HIST_DATA.cosecha_curado;
-    const ff=document.getElementById('cos-fecha-fin').value||null;
-    if(d){({error:dbErr}=await sb.from('etapa_cosecha_curado').update({fecha_inicio_cosecha:fi,fecha_fin_cosecha:ff,peso_inicial_curado:pi,tiene_empaque:tieneEmp,tara_empaque:tieneEmp?tara:null,peso_seco_final:pesoSeco,notas}).eq('id',d.id));}
-    else{({error:dbErr}=await sb.from('etapa_cosecha_curado').insert({lote_id:loteId,fecha_inicio_cosecha:fi,fecha_fin_cosecha:ff,peso_inicial_curado:pi,tiene_empaque:tieneEmp,tara_empaque:tieneEmp?tara:null,peso_seco_final:pesoSeco,notas}));}
+    if(!fi)return showErr('La Fecha inicio de cosecha es obligatoria.');
+    if(!ff)return showErr('La Fecha fin de cosecha es obligatoria para avanzar a Curado/Secado.');
+    const wF=warnFechaFutura(ff)||warnFechaOrden(fi,ff)||warnDiasMinimos(fi,ff,'Cosecha',7);
+    if(wF&&!confirm(`⚠ ${wF}\n¿Confirmar igual?`))return;
+    const d=HIST_DATA.cosecha;
+    if(d){({error:dbErr}=await sb.from('etapa_cosecha').update({fecha_inicio:fi,fecha_fin:ff,peso_humedo_total:pesoH,notas}).eq('id',d.id));}
+    else{({error:dbErr}=await sb.from('etapa_cosecha').insert({lote_id:loteId,fecha_inicio:fi,fecha_fin:ff,peso_humedo_total:pesoH,notas}));}
     if(dbErr)return showErr('Error guardando cosecha: '+dbErr.message);
+    ({error:dbErr}=await sb.from('lotes_produccion').update({etapa_actual:'curado_secado'}).eq('id',loteId));
+    if(dbErr)return showErr('Error actualizando etapa: '+dbErr.message);
+    await cargarLotes();rebuildSearchIndex();actualizarMetricasDash();
+    alert('Cosecha registrada. El lote avanzó a Curado/Secado.');
+    await openLote(loteId);
+  } else if(et==='curado_secado'){
+    const fi=document.getElementById('cur-fecha-ini').value||null;
+    const ff=document.getElementById('cur-fecha-fin').value;
+    const pesoIni=parseFloat(document.getElementById('cur-peso-ini').value)||null;
+    const tieneEmp=document.getElementById('cur-empaque').value==='true';
+    const tara=parseFloat(document.getElementById('cur-tara').value)||null;
+    const unidad=document.getElementById('cur-unidad').value;
+    const pesoRaw=parseFloat(document.getElementById('cur-peso-seco').value);
+    const notas=document.getElementById('cur-notas').value||null;
+    if(!ff)return showErr('La Fecha fin de curado/secado es obligatoria para avanzar a Flores.');
+    if(!pesoRaw)return showErr('El Peso seco final es obligatorio para avanzar a Flores.');
+    if(fi){const wF=warnFechaOrden(fi,ff);if(wF&&!confirm(`⚠ ${wF}\n¿Confirmar igual?`))return;}
+    const pesoG=unidad==='kg'?Math.round(pesoRaw*1000*1000)/1000:pesoRaw;
+    const d=HIST_DATA.curado_secado;
+    if(d){({error:dbErr}=await sb.from('etapa_curado_secado').update({fecha_inicio:fi,fecha_fin:ff,peso_inicial_humedo:pesoIni,tiene_empaque:tieneEmp,tara_empaque:tieneEmp?tara:null,unidad,peso_seco_final:pesoG,notas}).eq('id',d.id));}
+    else{({error:dbErr}=await sb.from('etapa_curado_secado').insert({lote_id:loteId,fecha_inicio:fi,fecha_fin:ff,peso_inicial_humedo:pesoIni,tiene_empaque:tieneEmp,tara_empaque:tieneEmp?tara:null,unidad,peso_seco_final:pesoG,notas}));}
+    if(dbErr)return showErr('Error guardando curado/secado: '+dbErr.message);
     const{data:floresExist}=await sb.from('flores_cosechadas').select('id').eq('lote_id',loteId).maybeSingle();
-    if(!floresExist){({error:dbErr}=await sb.from('flores_cosechadas').insert({lote_id:loteId,stock_inicial:pesoSeco,stock_actual:pesoSeco}));if(dbErr)return showErr('Error creando stock de flores: '+dbErr.message);}
+    if(!floresExist){({error:dbErr}=await sb.from('flores_cosechadas').insert({lote_id:loteId,stock_inicial:pesoG,stock_actual:pesoG}));if(dbErr)return showErr('Error creando stock de flores: '+dbErr.message);}
     ({error:dbErr}=await sb.from('lotes_produccion').update({etapa_actual:'flores'}).eq('id',loteId));
     if(dbErr)return showErr('Error actualizando etapa: '+dbErr.message);
     await cargarLotes();rebuildSearchIndex();actualizarMetricasDash();
-    alert('¡Cosecha y Curado registrada! El lote avanzó a Flores Cosechadas.');
+    alert('Curado/Secado registrado. El lote avanzó a Flores Cosechadas.');
     await openLote(loteId);
   }
 }

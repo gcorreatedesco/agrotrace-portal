@@ -121,7 +121,7 @@ CREATE TABLE IF NOT EXISTS public.lotes_produccion (
   nombre_completo       TEXT NOT NULL,  -- AUTO: nombre_base + ' → ' + nombre_agregado
   -- estado
   etapa_actual          TEXT NOT NULL DEFAULT 'nursery'
-                          CHECK (etapa_actual IN ('nursery','vegetativa','floracion','cosecha_curado','flores','completado','cerrado')),
+                          CHECK (etapa_actual IN ('nursery','vegetativa','floracion','cosecha','curado_secado','flores','completado','cerrado')),
   cantidad_inicial      INTEGER,
   fecha_inicio          DATE NOT NULL,
   notas                 TEXT,
@@ -194,23 +194,39 @@ CREATE POLICY "via lote floracion" ON public.etapa_floracion
   );
 
 
--- ── ETAPA COSECHA Y CURADO ───────────────────────
-CREATE TABLE IF NOT EXISTS public.etapa_cosecha_curado (
-  id                   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  lote_id              UUID NOT NULL REFERENCES public.lotes_produccion(id) ON DELETE CASCADE,
-  fecha_inicio_cosecha DATE NOT NULL,
-  fecha_fin_cosecha    DATE,
-  fecha_inicio_curado  DATE,
-  fecha_fin_curado     DATE,
-  peso_inicial_curado  NUMERIC NOT NULL,  -- en gramos
-  tiene_empaque        BOOLEAN NOT NULL DEFAULT FALSE,
-  tara_empaque         NUMERIC,           -- solo si tiene_empaque = true
-  peso_seco_final      NUMERIC,           -- AUTO: peso_inicial si sin empaque; peso_inicial - tara si con empaque
-  notas                TEXT,
-  creado_en            TIMESTAMPTZ DEFAULT NOW()
+-- ── ETAPA COSECHA ────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.etapa_cosecha (
+  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  lote_id           UUID NOT NULL REFERENCES public.lotes_produccion(id) ON DELETE CASCADE,
+  fecha_inicio      DATE NOT NULL,   -- propagada desde fecha_fin floración
+  fecha_fin         DATE,
+  peso_humedo_total NUMERIC,         -- peso post-cosecha (informativo, opcional)
+  notas             TEXT,
+  creado_en         TIMESTAMPTZ DEFAULT NOW()
 );
-ALTER TABLE public.etapa_cosecha_curado ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "via lote cosecha" ON public.etapa_cosecha_curado
+ALTER TABLE public.etapa_cosecha ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "via lote cosecha" ON public.etapa_cosecha
+  FOR ALL USING (
+    EXISTS (SELECT 1 FROM public.lotes_produccion WHERE id = lote_id AND usuario_id = auth.uid())
+  );
+
+
+-- ── ETAPA CURADO/SECADO ───────────────────────────
+CREATE TABLE IF NOT EXISTS public.etapa_curado_secado (
+  id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  lote_id             UUID NOT NULL REFERENCES public.lotes_produccion(id) ON DELETE CASCADE,
+  fecha_inicio        DATE,
+  fecha_fin           DATE,
+  peso_inicial_humedo NUMERIC,        -- opcional
+  tiene_empaque       BOOLEAN NOT NULL DEFAULT FALSE,
+  tara_empaque        NUMERIC,        -- solo si tiene_empaque = true
+  unidad              TEXT NOT NULL DEFAULT 'gramos' CHECK (unidad IN ('gramos','kg')),
+  peso_seco_final     NUMERIC,        -- siempre almacenado en gramos; pasa a stock_inicial de flores_cosechadas
+  notas               TEXT,
+  creado_en           TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE public.etapa_curado_secado ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "via lote curado" ON public.etapa_curado_secado
   FOR ALL USING (
     EXISTS (SELECT 1 FROM public.lotes_produccion WHERE id = lote_id AND usuario_id = auth.uid())
   );
