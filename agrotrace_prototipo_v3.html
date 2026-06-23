@@ -2219,10 +2219,10 @@ async function guardarAvanzar(){
     if(d){({error:dbErr}=await sb.from('etapa_floracion').update({fecha_inicio:fi,cantidad_ingreso:ci,fecha_fin:ff,cantidad_egreso:egreso,bajas,notas}).eq('id',d.id));}
     else{({error:dbErr}=await sb.from('etapa_floracion').insert({lote_id:loteId,fecha_inicio:fi,cantidad_ingreso:ci,fecha_fin:ff,cantidad_egreso:egreso,bajas,notas}));}
     if(dbErr)return showErr('Error guardando floración: '+dbErr.message);
-    ({error:dbErr}=await sb.from('lotes_produccion').update({etapa_actual:'cosecha_curado'}).eq('id',loteId));
+    ({error:dbErr}=await sb.from('lotes_produccion').update({etapa_actual:'cosecha'}).eq('id',loteId));
     if(dbErr)return showErr('Error actualizando etapa: '+dbErr.message);
     await cargarLotes();rebuildSearchIndex();actualizarMetricasDash();
-    alert('¡Floración cerrada! El lote avanzó a Cosecha y Curado.');
+    alert('¡Floración cerrada! El lote avanzó a Cosecha.');
     await openLote(loteId);
 
   } else if(et==='cosecha'){
