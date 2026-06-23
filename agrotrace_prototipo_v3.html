@@ -961,16 +961,16 @@ async function cargarLotes(){
 }
 
 function mapLote(row){
-  const em={nursery:{b:'b-nur',bt:'Nursery',idx:1},vegetativa:{b:'b-veg',bt:'Vegetativa',idx:2},floracion:{b:'b-flo',bt:'Floración',idx:3},cosecha_curado:{b:'b-cos',bt:'Cosecha y Curado',idx:4},flores:{b:'b-fl2',bt:'Flores Cosechadas',idx:5},completado:{b:'b-com',bt:'Completado',idx:5},cerrado:{b:'b-cia',bt:'Cerrado anticipadamente',idx:0}};
+  const em={nursery:{b:'b-nur',bt:'Nursery',idx:1},vegetativa:{b:'b-veg',bt:'Vegetativa',idx:2},floracion:{b:'b-flo',bt:'Floración',idx:3},cosecha:{b:'b-cos',bt:'Cosecha',idx:4},curado_secado:{b:'b-cos',bt:'Curado/Secado',idx:5},flores:{b:'b-fl2',bt:'Flores Cosechadas',idx:6},completado:{b:'b-com',bt:'Completado',idx:6},cerrado:{b:'b-cia',bt:'Cerrado anticipadamente',idx:0}};
   const info=em[row.etapa_actual]||{b:'b-nur',bt:row.etapa_actual,idx:1};
-  const steps=[0,0,0,0,0];
-  if(row.etapa_actual==='completado'){for(let i=0;i<5;i++)steps[i]=1;}
+  const steps=[0,0,0,0,0,0];
+  if(row.etapa_actual==='completado'){for(let i=0;i<6;i++)steps[i]=1;}
   else if(row.etapa_actual!=='cerrado'){for(let i=0;i<info.idx-1;i++)steps[i]=1;if(info.idx>0)steps[info.idx-1]=2;}
   let o='—';
   if(row.origen_semilla_id)o='Semillas';
   else if(row.origen_esqueje_id)o='Esquejes externos';
   else if(row.origen_pm_id)o='Plantas Madre';
-  return{id:row.id,n:row.nombre_completo,o,et:row.etapa_actual==='cosecha_curado'?'cosecha':row.etapa_actual,etapaRaw:row.etapa_actual,b:info.b,bt:info.bt,hs:false,s:steps,sc:row.etapa_actual==='completado'?'5/5':row.etapa_actual==='cerrado'?'—':info.idx+'/5',m:[{l:'Inicio',v:fmtDate(row.fecha_inicio)}],fecha_cierre:row.fecha_cierre||null,motivo_cierre:row.motivo_cierre||null,origen_semilla_id:row.origen_semilla_id||null,origen_esqueje_id:row.origen_esqueje_id||null,origen_pm_id:row.origen_pm_id||null};
+  return{id:row.id,n:row.nombre_completo,o,et:row.etapa_actual,etapaRaw:row.etapa_actual,b:info.b,bt:info.bt,hs:false,s:steps,sc:row.etapa_actual==='completado'?'6/6':row.etapa_actual==='cerrado'?'—':info.idx+'/6',m:[{l:'Inicio',v:fmtDate(row.fecha_inicio)}],fecha_cierre:row.fecha_cierre||null,motivo_cierre:row.motivo_cierre||null,origen_semilla_id:row.origen_semilla_id||null,origen_esqueje_id:row.origen_esqueje_id||null,origen_pm_id:row.origen_pm_id||null};
 }
 
 function fmtDate(iso){if(!iso)return'—';const[y,m,d]=iso.split('-');return d+'/'+m+'/'+y;}
@@ -1133,7 +1133,7 @@ async function cargarHistorialMaterial(){
         const{data:nur}=await sb.from('etapa_nursery').select('cantidad_ingreso,material_utilizado,fecha_inicio').eq('lote_id',lote.id??'').maybeSingle();
         if(nur)cant=(tipo==='semillas'?(nur.material_utilizado||nur.cantidad_ingreso):nur.cantidad_ingreso)+' '+( tipo==='semillas'?'unidades':'esquejes');
       }
-      const em={nursery:'Nursery',vegetativa:'Vegetativa',floracion:'Floración',cosecha_curado:'Cosecha',flores:'Flores Cosechadas'};
+      const em={nursery:'Nursery',vegetativa:'Vegetativa',floracion:'Floración',cosecha:'Cosecha',curado_secado:'Curado/Secado',flores:'Flores Cosechadas'};
       usoHtml+=`<div class="hist-item"><div class="hist-item-desc"><strong>${lote.nombre_completo}</strong><br><span style="color:var(--sage);">Etapa actual: ${em[lote.etapa_actual]||lote.etapa_actual} · Usado: ${cant}</span></div><div class="hist-item-meta">${fmtDate(lote.creado_en?.split('T')[0])}</div></div>`;
     }
   }
