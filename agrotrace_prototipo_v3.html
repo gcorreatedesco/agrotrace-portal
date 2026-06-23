@@ -294,6 +294,7 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
 .form-col-hdr{font-size:0.6rem;color:var(--sage);text-transform:uppercase;letter-spacing:.07em;font-weight:500;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid rgba(0,0,0,0.07);}
 .bajas-auto{padding:7px 10px;font-size:0.78rem;font-weight:500;background:var(--dew);border-radius:var(--radius);border:1px solid rgba(0,0,0,0.07);color:var(--soil);}
 .bajas-neg{color:var(--error) !important;background:var(--error-bg) !important;}
+.corr-badge{display:inline-flex;align-items:center;gap:4px;font-size:0.65rem;font-weight:500;color:var(--amber);background:var(--amber-bg);border:1px solid rgba(133,79,11,0.2);border-radius:20px;padding:2px 8px;margin-left:8px;}
 
 /* action bar */
 .ab{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;padding-top:14px;border-top:1px solid rgba(0,0,0,0.07);}
@@ -910,6 +911,7 @@ let ALL_LOTES = [];
 let LOTE_ACTIVO=null;
 let HIST_DATA={};
 let INCONSISTENCIAS={};
+let CORRECCIONES_LOG={};
 
 let OA=null,LA=null,UI=false,searchOpen=false;
 
@@ -968,7 +970,7 @@ function mapLote(row){
   if(row.origen_semilla_id)o='Semillas';
   else if(row.origen_esqueje_id)o='Esquejes externos';
   else if(row.origen_pm_id)o='Plantas Madre';
-  return{id:row.id,n:row.nombre_completo,o,et:row.etapa_actual==='cosecha_curado'?'cosecha':row.etapa_actual,etapaRaw:row.etapa_actual,b:info.b,bt:info.bt,hs:false,s:steps,sc:row.etapa_actual==='completado'?'5/5':row.etapa_actual==='cerrado'?'—':info.idx+'/5',m:[{l:'Inicio',v:fmtDate(row.fecha_inicio)}],fecha_cierre:row.fecha_cierre||null,motivo_cierre:row.motivo_cierre||null};
+  return{id:row.id,n:row.nombre_completo,o,et:row.etapa_actual==='cosecha_curado'?'cosecha':row.etapa_actual,etapaRaw:row.etapa_actual,b:info.b,bt:info.bt,hs:false,s:steps,sc:row.etapa_actual==='completado'?'5/5':row.etapa_actual==='cerrado'?'—':info.idx+'/5',m:[{l:'Inicio',v:fmtDate(row.fecha_inicio)}],fecha_cierre:row.fecha_cierre||null,motivo_cierre:row.motivo_cierre||null,origen_semilla_id:row.origen_semilla_id||null,origen_esqueje_id:row.origen_esqueje_id||null,origen_pm_id:row.origen_pm_id||null};
 }
 
 function fmtDate(iso){if(!iso)return'—';const[y,m,d]=iso.split('-');return d+'/'+m+'/'+y;}
@@ -1207,6 +1209,7 @@ async function openLote(id){
   LOTE_ACTIVO=lote;
   HIST_DATA={};
   INCONSISTENCIAS={};
+  CORRECCIONES_LOG={};
   const emap={nursery:'Nursery · orden 1',vegetativa:'Vegetativa · orden 2',floracion:'Floración · orden 3',cosecha:'Cosecha y Curado · orden 4',cosecha_curado:'Cosecha y Curado · orden 4',flores:'Flores Cosechadas · orden 5',completado:'Ciclo completado',cerrado:'Cerrado anticipadamente'};
   const bmap={nursery:'b-nur',vegetativa:'b-veg',floracion:'b-flo',cosecha:'b-cos',cosecha_curado:'b-cos',flores:'b-fl2',completado:'b-com',cerrado:'b-cia'};
   document.getElementById('det-nombre').textContent=lote.n;
@@ -1486,9 +1489,12 @@ function panelFlores(){
   const d=HIST_DATA.flores||{};
   const agotado=d.stock_actual!=null&&d.stock_actual<=0;
   const yaCompletado=LOTE_ACTIVO?.etapaRaw==='completado';
+  const variedad=getLoteVariedad();
+  const warnVariedad=!variedad?`<div class="wb" style="margin-bottom:10px;">⚠ La variedad de este lote no está especificada. Es recomendable registrarla antes de realizar entregas para garantizar la trazabilidad REPROCANN.</div>`:'';
   const cerrarBanner=agotado&&!yaCompletado?`<div class="cerrar-banner"><div class="cerrar-banner-txt"><strong>Existencias agotadas</strong><br>Todas las flores de este lote fueron entregadas. Podés cerrar el lote y moverlo al historial.</div><button class="btn btn-primary" onclick="cerrarLoteAgotado()">Cerrar lote →</button></div>`:'';
   const botones=yaCompletado||agotado?'':`<div class="ab" style="margin-top:12px;"><button class="btn btn-primary" onclick="abrirFormEntrega()">+ Registrar entrega</button></div>`;
   return`<div class="panel">
+    ${warnVariedad}
     <div class="pt">Flores Cosechadas${yaCompletado?' <span style="font-size:0.65rem;color:var(--accent);font-weight:400;text-transform:none;">— lote completado</span>':''}</div>
     <div class="g2">
       <div class="field"><label>Stock inicial</label><div class="ro-val">${d.stock_inicial!=null?d.stock_inicial+' g':'—'}</div></div>
@@ -1866,6 +1872,16 @@ async function guardarEntrega(){
   alert(`Entrega registrada correctamente.\nStock restante: ${nuevoStock} g`);
 }
 
+/* ── VARIEDAD ── */
+function getLoteVariedad(){
+  if(!LOTE_ACTIVO)return null;
+  const todos={semillas:[...LM.semillas,...(LM_HIST.semillas||[])],esquejes:[...LM.esquejes,...(LM_HIST.esquejes||[])],pm:[...LM.pm,...(LM_HIST.pm||[])]};
+  if(LOTE_ACTIVO.origen_semilla_id)return todos.semillas.find(l=>l.v===LOTE_ACTIVO.origen_semilla_id)?.var||null;
+  if(LOTE_ACTIVO.origen_esqueje_id)return todos.esquejes.find(l=>l.v===LOTE_ACTIVO.origen_esqueje_id)?.var||null;
+  if(LOTE_ACTIVO.origen_pm_id)return todos.pm.find(l=>l.v===LOTE_ACTIVO.origen_pm_id)?.var||null;
+  return null;
+}
+
 /* ── CORRECCIONES E INCONSISTENCIAS ── */
 function checkInconsistencias(){
   INCONSISTENCIAS={};
@@ -1926,7 +1942,9 @@ function panelReadOnly(key){
     ${d.tiene_empaque?`<div class="g2"><div class="field"><label>Tara empaque</label><div class="ro-val">${d.tara_empaque!=null?d.tara_empaque+' g':'—'}</div></div><div class="field"><label>Peso seco final</label><div class="ro-val">${ps} g</div></div></div>`:''}
     <div class="field"><label>Notas</label><div class="ro-val">${d.notas||'—'}</div></div>`;
   }
-  return`<div class="panel">${banner}<div class="pt">${NM[key]||key} — datos registrados</div>${campos}<div class="ab"><button class="btn btn-secondary" onclick="volverEtapaActual()">← Etapa actual</button><button class="btn btn-primary" onclick="activarCorreccion('${key}')">✏ Registrar corrección</button></div></div>`;
+  const nCorr=CORRECCIONES_LOG[LOTE_ACTIVO?.id+':'+key]||0;
+  const corrBadge=nCorr>0?`<span class="corr-badge">✎ Corregido ${nCorr} vez${nCorr>1?'es':''} en esta sesión</span>`:'';
+  return`<div class="panel">${banner}<div class="pt">${NM[key]||key} — datos registrados${corrBadge}</div>${campos}<div class="ab"><button class="btn btn-secondary" onclick="volverEtapaActual()">← Etapa actual</button><button class="btn btn-primary" onclick="activarCorreccion('${key}')">✏ Registrar corrección</button></div></div>`;
 }
 
 function activarCorreccion(key){
@@ -1962,6 +1980,8 @@ async function guardarEtapaHist(key){
   if(dbErr){alert('Error al guardar: '+dbErr.message);return;}
   const tbl={nursery:'etapa_nursery',vegetativa:'etapa_vegetativa',floracion:'etapa_floracion',cosecha_curado:'etapa_cosecha_curado'}[key];
   if(tbl){const{data}=await sb.from(tbl).select('*').eq('lote_id',LOTE_ACTIVO.id).maybeSingle();if(data)HIST_DATA[key]=data;}
+  const logKey=LOTE_ACTIVO.id+':'+key;
+  CORRECCIONES_LOG[logKey]=(CORRECCIONES_LOG[logKey]||0)+1;
   checkInconsistencias();
   const adjNM={nursery:'Vegetativa',vegetativa:'Floración',floracion:'Cosecha y Curado'};
   const adjKey={nursery:'vegetativa',vegetativa:'floracion',floracion:'cosecha_curado'};
