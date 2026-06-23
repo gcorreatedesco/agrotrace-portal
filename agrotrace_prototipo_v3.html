@@ -1488,11 +1488,14 @@ function panelCosecha(hist=false){
   </div>`;
 }
 
+function selUnidad(id){return`<select id="${id}" style="width:82px;flex-shrink:0;"><option value="gramos">gramos</option><option value="kg">kg</option></select>`;}
+function pesoField(labelHtml,inputId,unidadId,val){
+  return`<div class="field"><label>${labelHtml}</label><div style="display:flex;gap:6px;"><input type="number" id="${inputId}" value="${val||''}" step="0.001" placeholder="0" style="flex:1;min-width:0;"/>${selUnidad(unidadId)}</div></div>`;
+}
+
 function panelCuradoSecado(hist=false){
   const d=HIST_DATA.curado_secado||{};
   const fIniSug=d.fecha_inicio||HIST_DATA.cosecha?.fecha_fin||'';
-  const unidad=d.unidad||'gramos';
-  const pesoSeco=d.peso_seco_final!=null?(unidad==='kg'?(d.peso_seco_final/1000):d.peso_seco_final):'';
   const ab=hist
     ?`<button class="btn btn-secondary" onclick="openEtapaHist('curado_secado')">Cancelar</button><button class="btn btn-primary" onclick="guardarEtapaHist('curado_secado')">Guardar corrección</button>`
     :`<button class="btn btn-secondary" onclick="guardarBorrador()">Guardar borrador</button><button class="btn btn-advance" onclick="guardarAvanzar()">Guardar y avanzar a Flores →</button>`;
@@ -1507,13 +1510,10 @@ function panelCuradoSecado(hist=false){
       </div>
       <div>
         <div class="form-col-hdr">Pesos</div>
-        <div class="field"><label>Peso inicial húmedo<span class="opt">opcional</span></label><input type="number" id="cur-peso-ini" value="${d.peso_inicial_humedo||''}" step="0.1" placeholder="g"/></div>
+        ${pesoField('Peso inicial húmedo<span class="opt">opcional</span>','cur-peso-ini','cur-unidad-ini',d.peso_inicial_humedo)}
+        ${pesoField('Peso seco final<span class="req">*</span>','cur-peso-seco','cur-unidad-seco',d.peso_seco_final)}
         <div class="field"><label>¿Tiene empaque?</label><select id="cur-empaque"><option value="false" ${!d.tiene_empaque?'selected':''}>No</option><option value="true" ${d.tiene_empaque?'selected':''}>Sí</option></select></div>
-        <div class="field"><label>Tara empaque<span class="opt">si tiene empaque</span></label><input type="number" id="cur-tara" value="${d.tara_empaque||''}" step="0.1" placeholder="0"/></div>
-        <div class="g2" style="gap:8px;">
-          <div class="field"><label>Unidad<span class="req">*</span></label><select id="cur-unidad"><option value="gramos" ${unidad==='gramos'?'selected':''}>gramos</option><option value="kg" ${unidad==='kg'?'selected':''}>kg</option></select></div>
-          <div class="field"><label>Peso seco final<span class="req">*</span></label><input type="number" id="cur-peso-seco" value="${pesoSeco}" step="0.001" placeholder="Obligatorio"/></div>
-        </div>
+        ${pesoField('Tara empaque<span class="opt">si tiene empaque</span>','cur-tara','cur-unidad-tara',d.tara_empaque)}
       </div>
     </div>
     <div class="field" style="margin-top:4px;"><label>Notas<span class="opt">opcional</span></label><input type="text" id="cur-notas" value="${d.notas||''}" placeholder="Observaciones..."/></div>
@@ -2029,11 +2029,9 @@ async function guardarEtapaHist(key){
   } else if(key==='curado_secado'){
     const d=HIST_DATA.curado_secado;
     if(d){
-      const unidad=document.getElementById('cur-unidad').value;
-      const pesoRaw=parseFloat(document.getElementById('cur-peso-seco').value)||null;
-      const pesoG=pesoRaw!=null?(unidad==='kg'?Math.round(pesoRaw*1000*1000)/1000:pesoRaw):null;
+      const gramsH=(elId,unidId)=>{const v=parseFloat(document.getElementById(elId).value)||null;const u=document.getElementById(unidId)?.value||'gramos';return v!=null?(u==='kg'?Math.round(v*1000*100)/100:v):null;};
       const tieneEmp=document.getElementById('cur-empaque').value==='true';
-      ({error:dbErr}=await sb.from('etapa_curado_secado').update({fecha_inicio:document.getElementById('cur-fecha-ini').value||null,fecha_fin:document.getElementById('cur-fecha-fin').value||null,peso_inicial_humedo:parseFloat(document.getElementById('cur-peso-ini').value)||null,tiene_empaque:tieneEmp,tara_empaque:tieneEmp?parseFloat(document.getElementById('cur-tara').value)||null:null,unidad,peso_seco_final:pesoG,notas:document.getElementById('cur-notas').value||null}).eq('id',d.id));
+      ({error:dbErr}=await sb.from('etapa_curado_secado').update({fecha_inicio:document.getElementById('cur-fecha-ini').value||null,fecha_fin:document.getElementById('cur-fecha-fin').value||null,peso_inicial_humedo:gramsH('cur-peso-ini','cur-unidad-ini'),tiene_empaque:tieneEmp,tara_empaque:tieneEmp?gramsH('cur-tara','cur-unidad-tara'):null,unidad:'gramos',peso_seco_final:gramsH('cur-peso-seco','cur-unidad-seco'),notas:document.getElementById('cur-notas').value||null}).eq('id',d.id));
     }
   }
   if(dbErr){alert('Error al guardar: '+dbErr.message);return;}
@@ -2133,15 +2131,14 @@ async function guardarBorrador(){
     const d=HIST_DATA.curado_secado;
     const fi=document.getElementById('cur-fecha-ini').value||null;
     const ff=document.getElementById('cur-fecha-fin').value||null;
-    const pi=parseFloat(document.getElementById('cur-peso-ini').value)||null;
+    const gramsB=(elId,unidId)=>{const v=parseFloat(document.getElementById(elId).value)||null;const u=document.getElementById(unidId)?.value||'gramos';return v!=null?(u==='kg'?Math.round(v*1000*100)/100:v):null;};
+    const piG=gramsB('cur-peso-ini','cur-unidad-ini');
     const tieneEmpC=document.getElementById('cur-empaque').value==='true';
-    const taraC=parseFloat(document.getElementById('cur-tara').value)||null;
-    const unidadC=document.getElementById('cur-unidad').value;
-    const pesoRawC=parseFloat(document.getElementById('cur-peso-seco').value)||null;
-    const pesoGC=pesoRawC!=null?(unidadC==='kg'?Math.round(pesoRawC*1000*1000)/1000:pesoRawC):null;
+    const taraG=gramsB('cur-tara','cur-unidad-tara');
+    const pesoGC=gramsB('cur-peso-seco','cur-unidad-seco');
     const notasCS=document.getElementById('cur-notas').value||null;
-    if(d){({error:err}=await sb.from('etapa_curado_secado').update({fecha_inicio:fi,fecha_fin:ff,peso_inicial_humedo:pi,tiene_empaque:tieneEmpC,tara_empaque:tieneEmpC?taraC:null,unidad:unidadC,peso_seco_final:pesoGC,notas:notasCS}).eq('id',d.id));}
-    else if(fi||ff){({error:err}=await sb.from('etapa_curado_secado').insert({lote_id:LOTE_ACTIVO.id,fecha_inicio:fi,fecha_fin:ff,peso_inicial_humedo:pi,tiene_empaque:tieneEmpC,tara_empaque:tieneEmpC?taraC:null,unidad:unidadC,peso_seco_final:pesoGC,notas:notasCS}));}
+    if(d){({error:err}=await sb.from('etapa_curado_secado').update({fecha_inicio:fi,fecha_fin:ff,peso_inicial_humedo:piG,tiene_empaque:tieneEmpC,tara_empaque:tieneEmpC?taraG:null,unidad:'gramos',peso_seco_final:pesoGC,notas:notasCS}).eq('id',d.id));}
+    else if(fi||ff){({error:err}=await sb.from('etapa_curado_secado').insert({lote_id:LOTE_ACTIVO.id,fecha_inicio:fi,fecha_fin:ff,peso_inicial_humedo:piG,tiene_empaque:tieneEmpC,tara_empaque:tieneEmpC?taraG:null,unidad:'gramos',peso_seco_final:pesoGC,notas:notasCS}));}
     else{alert('Ingresá al menos una fecha para guardar borrador de Curado/Secado.');return;}
   }
   if(err){alert('Error al guardar: '+err.message);return;}
@@ -2249,19 +2246,19 @@ async function guardarAvanzar(){
   } else if(et==='curado_secado'){
     const fi=document.getElementById('cur-fecha-ini').value||null;
     const ff=document.getElementById('cur-fecha-fin').value;
-    const pesoIni=parseFloat(document.getElementById('cur-peso-ini').value)||null;
+    const grams=(elId,unidId)=>{const v=parseFloat(document.getElementById(elId).value)||null;const u=document.getElementById(unidId)?.value||'gramos';return v!=null?(u==='kg'?Math.round(v*1000*100)/100:v):null;};
+    const pesoIni=grams('cur-peso-ini','cur-unidad-ini');
     const tieneEmp=document.getElementById('cur-empaque').value==='true';
-    const tara=parseFloat(document.getElementById('cur-tara').value)||null;
-    const unidad=document.getElementById('cur-unidad').value;
-    const pesoRaw=parseFloat(document.getElementById('cur-peso-seco').value);
+    const tara=grams('cur-tara','cur-unidad-tara');
+    const pesoSecoRaw=parseFloat(document.getElementById('cur-peso-seco').value);
+    const pesoG=grams('cur-peso-seco','cur-unidad-seco');
     const notas=document.getElementById('cur-notas').value||null;
     if(!ff)return showErr('La Fecha fin de curado/secado es obligatoria para avanzar a Flores.');
-    if(!pesoRaw)return showErr('El Peso seco final es obligatorio para avanzar a Flores.');
+    if(!pesoSecoRaw)return showErr('El Peso seco final es obligatorio para avanzar a Flores.');
     if(fi){const wF=warnFechaOrden(fi,ff);if(wF&&!confirm(`⚠ ${wF}\n¿Confirmar igual?`))return;}
-    const pesoG=unidad==='kg'?Math.round(pesoRaw*1000*1000)/1000:pesoRaw;
     const d=HIST_DATA.curado_secado;
-    if(d){({error:dbErr}=await sb.from('etapa_curado_secado').update({fecha_inicio:fi,fecha_fin:ff,peso_inicial_humedo:pesoIni,tiene_empaque:tieneEmp,tara_empaque:tieneEmp?tara:null,unidad,peso_seco_final:pesoG,notas}).eq('id',d.id));}
-    else{({error:dbErr}=await sb.from('etapa_curado_secado').insert({lote_id:loteId,fecha_inicio:fi,fecha_fin:ff,peso_inicial_humedo:pesoIni,tiene_empaque:tieneEmp,tara_empaque:tieneEmp?tara:null,unidad,peso_seco_final:pesoG,notas}));}
+    if(d){({error:dbErr}=await sb.from('etapa_curado_secado').update({fecha_inicio:fi,fecha_fin:ff,peso_inicial_humedo:pesoIni,tiene_empaque:tieneEmp,tara_empaque:tieneEmp?tara:null,unidad:'gramos',peso_seco_final:pesoG,notas}).eq('id',d.id));}
+    else{({error:dbErr}=await sb.from('etapa_curado_secado').insert({lote_id:loteId,fecha_inicio:fi,fecha_fin:ff,peso_inicial_humedo:pesoIni,tiene_empaque:tieneEmp,tara_empaque:tieneEmp?tara:null,unidad:'gramos',peso_seco_final:pesoG,notas}));}
     if(dbErr)return showErr('Error guardando curado/secado: '+dbErr.message);
     const{data:floresExist}=await sb.from('flores_cosechadas').select('id').eq('lote_id',loteId).maybeSingle();
     if(!floresExist){({error:dbErr}=await sb.from('flores_cosechadas').insert({lote_id:loteId,stock_inicial:pesoG,stock_actual:pesoG}));if(dbErr)return showErr('Error creando stock de flores: '+dbErr.message);}
