@@ -1529,7 +1529,7 @@ function panelFlores(){
   const variedad=getLoteVariedad();
   const warnVariedad=!variedad?`<div class="wb" style="margin-bottom:10px;">⚠ La variedad de este lote no está especificada. Es recomendable registrarla antes de realizar entregas para garantizar la trazabilidad REPROCANN.</div>`:'';
   const cerrarBanner=agotado&&!yaCompletado?`<div class="cerrar-banner"><div class="cerrar-banner-txt"><strong>Existencias agotadas</strong><br>Todas las flores de este lote fueron entregadas. Podés cerrar el lote y moverlo al historial.</div><button class="btn btn-primary" onclick="cerrarLoteAgotado()">Cerrar lote →</button></div>`:'';
-  const botones=yaCompletado||agotado?'':`<div class="ab" style="margin-top:12px;"><button class="btn btn-primary" onclick="abrirFormEntrega()">+ Registrar entrega</button></div>`;
+  const botones=yaCompletado||agotado?'':`<div class="ab" style="margin-top:12px;"><button id="btn-abrir-entrega" class="btn btn-primary" onclick="abrirFormEntrega()">+ Registrar entrega</button></div>`;
   return`<div class="panel">
     ${warnVariedad}
     <div class="pt">Flores Cosechadas${yaCompletado?' <span style="font-size:0.65rem;color:var(--accent);font-weight:400;text-transform:none;">— lote completado</span>':''}</div>
@@ -1849,6 +1849,8 @@ async function guardarCorreccion(entregaId,fcId){
 }
 
 function abrirFormEntrega(){
+  const btn=document.getElementById('btn-abrir-entrega');
+  if(btn){btn.style.background='var(--mist)';btn.style.color='var(--accent)';btn.style.borderColor='var(--accent)';}
   const stockInicial=HIST_DATA.flores?.stock_inicial;
   if(stockInicial==null||stockInicial===0){
     alert('No se puede registrar una entrega porque el peso total de flores disponibles aún no fue registrado.\nCompletá primero el peso seco final en la etapa de Curado/Secado.');
@@ -1866,6 +1868,8 @@ function abrirFormEntrega(){
 }
 
 function cerrarFormEntrega(){
+  const btn=document.getElementById('btn-abrir-entrega');
+  if(btn){btn.style.background='';btn.style.color='';btn.style.borderColor='';}
   const form=document.getElementById('form-entrega');
   if(form)form.style.display='none';
   ['ent-reprocann','ent-fecha','ent-cantidad','ent-entregador','ent-notas'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
@@ -1886,7 +1890,8 @@ async function guardarEntrega(){
   const stockActual=HIST_DATA.flores?.stock_actual||0;
   if(cantidad>stockActual){
     const diff=(cantidad-stockActual).toFixed(1);
-    if(!confirm(`⚠ La cantidad a entregar (${cantidad} g) supera el stock disponible (${stockActual} g).\nDiferencia: ${diff} g en exceso.\n\n¿Confirmar igual?`))return;
+    alert(`No es posible registrar la entrega.\nLa cantidad ingresada (${cantidad} g) supera el stock disponible (${stockActual} g).\nDiferencia en exceso: ${diff} g.\n\nCorregí la cantidad antes de continuar.`);
+    return;
   }
   const floresId=HIST_DATA.flores?.id;
   if(!floresId){alert('Error: no se encontró el registro de flores cosechadas.');return;}
