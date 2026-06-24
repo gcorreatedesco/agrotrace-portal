@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "Bash(git commit -m 'fix: corregir etapa_actual '\\\\''cosecha_curado'\\\\'' → '\\\\''cosecha'\\\\'' al avanzar desde Floración *)"
     ]
   }
 }
