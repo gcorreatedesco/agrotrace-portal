@@ -1759,7 +1759,7 @@ async function cargarHistorialEntregas(){
     return`<div style="padding:8px 0;border-bottom:1px solid rgba(0,0,0,0.06);">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;">
         <div>
-          <div style="font-size:0.78rem;font-weight:500;color:var(--soil);">REPROCANN: ${e.nro_reprocann}</div>
+          <div style="font-size:0.78rem;font-weight:500;color:var(--soil);">REPROCANN: ${e.nro_reprocann||'S/D'}</div>
           <div style="font-size:0.68rem;color:var(--sage);margin-top:1px;">${e.registrado_por?'Entregado por: '+e.registrado_por:''}${e.notas?'<br>'+e.notas:''}</div>
         </div>
         <div style="text-align:right;flex-shrink:0;margin-left:10px;">
