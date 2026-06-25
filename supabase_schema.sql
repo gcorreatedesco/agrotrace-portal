@@ -89,6 +89,45 @@ CREATE POLICY "rt ve sus asignaciones" ON public.rt_organizaciones
 ALTER TABLE public.perfiles
   ADD COLUMN IF NOT EXISTS ong_id UUID REFERENCES public.organizaciones(id);
 
+-- ── MIGRACIÓN: campos extra en organizaciones ────
+ALTER TABLE public.organizaciones
+  ADD COLUMN IF NOT EXISTS cuit             TEXT,
+  ADD COLUMN IF NOT EXISTS localidad        TEXT,
+  ADD COLUMN IF NOT EXISTS direccion        TEXT,
+  ADD COLUMN IF NOT EXISTS email            TEXT,
+  ADD COLUMN IF NOT EXISTS telefono         TEXT,
+  ADD COLUMN IF NOT EXISTS fecha_inscripcion DATE,
+  ADD COLUMN IF NOT EXISTS notas            TEXT;
+
+-- ── TRIGGER: auto-crear perfil al aceptar invitación ──
+-- Cuando Supabase crea un usuario vía inviteUserByEmail(),
+-- este trigger lee el metadata (rol, ong_id) y crea la fila en perfiles.
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.raw_user_meta_data->>'rol' IS NOT NULL THEN
+    INSERT INTO public.perfiles (id, nombre, rol, ong_id)
+    VALUES (
+      NEW.id,
+      COALESCE(
+        NEW.raw_user_meta_data->>'nombre_contacto',
+        split_part(NEW.email, '@', 1)
+      ),
+      NEW.raw_user_meta_data->>'rol',
+      NULLIF(NEW.raw_user_meta_data->>'ong_id', '')::UUID
+    )
+    ON CONFLICT (id) DO UPDATE SET
+      rol    = EXCLUDED.rol,
+      ong_id = EXCLUDED.ong_id;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
 
 -- ── LOTES DE SEMILLAS ────────────────────────────
 CREATE TABLE IF NOT EXISTS public.lotes_semillas (

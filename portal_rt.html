@@ -349,11 +349,16 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);c
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
+const SUPABASE_URL  = 'https://jqkyifuyaxxwugrnjfnq.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impxa3lpZnV5YXh4d3Vncm5qZm5xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyMjE1NjgsImV4cCI6MjA5Njc5NzU2OH0.0r2A5wC4hZ6sg0TAC9_pEdvit5PMHj8XB1wsXWdDVww';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
 let ONGS = [];
 
 /* ── INIT ── */
-function init() {
+async function init() {
   const usuario = sessionStorage.getItem('agrotrace_user') || 'Responsable Técnico';
   const iniciales = usuario.split(' ').map(p => p[0]).join('').toUpperCase().slice(0,2);
   document.getElementById('sb-av').textContent = iniciales;
@@ -364,7 +369,13 @@ function init() {
     document.getElementById('overlay-bienvenida').classList.remove('hidden');
   }
 
-  renderONGs();
+  // Intentar cargar ONGs desde Supabase si hay sesión real
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) {
+    await cargarONGsSupabase();
+  } else {
+    renderONGs(); // modo demo: usa array local
+  }
 }
 
 /* ── BIENVENIDA ── */
@@ -442,13 +453,30 @@ function renderONGs() {
     </div>`).join('');
 }
 
+/* ── CARGAR ONGs DESDE SUPABASE ── */
+async function cargarONGsSupabase() {
+  const { data, error } = await sb
+    .from('organizaciones')
+    .select('*')
+    .eq('activa', true)
+    .order('creado_en', { ascending: false });
+
+  if (!error && data) {
+    ONGS = data.map(o => ({
+      id: o.id, nombre: o.nombre, cuit: o.cuit,
+      localidad: o.localidad, resp_nombre: '—',
+    }));
+  }
+  renderONGs();
+}
+
 /* ── GUARDAR ONG ── */
-function guardarONG() {
+async function guardarONG() {
   const nombre     = document.getElementById('ong-nombre').value.trim();
   const cuit       = document.getElementById('ong-cuit').value.trim();
   const localidad  = document.getElementById('ong-localidad').value.trim();
   const direccion  = document.getElementById('ong-direccion').value.trim();
-  const email      = document.getElementById('ong-email').value.trim();
+  const emailOrg   = document.getElementById('ong-email').value.trim();
   const telefono   = document.getElementById('ong-telefono').value.trim();
   const respNombre = document.getElementById('ong-resp-nombre').value.trim();
   const respEmail  = document.getElementById('ong-resp-email').value.trim();
@@ -456,29 +484,69 @@ function guardarONG() {
   const fechaInsc  = document.getElementById('ong-fecha-inscripcion').value;
   const notas      = document.getElementById('ong-notas').value.trim();
   const errEl      = document.getElementById('error-nueva-ong');
+  const btn        = document.querySelector('#view-nueva-ong .btn-primary');
 
-  if (!nombre || !localidad || !direccion || !email || !telefono || !respNombre || !respEmail) {
+  if (!nombre || !localidad || !direccion || !emailOrg || !telefono || !respNombre || !respEmail) {
+    errEl.textContent = 'Completá los campos obligatorios (*).';
     errEl.classList.add('show'); return;
   }
   errEl.classList.remove('show');
 
-  const nueva = {
-    id: 'ong-' + Date.now(),
-    nombre, cuit, localidad, direccion, email, telefono,
-    resp_nombre: respNombre, resp_email: respEmail,
-    reprocann, fecha_inscripcion: fechaInsc, notas
-  };
-  ONGS.push(nueva);
+  const { data: { session } } = await sb.auth.getSession();
 
-  // Limpiar formulario
+  if (session) {
+    // ── Modo real: llama a la Edge Function ──
+    btn.textContent = 'Guardando...'; btn.disabled = true;
+    try {
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/invitar-ong`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+          'apikey': SUPABASE_ANON,
+        },
+        body: JSON.stringify({
+          nombre_org: nombre, cuit, localidad, direccion,
+          email_org: emailOrg, telefono,
+          nombre_contacto: respNombre, email_contacto: respEmail,
+          reprocann, fecha_inscripcion: fechaInsc || null, notas,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Error del servidor');
+      }
+
+      await cargarONGsSupabase();
+      limpiarFormONG();
+      showView('view-mis-ongs', document.getElementById('nav-mis-ongs'));
+
+    } catch (e) {
+      errEl.textContent = 'Error: ' + e.message;
+      errEl.classList.add('show');
+    } finally {
+      btn.textContent = 'Dar de alta organización'; btn.disabled = false;
+    }
+
+  } else {
+    // ── Modo demo: guarda en array local ──
+    ONGS.push({
+      id: 'ong-' + Date.now(), nombre, cuit,
+      localidad, resp_nombre: respNombre,
+    });
+    limpiarFormONG();
+    showView('view-mis-ongs', document.getElementById('nav-mis-ongs'));
+    renderONGs();
+  }
+}
+
+function limpiarFormONG() {
   ['ong-nombre','ong-cuit','ong-localidad','ong-direccion','ong-email',
    'ong-telefono','ong-resp-nombre','ong-resp-email','ong-reprocann',
    'ong-fecha-inscripcion','ong-notas'].forEach(id => {
     document.getElementById(id).value = '';
   });
-
-  showView('view-mis-ongs', document.getElementById('nav-mis-ongs'));
-  renderONGs();
 }
 
 /* ── SUPERVISAR ONG ── */
