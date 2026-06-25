@@ -5,18 +5,89 @@
 -- ================================================
 
 
+-- ── ORGANIZACIONES (ONGs como entidades) ─────────
+-- Cada ONG es una organización independiente.
+-- Un RT puede tener múltiples ONG asignadas.
+CREATE TABLE IF NOT EXISTS public.organizaciones (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  nombre      TEXT NOT NULL,
+  reprocann   TEXT,
+  creado_por  UUID REFERENCES auth.users(id),
+  activa      BOOLEAN NOT NULL DEFAULT TRUE,
+  creado_en   TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE public.organizaciones ENABLE ROW LEVEL SECURITY;
+
+
+-- ── RT ↔ ORGANIZACIONES ───────────────────────────
+-- Tabla pivote: un RT puede supervisar múltiples ONG.
+CREATE TABLE IF NOT EXISTS public.rt_organizaciones (
+  rt_id     UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  ong_id    UUID NOT NULL REFERENCES public.organizaciones(id) ON DELETE CASCADE,
+  creado_en TIMESTAMPTZ DEFAULT NOW(),
+  PRIMARY KEY (rt_id, ong_id)
+);
+ALTER TABLE public.rt_organizaciones ENABLE ROW LEVEL SECURITY;
+
+
 -- ── PERFILES DE USUARIO ──────────────────────────
 -- Extiende la tabla de autenticación de Supabase.
--- Se crea automáticamente al registrar un usuario.
+-- ong_id: solo para rol='ong'. NULL para superadmin y rt.
 CREATE TABLE IF NOT EXISTS public.perfiles (
   id          UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   nombre      TEXT NOT NULL,
   rol         TEXT NOT NULL CHECK (rol IN ('superadmin','rt','ong')),
+  ong_id      UUID REFERENCES public.organizaciones(id),
   creado_en   TIMESTAMPTZ DEFAULT NOW()
 );
 ALTER TABLE public.perfiles ENABLE ROW LEVEL SECURITY;
+
+
+-- ── FUNCIÓN HELPER — evita recursión en RLS ──────
+-- SECURITY DEFINER: lee el rol del usuario actual sin activar RLS sobre perfiles.
+CREATE OR REPLACE FUNCTION public.get_my_rol()
+RETURNS TEXT AS $$
+  SELECT rol FROM public.perfiles WHERE id = auth.uid()
+$$ LANGUAGE sql SECURITY DEFINER STABLE;
+
+
+-- ── POLÍTICAS RLS (se definen DESPUÉS de crear todas las tablas) ──
+
+-- perfiles
 CREATE POLICY "usuario ve su propio perfil" ON public.perfiles
   FOR ALL USING (auth.uid() = id);
+CREATE POLICY "superadmin ve todos los perfiles" ON public.perfiles
+  FOR ALL USING (public.get_my_rol() = 'superadmin');
+CREATE POLICY "rt ve perfiles de sus ong" ON public.perfiles
+  FOR SELECT USING (
+    public.get_my_rol() = 'rt'
+    AND EXISTS (SELECT 1 FROM public.rt_organizaciones WHERE rt_id = auth.uid() AND ong_id = public.perfiles.ong_id)
+  );
+
+-- organizaciones
+CREATE POLICY "superadmin ve todas las organizaciones" ON public.organizaciones
+  FOR ALL USING (public.get_my_rol() = 'superadmin');
+CREATE POLICY "rt ve y modifica sus organizaciones" ON public.organizaciones
+  FOR ALL USING (
+    public.get_my_rol() = 'rt'
+    AND EXISTS (SELECT 1 FROM public.rt_organizaciones WHERE rt_id = auth.uid() AND ong_id = public.organizaciones.id)
+  );
+CREATE POLICY "ong ve su organizacion" ON public.organizaciones
+  FOR SELECT USING (
+    public.get_my_rol() = 'ong'
+    AND EXISTS (SELECT 1 FROM public.perfiles WHERE id = auth.uid() AND ong_id = public.organizaciones.id)
+  );
+
+-- rt_organizaciones
+CREATE POLICY "superadmin ve todas las asignaciones" ON public.rt_organizaciones
+  FOR ALL USING (public.get_my_rol() = 'superadmin');
+CREATE POLICY "rt ve sus asignaciones" ON public.rt_organizaciones
+  FOR SELECT USING (rt_id = auth.uid());
+
+
+-- ── MIGRACIÓN: ong_id en perfiles (si la tabla ya existía) ──
+ALTER TABLE public.perfiles
+  ADD COLUMN IF NOT EXISTS ong_id UUID REFERENCES public.organizaciones(id);
 
 
 -- ── LOTES DE SEMILLAS ────────────────────────────
