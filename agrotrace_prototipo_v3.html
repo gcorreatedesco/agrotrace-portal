@@ -985,10 +985,12 @@ function cerrarSesion(){
 async function initApp(){
   // Mostrar selector de perfil si no hay sesión activa
   const rolActivo=sessionStorage.getItem('agrotrace_role');
+  console.log('[initApp] rolActivo:', rolActivo, '| supervisando:', sessionStorage.getItem('agrotrace_supervisando_ong_nombre'));
   if(!rolActivo){
     document.getElementById('perfil-overlay').style.display='flex';
     return;
   }
+  document.getElementById('perfil-overlay').style.display='none';
 
   // DEMO MODE: UUID fijo — reemplazar por getSession() cuando se implemente auth real
   CURRENT_USER={id:'c6bafecb-5df5-4573-ad6d-3d0f328a8010',email:'gcorreatedesco@gmail.com'};
