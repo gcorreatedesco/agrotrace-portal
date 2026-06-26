@@ -677,10 +677,10 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
             <label class="umo"><input type="radio" name="um" value="man" onchange="onUM(this.value)"/> Entrada manual</label>
           </div>
         </div>
-        <div id="mpred" class="field"><label>Cantidad<span class="req">*</span> <span class="opt" id="upl">(unidad del lote)</span></label><input type="number" id="cp" placeholder="Cantidad" oninput="uS(this.value)"/></div>
+        <div id="mpred" class="field"><label>Cantidad<span class="req">*</span> <span class="opt" id="upl">(unidad del lote)</span></label><input type="number" id="cp" min="0" placeholder="Cantidad" oninput="uS(this.value)"/></div>
         <div id="mman" style="display:none;">
           <div class="g2">
-            <div class="field"><label>Cantidad<span class="req">*</span></label><input type="number" id="cm" placeholder="Cantidad" oninput="uS(document.getElementById('cm').value)"/></div>
+            <div class="field"><label>Cantidad<span class="req">*</span></label><input type="number" id="cm" min="0" placeholder="Cantidad" oninput="uS(document.getElementById('cm').value)"/></div>
             <div class="field"><label>Unidad<span class="req">*</span></label>
               <select id="um2" onchange="chkUC()">
                 <option value="">— elegí unidad —</option>
@@ -694,7 +694,7 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
           <div class="erb" id="uiw" style="display:none;">⚠ Unidades no compatibles con el Lote de semillas. El stock <strong>no será descontado</strong> automáticamente.</div>
         </div>
       </div>
-      <div id="cnw" style="display:none;"><div class="field"><label>Cantidad a utilizar<span class="req">*</span></label><input type="number" id="cn" placeholder="Nº de unidades" oninput="uS(this.value)"/></div></div>
+      <div id="cnw" style="display:none;"><div class="field"><label>Cantidad a utilizar<span class="req">*</span></label><input type="number" id="cn" min="0" placeholder="Nº de unidades" oninput="uS(this.value)"/></div></div>
       <div class="sb" id="sp" style="display:none;">
         <div class="sr"><span>Stock actual</span><span id="spa">—</span></div>
         <div class="sr"><span>A utilizar</span><span id="spu">—</span></div>
@@ -737,7 +737,7 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
           <div class="cop">=</div>
           <div class="crs"><div class="crsl">Total plántulas</div><div class="crsv" id="ctot">200</div></div>
         </div></div>
-        <div id="calcd" style="display:none;"><input type="number" id="cnd" placeholder="Nº plántulas o esquejes sembrados" oninput="ct()"/></div>
+        <div id="calcd" style="display:none;"><input type="number" id="cnd" min="0" placeholder="Nº plántulas o esquejes sembrados" oninput="ct()"/></div>
       </div>
       <div class="field"><label>Notas<span class="opt">opcional</span></label><input type="text" placeholder="Condiciones, sustrato, observaciones..."/></div>
       <div class="wb" id="nw">Al confirmar se descontarán unidades del stock del material de origen.</div>
@@ -812,11 +812,11 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
         </select>
       </div>
       <div id="bn" style="display:none;"><div class="g2">
-        <div class="field"><label>Cantidad<span class="req">*</span></label><input type="number" id="b-cant-n" placeholder="Cantidad"/></div>
+        <div class="field"><label>Cantidad<span class="req">*</span></label><input type="number" id="b-cant-n" min="0" placeholder="Cantidad"/></div>
         <div class="field"><label>Unidad</label><input type="text" id="bu" readonly/></div>
       </div></div>
       <div id="bs" style="display:none;"><div class="g2">
-        <div class="field"><label>Cantidad<span class="req">*</span></label><input type="number" id="b-cant-s" placeholder="Cantidad"/></div>
+        <div class="field"><label>Cantidad<span class="req">*</span></label><input type="number" id="b-cant-s" min="0" placeholder="Cantidad"/></div>
         <div class="field"><label>Unidad<span class="opt">automática del lote</span></label><input type="text" id="bsu" readonly/></div>
       </div></div>
       <div class="g2" style="margin-top:4px;">
@@ -873,7 +873,7 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
     </div>
     <div class="field"><label>Variedad<span class="req">*</span></label><input type="text" id="nm-variedad" placeholder="Ej: White Widow, OG Kush..."/><div id="nm-variedad-hint" style="display:none;font-size:0.68rem;color:var(--accent);margin-top:4px;padding:5px 8px;background:var(--dew);border-radius:var(--radius);">↑ Variedad tomada automáticamente del lote de origen. Confirmá que es correcta antes de continuar.</div></div>
     <div class="g2">
-      <div class="field"><label>Stock inicial<span class="req">*</span></label><input type="number" id="nm-stock" placeholder="Cantidad"/></div>
+      <div class="field"><label>Stock inicial<span class="req">*</span></label><input type="number" id="nm-stock" min="0" placeholder="Cantidad"/></div>
       <div class="field"><label>Unidad<span class="req">*</span></label>
         <select id="nm-unidad">
           <option value="">— Elegí unidad —</option>
@@ -992,8 +992,14 @@ async function initApp(){
   }
   document.getElementById('perfil-overlay').style.display='none';
 
-  // DEMO MODE: UUID fijo — reemplazar por getSession() cuando se implemente auth real
-  CURRENT_USER={id:'c6bafecb-5df5-4573-ad6d-3d0f328a8010',email:'gcorreatedesco@gmail.com'};
+  // Intentar obtener sesión real de Supabase; si no hay, usar UUID demo según rol
+  const {data:{session}} = await sb.auth.getSession();
+  if(session){
+    CURRENT_USER={id:session.user.id, email:session.user.email};
+  } else {
+    const demoIds={superadmin:'c6bafecb-5df5-4573-ad6d-3d0f328a8010',rt:'0edfae60-9b1e-4c76-880e-d1851c4148b5',ong:'2a23866e-4704-49c8-bb35-23a7f483b7fc'};
+    CURRENT_USER={id:demoIds[rolActivo]||demoIds.ong, email:'demo@agrotrace.com'};
+  }
 
   // Mostrar nombre desde sessionStorage (seteado por el selector de perfil)
   const userName=sessionStorage.getItem('agrotrace_user')||'Usuario';
@@ -1458,7 +1464,7 @@ function panelNursery(hist=false){
         <div class="form-col-hdr">Cantidades</div>
         <div class="field"><label>Origen</label><div class="ro-val">${d.origen_material||'—'}</div></div>
         <div class="field"><label>${metodo}</label><div class="ro-val">${d.cantidad_ingreso!=null?d.cantidad_ingreso+' plántulas':'—'}</div></div>
-        <div class="field"><label>Cantidad egreso<span class="req">*</span></label><input type="number" id="nur-egreso" value="${d.cantidad_egreso||''}" placeholder="Nº de plántulas" oninput="bajasNur()"/></div>
+        <div class="field"><label>Cantidad egreso<span class="req">*</span></label><input type="number" id="nur-egreso" min="0" value="${d.cantidad_egreso||''}" placeholder="Nº de plántulas" oninput="bajasNur()"/></div>
         <div class="field"><label>Bajas (automático)</label><div class="bajas-auto${typeof bajasIni==='number'&&bajasIni<0?' bajas-neg':''}" id="nur-bajas-auto">${bajasIni}</div></div>
         <div class="field"><label>Notas<span class="opt">opcional</span></label><input type="text" id="nur-notas" value="${d.notas||''}" placeholder="Observaciones..."/></div>
       </div>
@@ -1491,8 +1497,8 @@ function panelVegetativa(hist=false){
       </div>
       <div>
         <div class="form-col-hdr">Cantidades</div>
-        <div class="field"><label>Cantidad ingreso<span class="req">*</span></label><input type="number" id="veg-cant-ini" value="${d.cantidad_ingreso||autoCant}" placeholder="Nº de plantas" oninput="bajasVeg()"/></div>
-        <div class="field"><label>Cantidad egreso<span class="req">*</span></label><input type="number" id="veg-egreso" value="${d.cantidad_egreso||''}" placeholder="Nº de plantas" oninput="bajasVeg()"/></div>
+        <div class="field"><label>Cantidad ingreso<span class="req">*</span></label><input type="number" id="veg-cant-ini" min="0" value="${d.cantidad_ingreso||autoCant}" placeholder="Nº de plantas" oninput="bajasVeg()"/></div>
+        <div class="field"><label>Cantidad egreso<span class="req">*</span></label><input type="number" id="veg-egreso" min="0" value="${d.cantidad_egreso||''}" placeholder="Nº de plantas" oninput="bajasVeg()"/></div>
         <div class="field"><label>Bajas (automático)</label><div class="bajas-auto${typeof bajasVegIni==='number'&&bajasVegIni<0?' bajas-neg':''}" id="veg-bajas-auto">${bajasVegIni}</div></div>
         <div class="field"><label>Notas<span class="opt">opcional</span></label><input type="text" id="veg-notas" value="${d.notas||''}" placeholder="Observaciones..."/></div>
       </div>
@@ -1525,8 +1531,8 @@ function panelFloracion(hist=false){
       </div>
       <div>
         <div class="form-col-hdr">Cantidades</div>
-        <div class="field"><label>Cantidad ingreso<span class="req">*</span></label><input type="number" id="flo-cant-ini" value="${d.cantidad_ingreso||autoCant}" placeholder="Nº de plantas" oninput="bajasFlo()"/></div>
-        <div class="field"><label>Cantidad egreso<span class="req">*</span></label><input type="number" id="flo-egreso" value="${d.cantidad_egreso||''}" placeholder="Nº de plantas" oninput="bajasFlo()"/></div>
+        <div class="field"><label>Cantidad ingreso<span class="req">*</span></label><input type="number" id="flo-cant-ini" min="0" value="${d.cantidad_ingreso||autoCant}" placeholder="Nº de plantas" oninput="bajasFlo()"/></div>
+        <div class="field"><label>Cantidad egreso<span class="req">*</span></label><input type="number" id="flo-egreso" min="0" value="${d.cantidad_egreso||''}" placeholder="Nº de plantas" oninput="bajasFlo()"/></div>
         <div class="field"><label>Bajas (automático)</label><div class="bajas-auto${typeof bajasFloIni==='number'&&bajasFloIni<0?' bajas-neg':''}" id="flo-bajas-auto">${bajasFloIni}</div></div>
         <div class="field"><label>Notas<span class="opt">opcional</span></label><input type="text" id="flo-notas" value="${d.notas||''}" placeholder="Observaciones..."/></div>
       </div>
@@ -1554,7 +1560,7 @@ function panelCosecha(hist=false){
       </div>
       <div>
         <div class="form-col-hdr">Peso</div>
-        <div class="field"><label>Peso húmedo total<span class="opt">opcional</span></label><input type="number" id="cos-peso-humedo" value="${d.peso_humedo_total||''}" step="0.1" placeholder="Gramos post-cosecha (informativo)"/></div>
+        <div class="field"><label>Peso húmedo total<span class="opt">opcional</span></label><input type="number" id="cos-peso-humedo" min="0" value="${d.peso_humedo_total||''}" step="0.1" placeholder="Gramos post-cosecha (informativo)"/></div>
         <div class="field"><label>Notas<span class="opt">opcional</span></label><input type="text" id="cos-notas" value="${d.notas||''}" placeholder="Observaciones..."/></div>
       </div>
     </div>
@@ -1565,7 +1571,7 @@ function panelCosecha(hist=false){
 
 function selUnidad(id){return`<select id="${id}" style="width:82px;flex-shrink:0;"><option value="gramos">gramos</option><option value="kg">kg</option></select>`;}
 function pesoField(labelHtml,inputId,unidadId,val){
-  return`<div class="field"><label>${labelHtml}</label><div style="display:flex;gap:6px;"><input type="number" id="${inputId}" value="${val||''}" step="0.001" placeholder="0" style="flex:1;min-width:0;"/>${selUnidad(unidadId)}</div></div>`;
+  return`<div class="field"><label>${labelHtml}</label><div style="display:flex;gap:6px;"><input type="number" id="${inputId}" min="0" value="${val||''}" step="0.001" placeholder="0" style="flex:1;min-width:0;"/>${selUnidad(unidadId)}</div></div>`;
 }
 
 function panelCuradoSecado(hist=false){
