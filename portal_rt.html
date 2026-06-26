@@ -496,6 +496,7 @@ async function guardarONG() {
 
   if (session) {
     // ── Modo real: llama a la Edge Function ──
+    console.log('[guardarONG] session user.id:', session.user?.id);
     btn.textContent = 'Guardando...'; btn.disabled = true;
     try {
       const res = await fetch(`${SUPABASE_URL}/functions/v1/invitar-ong`, {
@@ -514,8 +515,10 @@ async function guardarONG() {
       });
 
       if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || 'Error del servidor');
+        let errMsg = 'Error del servidor';
+        try { const e = await res.json(); errMsg = e.error || errMsg; }
+        catch { errMsg = await res.text() || errMsg; }
+        throw new Error(errMsg);
       }
 
       await cargarONGsSupabase();
@@ -553,6 +556,8 @@ function limpiarFormONG() {
 function supervisar(ongId, ongNombre) {
   sessionStorage.setItem('agrotrace_supervisando_ong_id', ongId);
   sessionStorage.setItem('agrotrace_supervisando_ong_nombre', ongNombre);
+  sessionStorage.setItem('agrotrace_role', 'rt');
+  sessionStorage.setItem('agrotrace_user', sessionStorage.getItem('agrotrace_user') || 'Responsable Técnico');
   window.location.href = 'agrotrace_prototipo_v3.html';
 }
 

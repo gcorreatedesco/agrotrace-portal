@@ -39,11 +39,16 @@ Deno.serve(async (req) => {
     return new Response('Unauthorized', { status: 401, headers: corsHeaders })
   }
 
-  const { data: perfil } = await supabaseAdmin
+  const { data: perfil, error: perfilErr } = await supabaseAdmin
     .from('perfiles').select('rol').eq('id', user.id).single()
 
+  console.log('[invitar-ong] user.id:', user.id, '| perfil:', perfil, '| error:', perfilErr)
+
   if (!perfil || !['rt', 'superadmin'].includes(perfil.rol)) {
-    return new Response('Forbidden', { status: 403, headers: corsHeaders })
+    return new Response(
+      JSON.stringify({ error: 'Forbidden', user_id: user.id, perfil, perfilErr }),
+      { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
   }
 
   try {
