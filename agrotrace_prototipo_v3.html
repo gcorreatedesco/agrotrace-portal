@@ -731,13 +731,13 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
           <div class="mc" id="mcd" onclick="sm('d')"><div class="mct">Número directo</div><div class="mcs">Ingreso manual</div></div>
         </div>
         <div id="calcb"><div class="cr">
-          <div class="cf"><label>Bandejas</label><input type="number" id="nb" value="10" min="1" oninput="ct()"/></div>
+          <div class="cf"><label>Bandejas</label><input type="number" id="nb" min="1" placeholder="0" oninput="ct()"/></div>
           <div class="cop">×</div>
-          <div class="cf"><label>Alvéolos</label><input type="number" id="na" value="20" min="1" oninput="ct()"/></div>
+          <div class="cf"><label>Alvéolos</label><input type="number" id="na" min="1" placeholder="0" oninput="ct()"/></div>
           <div class="cop">=</div>
           <div class="crs"><div class="crsl">Total plántulas</div><div class="crsv" id="ctot">200</div></div>
         </div></div>
-        <div id="calcd" style="display:none;"><input type="number" placeholder="Nº plántulas o esquejes sembrados"/></div>
+        <div id="calcd" style="display:none;"><input type="number" id="cnd" placeholder="Nº plántulas o esquejes sembrados" oninput="ct()"/></div>
       </div>
       <div class="field"><label>Notas<span class="opt">opcional</span></label><input type="text" placeholder="Condiciones, sustrato, observaciones..."/></div>
       <div class="wb" id="nw">Al confirmar se descontarán unidades del stock del material de origen.</div>
@@ -2476,8 +2476,24 @@ function onUM(v){document.getElementById('mpred').style.display=v==='pred'?'bloc
 function chkUC(){if(!LA)return;const s=document.getElementById('um2').value;const inc=s&&s!==LA.u;UI=inc;document.getElementById('uiw').style.display=inc?'block':'none';}
 function uS(v){if(!LA){document.getElementById('sp').style.display='none';return;}const val=parseInt(v)||0;const r=Math.max(0,LA.stock-val);document.getElementById('spa').textContent=LA.stock+' '+LA.u;document.getElementById('spu').textContent='− '+val+' '+LA.u;document.getElementById('spf').textContent=r+' '+LA.u;document.getElementById('sp').style.display='block';}
 function uNW(){const w=document.getElementById('nw');if(!w)return;const c=gC();if(LA&&!UI){w.className='wb';w.innerHTML='Al confirmar se descontarán <strong>'+c+' '+LA.u+'</strong> del stock de "'+LA.l+'". Stock resultante: <strong>'+Math.max(0,LA.stock-c)+' '+LA.u+'</strong>';}else if(UI){w.className='erb';w.innerHTML='⚠ Unidades no compatibles. El stock <strong>NO será descontado</strong> automáticamente.';}}
-function sm(m){document.getElementById('mcb').classList.toggle('sel',m==='b');document.getElementById('mcd').classList.toggle('sel',m==='d');document.getElementById('calcb').style.display=m==='b'?'block':'none';document.getElementById('calcd').style.display=m==='d'?'block':'none';}
-function ct(){const b=parseInt(document.getElementById('nb').value)||0;const a=parseInt(document.getElementById('na').value)||0;document.getElementById('ctot').textContent=b*a;}
+function sm(m){
+  document.getElementById('mcb').classList.toggle('sel',m==='b');
+  document.getElementById('mcd').classList.toggle('sel',m==='d');
+  document.getElementById('calcb').style.display=m==='b'?'block':'none';
+  document.getElementById('calcd').style.display=m==='d'?'block':'none';
+  if(m==='d'){
+    document.getElementById('nb').value='';
+    document.getElementById('na').value='';
+    document.getElementById('ctot').textContent='0';
+  } else {
+    document.getElementById('cnd').value='';
+  }
+}
+function ct(){
+  const b=parseInt(document.getElementById('nb').value)||0;
+  const a=parseInt(document.getElementById('na').value)||0;
+  document.getElementById('ctot').textContent=b*a;
+}
 function tc(di,ci){const cb=document.getElementById(ci);cb.checked=!cb.checked;document.getElementById(di).classList.toggle('checked',cb.checked);}
 
 /* ── CREAR LOTE ── */
@@ -2502,7 +2518,7 @@ async function cL(){
     const metodo=document.getElementById('mcb').classList.contains('sel')?'bandejas':'directo';
     const nB=parseInt(document.getElementById('nb').value)||null;
     const nA=parseInt(document.getElementById('na').value)||null;
-    const cantI=metodo==='bandejas'?(nB||0)*(nA||0):parseInt(document.getElementById('cn').value)||0;
+    const cantI=metodo==='bandejas'?(nB||0)*(nA||0):parseInt(document.getElementById('cnd').value)||0;
     await sb.from('etapa_nursery').insert({
       lote_id:lote.id,origen_material:OA==='pm'?'plantas_madre':OA,
       fecha_inicio:document.getElementById('p3f').value||fecha,
