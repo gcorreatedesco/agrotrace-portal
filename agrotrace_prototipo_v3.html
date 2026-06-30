@@ -99,6 +99,20 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);c
 .b-cia{background:#f5f0e8;color:#795548;}
 .lote-card.lc-hist{opacity:0.85;border-style:dashed;}
 .lote-card.lc-hist:hover{border-color:var(--sage);border-style:dashed;}
+
+/* ── ORGANIZACIONES ── */
+.orgs-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;}
+.orgs-sort{display:flex;gap:6px;}
+.sort-btn{padding:5px 12px;border-radius:100px;font-size:0.72rem;border:1px solid rgba(0,0,0,0.12);cursor:pointer;color:var(--bark);background:var(--white);transition:all var(--trans);font-family:'DM Sans',sans-serif;}
+.sort-btn.active{background:var(--soil);color:var(--dew);border-color:var(--soil);}
+.org-card{background:var(--white);border:1px solid rgba(0,0,0,0.07);border-radius:var(--radius-lg);padding:16px 18px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:12px;transition:border-color var(--trans);}
+.org-card:hover{border-color:var(--mist);}
+.org-nombre{font-weight:500;font-size:0.92rem;color:var(--soil);margin-bottom:4px;}
+.org-meta{font-size:0.72rem;color:var(--sage);display:flex;gap:12px;flex-wrap:wrap;}
+.org-meta span::before{content:'·';margin-right:4px;opacity:0.4;}
+.org-meta span:first-child::before{display:none;}
+.orgs-count{font-size:0.72rem;color:var(--sage);margin-top:12px;}
+.orgs-empty{text-align:center;padding:48px 20px;color:var(--sage);font-size:0.85rem;}
 .hist-motivo{font-size:0.68rem;color:var(--sage);margin-top:3px;font-style:italic;}
 .cerrar-banner{background:#2e2e2e;border-radius:var(--radius-lg);padding:14px 16px;margin-top:14px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;}
 .cerrar-banner-txt{color:var(--mist);font-size:0.78rem;line-height:1.5;}
@@ -498,6 +512,12 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
     <div class="nav-it new-mat" onclick="sv('nuevo-material')">
       <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>
       + Nuevo lote de material básico
+    </div>
+
+    <div class="nav-sec" id="nav-sec-org" style="display:none;">Organizaciones</div>
+    <div class="nav-it" id="nav-organizaciones" style="display:none;" onclick="sv('organizaciones')">
+      <svg viewBox="0 0 24 24"><path d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z"/></svg>
+      Mis organizaciones
     </div>
 
     <div class="nav-sec">Búsqueda</div>
@@ -931,6 +951,16 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
   <div id="search-results-container"></div>
 </div>
 
+<div class="view" id="view-organizaciones">
+  <div class="orgs-header">
+    <div class="orgs-sort">
+      <button class="sort-btn active" id="sort-az" onclick="sortOrgs('az')">A–Z</button>
+      <button class="sort-btn" id="sort-fecha" onclick="sortOrgs('fecha')">Fecha de creación</button>
+    </div>
+  </div>
+  <div id="orgs-list"></div>
+</div>
+
 </div></div></div>
 
 <!-- ── SUPABASE ── -->
@@ -1008,6 +1038,14 @@ async function initApp(){
   if(nm)nm.textContent=userName;
   if(av)av.textContent=userName.split(' ').map(p=>p[0]).slice(0,2).join('').toUpperCase();
 
+  // Mostrar sección "Mis organizaciones" solo para RT
+  if(rolActivo==='rt'){
+    const navOrg=document.getElementById('nav-organizaciones');
+    const navSecOrg=document.getElementById('nav-sec-org');
+    if(navOrg)navOrg.style.display='flex';
+    if(navSecOrg)navSecOrg.style.display='block';
+  }
+
   // Mostrar banner si viene del portal RT
   const ongNombre=sessionStorage.getItem('agrotrace_supervisando_ong_nombre');
   if(ongNombre){
@@ -1024,6 +1062,71 @@ function volverPortalRT(){
   sessionStorage.removeItem('agrotrace_supervisando_ong_id');
   sessionStorage.removeItem('agrotrace_supervisando_ong_nombre');
   window.location.href='portal_rt.html';
+}
+
+/* ── ORGANIZACIONES (solo RT) ── */
+let ORGS_DATA=[];
+let ORGS_SORT='az';
+
+async function cargarOrganizaciones(){
+  const cont=document.getElementById('orgs-list');
+  if(cont)cont.innerHTML='<div class="orgs-empty">Cargando organizaciones…</div>';
+  const{data,error}=await sb.from('rt_organizaciones')
+    .select('ong_id, created_at, organizaciones(id,nombre,cuit,localidad,created_at)')
+    .eq('rt_id',CURRENT_USER.id);
+  if(error){console.error('Error cargando orgs:',error);ORGS_DATA=[];}
+  else{
+    ORGS_DATA=(data||[]).map(r=>({
+      id:r.organizaciones?.id,
+      nombre:r.organizaciones?.nombre,
+      cuit:r.organizaciones?.cuit,
+      localidad:r.organizaciones?.localidad,
+      creadaEn:r.organizaciones?.created_at||r.created_at,
+    }));
+  }
+  renderOrgs();
+}
+
+function sortOrgs(tipo){
+  ORGS_SORT=tipo;
+  document.getElementById('sort-az').classList.toggle('active',tipo==='az');
+  document.getElementById('sort-fecha').classList.toggle('active',tipo==='fecha');
+  renderOrgs();
+}
+
+function renderOrgs(){
+  const cont=document.getElementById('orgs-list');
+  if(!cont)return;
+  const lista=[...ORGS_DATA].sort((a,b)=>{
+    if(ORGS_SORT==='az')return(a.nombre||'').localeCompare(b.nombre||'','es');
+    return new Date(b.creadaEn)-new Date(a.creadaEn);
+  });
+  if(!lista.length){
+    cont.innerHTML='<div class="orgs-empty">No tenés organizaciones asignadas aún.<br><br><button class="btn btn-primary" onclick="volverPortalRT()">+ Crear primera ONG</button></div>';
+    return;
+  }
+  const fmt=dt=>dt?new Date(dt).toLocaleDateString('es-AR',{day:'numeric',month:'short',year:'numeric'}):'';
+  cont.innerHTML=lista.map(o=>`
+    <div class="org-card">
+      <div>
+        <div class="org-nombre">${o.nombre||'—'}</div>
+        <div class="org-meta">
+          ${o.cuit?`<span>CUIT ${o.cuit}</span>`:''}
+          ${o.localidad?`<span>${o.localidad}</span>`:''}
+          ${o.creadaEn?`<span>Creada ${fmt(o.creadaEn)}</span>`:''}
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="supervisarDesdeOrgs('${o.id}','${(o.nombre||'').replace(/'/g,"\\'").replace(/"/g,'\\"')}')">Supervisar</button>
+    </div>
+  `).join('')+`<div class="orgs-count">${lista.length} organización${lista.length!==1?'es':''} a cargo</div>`;
+}
+
+function supervisarDesdeOrgs(ongId,ongNombre){
+  sessionStorage.setItem('agrotrace_supervisando_ong_id',ongId);
+  sessionStorage.setItem('agrotrace_supervisando_ong_nombre',ongNombre);
+  const bar=document.getElementById('rt-bar');
+  if(bar){bar.style.display='flex';document.getElementById('rt-bar-ong').textContent=ongNombre;}
+  sv('lotes');
 }
 
 /* ── CARGA LOTES ── */
@@ -2153,6 +2256,7 @@ function sv(id){
     stock:['Stock de material básico','Semillas · Esquejes · Plantas Madre','<button class="btn btn-primary" onclick="sv(\'nuevo-material\')">+ Nuevo lote de material básico</button>'],
     'nuevo-material':['Nuevo lote de material básico','Registrar ingreso de material',''],
     busqueda:['Búsqueda de lotes','Resultados de búsqueda por nombre',''],
+    organizaciones:['Mis organizaciones','Organizaciones a tu cargo','<button class="btn btn-primary" onclick="volverPortalRT()">+ Nueva ONG</button>'],
   };
   if(mp[id]){document.getElementById('tt').textContent=mp[id][0];document.getElementById('ts').textContent=mp[id][1];document.getElementById('ta').innerHTML=mp[id][2];}
   // botón de retorno
@@ -2167,6 +2271,7 @@ function sv(id){
   if(id==='lotes'){rAll('lotes-list','todos');}
   if(id==='dashboard')rAll('dash-lotes','todos');
   if(id==='stock')renderStock();
+  if(id==='organizaciones')cargarOrganizaciones();
 }
 function volverDesdePantalla(){sv(PREV_VIEW);}
 
