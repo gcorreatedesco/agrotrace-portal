@@ -508,3 +508,46 @@ CREATE POLICY "usuarios pueden leer docs material basico"
   ON storage.objects FOR SELECT
   TO authenticated
   USING (bucket_id = 'material-basico-docs');
+
+
+-- ── MIGRACIÓN: Supabase Storage — bucket documentos-ong ──
+-- Bucket privado para documentos adjuntos a ONGs/Asociaciones Civiles
+INSERT INTO storage.buckets (id, name, public)
+  VALUES ('documentos-ong', 'documentos-ong', false)
+  ON CONFLICT (id) DO NOTHING;
+
+CREATE POLICY "rt puede subir docs ong"
+  ON storage.objects FOR INSERT TO authenticated
+  WITH CHECK (bucket_id = 'documentos-ong');
+
+CREATE POLICY "rt puede leer docs ong"
+  ON storage.objects FOR SELECT TO authenticated
+  USING (bucket_id = 'documentos-ong');
+
+CREATE POLICY "rt puede eliminar docs ong"
+  ON storage.objects FOR DELETE TO authenticated
+  USING (bucket_id = 'documentos-ong');
+
+-- ── TABLA: documentos_ong ────────────────────────
+CREATE TABLE IF NOT EXISTS public.documentos_ong (
+  id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  ong_id         UUID NOT NULL REFERENCES public.organizaciones(id) ON DELETE CASCADE,
+  nombre_archivo TEXT NOT NULL,
+  descripcion    TEXT,
+  storage_path   TEXT NOT NULL,
+  subido_por     UUID REFERENCES auth.users(id),
+  created_at     TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE public.documentos_ong ENABLE ROW LEVEL SECURITY;
+GRANT ALL ON public.documentos_ong TO authenticated;
+
+CREATE POLICY "rt ve docs de sus ongs" ON public.documentos_ong FOR SELECT
+  USING (EXISTS (SELECT 1 FROM rt_organizaciones WHERE ong_id = documentos_ong.ong_id AND rt_id = auth.uid()));
+CREATE POLICY "rt inserta docs" ON public.documentos_ong FOR INSERT
+  WITH CHECK (EXISTS (SELECT 1 FROM rt_organizaciones WHERE ong_id = documentos_ong.ong_id AND rt_id = auth.uid()));
+CREATE POLICY "rt elimina sus docs" ON public.documentos_ong FOR DELETE
+  USING (subido_por = auth.uid());
+
+-- ── MIGRACIÓN: fecha_baja en organizaciones ──────
+ALTER TABLE public.organizaciones
+  ADD COLUMN IF NOT EXISTS fecha_baja TIMESTAMPTZ;
