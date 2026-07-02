@@ -1089,14 +1089,14 @@ function renderOrgs(){
   cont.innerHTML=lista.map(o=>`
     <div class="org-card">
       <div>
-        <div class="org-nombre">${o.nombre||'—'}</div>
+        <div class="org-nombre">${esc(o.nombre)||'—'}</div>
         <div class="org-meta">
-          ${o.cuit?`<span>CUIT ${o.cuit}</span>`:''}
-          ${o.localidad?`<span>${o.localidad}</span>`:''}
+          ${o.cuit?`<span>CUIT ${esc(o.cuit)}</span>`:''}
+          ${o.localidad?`<span>${esc(o.localidad)}</span>`:''}
           ${o.creadaEn?`<span>Creada ${fmt(o.creadaEn)}</span>`:''}
         </div>
       </div>
-      <button class="btn btn-primary" onclick="supervisarDesdeOrgs('${o.id}','${(o.nombre||'').replace(/'/g,"\\'").replace(/"/g,'\\"')}')">Supervisar</button>
+      <button class="btn btn-primary" onclick="supervisarDesdeOrgs('${esc(o.id)}','${esc((o.nombre||'').replace(/'/g,"\\'"))}')">Supervisar</button>
     </div>
   `).join('')+`<div class="orgs-count">${lista.length} organización${lista.length!==1?'es':''} a cargo</div>`;
 }
@@ -1138,6 +1138,17 @@ function mapLote(row){
 }
 
 function fmtDate(iso){if(!iso)return'—';const[y,m,d]=iso.split('-');return d+'/'+m+'/'+y;}
+
+/* Escapa texto controlado por el usuario antes de interpolarlo en innerHTML.
+   Previene XSS almacenado: nombres de lote, notas, proveedor, etc. provienen
+   de la base y pueden contener HTML/JS. Usar SIEMPRE que un dato de usuario
+   entre en un template string, tanto en contenido como en atributos value="". */
+function esc(v){
+  if(v==null)return'';
+  return String(v)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
 
 /* ── CARGA MATERIAL ── */
 async function cargarMaterial(){
@@ -1181,16 +1192,16 @@ function actualizarMetricasStock(){
 function renderStock(){
   const sEl=document.getElementById('scb-sem'),eEl=document.getElementById('scb-esq'),pEl=document.getElementById('scb-pm');
   if(!sEl)return;
-  function rl(r,tipo){const pct=r.stockI>0?Math.round((r.stock/r.stockI)*100):0;const low=pct<20?' low':'';return`<div class="sl" onclick="openMaterial('${r.v}','${tipo}')"><div class="sln">${r.l}</div><div class="sbw"><div class="sbb"><div class="sbf${low}" style="width:${pct}%"></div></div><div class="sn">${r.stock}/${r.stockI} ${r.u}</div></div></div>`;}
+  function rl(r,tipo){const pct=r.stockI>0?Math.round((r.stock/r.stockI)*100):0;const low=pct<20?' low':'';return`<div class="sl" onclick="openMaterial('${r.v}','${tipo}')"><div class="sln">${esc(r.l)}</div><div class="sbw"><div class="sbb"><div class="sbf${low}" style="width:${pct}%"></div></div><div class="sn">${r.stock}/${r.stockI} ${esc(r.u)}</div></div></div>`;}
   const empty='<div style="font-size:0.75rem;color:var(--sage);padding:8px 0;">Sin lotes registrados.</div>';
   sEl.innerHTML=LM.semillas.length?LM.semillas.map(r=>rl(r,'semillas')).join(''):empty;
   eEl.innerHTML=LM.esquejes.length?LM.esquejes.map(r=>rl(r,'esquejes')).join(''):empty;
   pEl.innerHTML=LM.pm.length?LM.pm.map(r=>rl(r,'pm')).join(''):empty;
   const sel=document.getElementById('bl');
   sel.innerHTML='<option value="">— Elegí el lote —</option>';
-  LM.semillas.forEach(r=>sel.innerHTML+=`<option value="${r.v}" data-tipo="semillas">${r.l} (stock: ${r.stock} ${r.u})</option>`);
-  LM.esquejes.forEach(r=>sel.innerHTML+=`<option value="${r.v}" data-tipo="esquejes">${r.l} (stock: ${r.stock} ${r.u})</option>`);
-  LM.pm.forEach(r=>sel.innerHTML+=`<option value="${r.v}" data-tipo="pm">${r.l} (stock: ${r.stock} ${r.u})</option>`);
+  LM.semillas.forEach(r=>sel.innerHTML+=`<option value="${esc(r.v)}" data-tipo="semillas">${esc(r.l)} (stock: ${r.stock} ${esc(r.u)})</option>`);
+  LM.esquejes.forEach(r=>sel.innerHTML+=`<option value="${esc(r.v)}" data-tipo="esquejes">${esc(r.l)} (stock: ${r.stock} ${esc(r.u)})</option>`);
+  LM.pm.forEach(r=>sel.innerHTML+=`<option value="${esc(r.v)}" data-tipo="pm">${esc(r.l)} (stock: ${r.stock} ${esc(r.u)})</option>`);
 }
 
 /* ── DETALLE MATERIAL BÁSICO ── */
@@ -1222,12 +1233,12 @@ function renderPanelMaterial(editando){
 
   let filas=`
     <div class="g2">
-      <div class="field"><label>Nombre del lote</label>${editando?`<input type="text" id="dm-nombre-e" value="${d.nombre_lote||''}"/>`:`<div class="ro-val">${d.nombre_lote||'—'}</div>`}</div>
-      <div class="field"><label>Variedad</label>${editando?`<input type="text" id="dm-variedad-e" value="${d.variedad||''}"/>`:`<div class="ro-val">${d.variedad||'—'}</div>`}</div>
+      <div class="field"><label>Nombre del lote</label>${editando?`<input type="text" id="dm-nombre-e" value="${esc(d.nombre_lote)}"/>`:`<div class="ro-val">${esc(d.nombre_lote)||'—'}</div>`}</div>
+      <div class="field"><label>Variedad</label>${editando?`<input type="text" id="dm-variedad-e" value="${esc(d.variedad)}"/>`:`<div class="ro-val">${esc(d.variedad)||'—'}</div>`}</div>
     </div>
     <div class="g2">
       <div class="field"><label>Fecha adquisición</label>${editando?`<input type="date" id="dm-fecha-e" value="${d.fecha_adquisicion||''}"/>`:`<div class="ro-val">${fmtDate(d.fecha_adquisicion)}</div>`}</div>
-      <div class="field"><label>Proveedor</label>${editando?`<input type="text" id="dm-proveedor-e" value="${d.proveedor||''}"/>`:`<div class="ro-val">${d.proveedor||'—'}</div>`}</div>
+      <div class="field"><label>Proveedor</label>${editando?`<input type="text" id="dm-proveedor-e" value="${esc(d.proveedor)}"/>`:`<div class="ro-val">${esc(d.proveedor)||'—'}</div>`}</div>
     </div>
     <div class="g2">
       <div class="field"><label>Stock inicial</label><div class="ro-val">${stockInicial} ${unidad}</div></div>
@@ -1235,7 +1246,7 @@ function renderPanelMaterial(editando){
     </div>`;
 
   if(tipo==='pm'){filas+=`<div class="field"><label>Esquejes extraídos</label><div class="ro-val">${d.esquejes_extraidos||0}</div></div>`;}
-  if(d.notas){filas+=`<div class="field"><label>Notas</label>${editando?`<input type="text" id="dm-notas-e" value="${d.notas||''}"/>`:`<div class="ro-val">${d.notas}</div>`}</div>`;}
+  if(d.notas){filas+=`<div class="field"><label>Notas</label>${editando?`<input type="text" id="dm-notas-e" value="${esc(d.notas)}"/>`:`<div class="ro-val">${esc(d.notas)}</div>`}</div>`;}
   else if(editando){filas+=`<div class="field"><label>Notas<span class="opt">opcional</span></label><input type="text" id="dm-notas-e" value=""/></div>`;}
 
   const botones=editando
@@ -1298,7 +1309,7 @@ async function cargarHistorialMaterial(){
         if(nur)cant=(tipo==='semillas'?(nur.material_utilizado||nur.cantidad_ingreso):nur.cantidad_ingreso)+' '+( tipo==='semillas'?'unidades':'esquejes');
       }
       const em={nursery:'Nursery',vegetativa:'Vegetativa',floracion:'Floración',cosecha:'Cosecha',curado_secado:'Curado/Secado',flores:'Flores Cosechadas'};
-      usoHtml+=`<div class="hist-item"><div class="hist-item-desc"><strong>${lote.nombre_completo}</strong><br><span style="color:var(--sage);">Etapa actual: ${em[lote.etapa_actual]||lote.etapa_actual} · Usado: ${cant}</span></div><div class="hist-item-meta">${fmtDate(lote.creado_en?.split('T')[0])}</div></div>`;
+      usoHtml+=`<div class="hist-item"><div class="hist-item-desc"><strong>${esc(lote.nombre_completo)}</strong><br><span style="color:var(--sage);">Etapa actual: ${em[lote.etapa_actual]||lote.etapa_actual} · Usado: ${cant}</span></div><div class="hist-item-meta">${fmtDate(lote.creado_en?.split('T')[0])}</div></div>`;
     }
   }
   if(usoEl)usoEl.innerHTML=usoHtml;
@@ -1348,7 +1359,7 @@ function rLC(l){
   const sc2=l.s.map(s=>sc(s));
   return`<div class="lote-card" onclick="openLote('${l.id}')" style="cursor:pointer;">
     <div class="lote-header"><div class="lote-hl">
-      <div><div class="lote-name">${l.n}</div><div class="lote-orig">${l.o}</div></div>
+      <div><div class="lote-name">${esc(l.n)}</div><div class="lote-orig">${esc(l.o)}</div></div>
     </div><span class="eb ${l.b}">${l.bt}</span></div>
     <div class="pb"><div class="steps">${sc2.map(c=>`<div class="step ${c}"></div>`).join('')}</div><div class="sc">${l.sc}</div></div>
     <div class="lm">${l.m.map(m=>`<div class="mi">${m.l} <b>${m.v}</b></div>`).join('')}</div>
@@ -1475,11 +1486,11 @@ function renderLotesHistorico(tipo){
 
 function rLCHist(l){
   const sc2=l.s.map(s=>sc(s));
-  const extra=l.motivo_cierre?`<div class="hist-motivo">Motivo: ${l.motivo_cierre}</div>`:'';
+  const extra=l.motivo_cierre?`<div class="hist-motivo">Motivo: ${esc(l.motivo_cierre)}</div>`:'';
   const fechaCierre=l.fecha_cierre?`<div class="mi">Cierre <b>${fmtDate(l.fecha_cierre)}</b></div>`:'';
   return`<div class="lote-card lc-hist" onclick="openLote('${l.id}')">
     <div class="lote-header">
-      <div><div class="lote-name">${l.n}</div><div class="lote-orig">${l.o}</div>${extra}</div>
+      <div><div class="lote-name">${esc(l.n)}</div><div class="lote-orig">${esc(l.o)}</div>${extra}</div>
       <span class="eb ${l.b}">${l.bt}</span>
     </div>
     <div class="pb"><div class="steps">${sc2.map(c=>`<div class="step ${c}"></div>`).join('')}</div><div class="sc">${l.sc}</div></div>
@@ -1488,7 +1499,7 @@ function rLCHist(l){
 }
 
 function renderStockHistorico(){
-  function rlh(r,tipo){return`<div class="sl" onclick="openMaterial('${r.v}','${tipo}')"><div class="sln">${r.l}</div><div style="font-size:0.65rem;color:var(--sage);margin-top:2px;">Stock inicial: ${r.stockI} ${r.u} · agotado/descartado</div></div>`;}
+  function rlh(r,tipo){return`<div class="sl" onclick="openMaterial('${r.v}','${tipo}')"><div class="sln">${esc(r.l)}</div><div style="font-size:0.65rem;color:var(--sage);margin-top:2px;">Stock inicial: ${r.stockI} ${esc(r.u)} · agotado/descartado</div></div>`;}
   const semEl=document.getElementById('scb-sem-hist');
   const esqEl=document.getElementById('scb-esq-hist');
   const pmEl=document.getElementById('scb-pm-hist');
@@ -1544,11 +1555,11 @@ function panelNursery(hist=false){
       </div>
       <div>
         <div class="form-col-hdr">Cantidades</div>
-        <div class="field"><label>Origen</label><div class="ro-val">${d.origen_material||'—'}</div></div>
+        <div class="field"><label>Origen</label><div class="ro-val">${esc(d.origen_material)||'—'}</div></div>
         <div class="field"><label>${metodo}</label><div class="ro-val">${d.cantidad_ingreso!=null?d.cantidad_ingreso+' plántulas':'—'}</div></div>
         <div class="field"><label>Cantidad egreso<span class="req">*</span></label><input type="number" id="nur-egreso" min="0" value="${d.cantidad_egreso||''}" placeholder="Nº de plántulas" oninput="bajasNur()"/></div>
         <div class="field"><label>Bajas (automático)</label><div class="bajas-auto${typeof bajasIni==='number'&&bajasIni<0?' bajas-neg':''}" id="nur-bajas-auto">${bajasIni}</div></div>
-        <div class="field"><label>Notas<span class="opt">opcional</span></label><input type="text" id="nur-notas" value="${d.notas||''}" placeholder="Observaciones..."/></div>
+        <div class="field"><label>Notas<span class="opt">opcional</span></label><input type="text" id="nur-notas" value="${esc(d.notas)}" placeholder="Observaciones..."/></div>
       </div>
     </div>
     <div class="erb" id="det-validacion" style="display:none;"></div>
@@ -1582,7 +1593,7 @@ function panelVegetativa(hist=false){
         <div class="field"><label>Cantidad ingreso<span class="req">*</span></label><input type="number" id="veg-cant-ini" min="0" value="${d.cantidad_ingreso||autoCant}" placeholder="Nº de plantas" oninput="bajasVeg()"/></div>
         <div class="field"><label>Cantidad egreso<span class="req">*</span></label><input type="number" id="veg-egreso" min="0" value="${d.cantidad_egreso||''}" placeholder="Nº de plantas" oninput="bajasVeg()"/></div>
         <div class="field"><label>Bajas (automático)</label><div class="bajas-auto${typeof bajasVegIni==='number'&&bajasVegIni<0?' bajas-neg':''}" id="veg-bajas-auto">${bajasVegIni}</div></div>
-        <div class="field"><label>Notas<span class="opt">opcional</span></label><input type="text" id="veg-notas" value="${d.notas||''}" placeholder="Observaciones..."/></div>
+        <div class="field"><label>Notas<span class="opt">opcional</span></label><input type="text" id="veg-notas" value="${esc(d.notas)}" placeholder="Observaciones..."/></div>
       </div>
     </div>
     <div class="erb" id="det-validacion" style="display:none;"></div>
@@ -1616,7 +1627,7 @@ function panelFloracion(hist=false){
         <div class="field"><label>Cantidad ingreso<span class="req">*</span></label><input type="number" id="flo-cant-ini" min="0" value="${d.cantidad_ingreso||autoCant}" placeholder="Nº de plantas" oninput="bajasFlo()"/></div>
         <div class="field"><label>Cantidad egreso<span class="req">*</span></label><input type="number" id="flo-egreso" min="0" value="${d.cantidad_egreso||''}" placeholder="Nº de plantas" oninput="bajasFlo()"/></div>
         <div class="field"><label>Bajas (automático)</label><div class="bajas-auto${typeof bajasFloIni==='number'&&bajasFloIni<0?' bajas-neg':''}" id="flo-bajas-auto">${bajasFloIni}</div></div>
-        <div class="field"><label>Notas<span class="opt">opcional</span></label><input type="text" id="flo-notas" value="${d.notas||''}" placeholder="Observaciones..."/></div>
+        <div class="field"><label>Notas<span class="opt">opcional</span></label><input type="text" id="flo-notas" value="${esc(d.notas)}" placeholder="Observaciones..."/></div>
       </div>
     </div>
     <div class="erb" id="det-validacion" style="display:none;"></div>
@@ -1643,7 +1654,7 @@ function panelCosecha(hist=false){
       <div>
         <div class="form-col-hdr">Peso</div>
         <div class="field"><label>Peso húmedo total<span class="opt">opcional</span></label><input type="number" id="cos-peso-humedo" min="0" value="${d.peso_humedo_total||''}" step="0.1" placeholder="Gramos post-cosecha (informativo)"/></div>
-        <div class="field"><label>Notas<span class="opt">opcional</span></label><input type="text" id="cos-notas" value="${d.notas||''}" placeholder="Observaciones..."/></div>
+        <div class="field"><label>Notas<span class="opt">opcional</span></label><input type="text" id="cos-notas" value="${esc(d.notas)}" placeholder="Observaciones..."/></div>
       </div>
     </div>
     <div class="erb" id="det-validacion" style="display:none;"></div>
@@ -1679,7 +1690,7 @@ function panelCuradoSecado(hist=false){
         ${pesoField('Tara empaque<span class="opt">si tiene empaque</span>','cur-tara','cur-unidad-tara',d.tara_empaque)}
       </div>
     </div>
-    <div class="field" style="margin-top:4px;"><label>Notas<span class="opt">opcional</span></label><input type="text" id="cur-notas" value="${d.notas||''}" placeholder="Observaciones..."/></div>
+    <div class="field" style="margin-top:4px;"><label>Notas<span class="opt">opcional</span></label><input type="text" id="cur-notas" value="${esc(d.notas)}" placeholder="Observaciones..."/></div>
     <div class="erb" id="det-validacion" style="display:none;"></div>
     <div class="ab">${ab}</div>
   </div>`;
@@ -1899,15 +1910,15 @@ async function cargarHistorialEntregas(){
     const corrId='corr-'+e.id.replace(/-/g,'');
     const corrRows=cc.map((c,ci)=>`
       <div style="padding:6px 0 4px;border-bottom:1px solid rgba(0,0,0,0.04);font-size:0.68rem;">
-        <div style="color:var(--amber);font-weight:500;margin-bottom:3px;">↳ Corrección ${cc.length-ci} — ${fmtDate(c.fecha_correccion?.split('T')[0])}${c.corregido_por?' — '+c.corregido_por:''}</div>
-        ${c.nro_reprocann_ant!==c.nro_reprocann_nvo?`<div style="color:var(--sage);">REPROCANN: <span style="text-decoration:line-through;">${c.nro_reprocann_ant}</span> → <strong>${c.nro_reprocann_nvo}</strong></div>`:''}
+        <div style="color:var(--amber);font-weight:500;margin-bottom:3px;">↳ Corrección ${cc.length-ci} — ${fmtDate(c.fecha_correccion?.split('T')[0])}${c.corregido_por?' — '+esc(c.corregido_por):''}</div>
+        ${c.nro_reprocann_ant!==c.nro_reprocann_nvo?`<div style="color:var(--sage);">REPROCANN: <span style="text-decoration:line-through;">${esc(c.nro_reprocann_ant)}</span> → <strong>${esc(c.nro_reprocann_nvo)}</strong></div>`:''}
         ${c.cantidad_ant!==c.cantidad_nvo?`<div style="color:var(--sage);">Cantidad: <span style="text-decoration:line-through;">${c.cantidad_ant} g</span> → <strong>${c.cantidad_nvo} g</strong></div>`:''}
-        ${c.notas_nvo&&c.notas_nvo!==c.notas_ant?`<div style="color:var(--sage);">Notas: ${c.notas_nvo}</div>`:''}
+        ${c.notas_nvo&&c.notas_nvo!==c.notas_ant?`<div style="color:var(--sage);">Notas: ${esc(c.notas_nvo)}</div>`:''}
       </div>`).join('');
     const origRow=`
       <div style="padding:6px 0 2px;font-size:0.68rem;">
         <div style="color:var(--sage);font-weight:500;margin-bottom:3px;">↳ Registro original</div>
-        <div style="color:var(--sage);">REPROCANN: ${tieneCorrecciones?cc[cc.length-1].nro_reprocann_ant:e.nro_reprocann} · ${tieneCorrecciones?cc[cc.length-1].cantidad_ant:e.cantidad_otorgada} g${e.registrado_por?' · Cargado por: '+e.registrado_por:' · Cargado por: —'}</div>
+        <div style="color:var(--sage);">REPROCANN: ${esc(tieneCorrecciones?cc[cc.length-1].nro_reprocann_ant:e.nro_reprocann)} · ${tieneCorrecciones?cc[cc.length-1].cantidad_ant:e.cantidad_otorgada} g${e.registrado_por?' · Cargado por: '+esc(e.registrado_por):' · Cargado por: —'}</div>
       </div>`;
     const desplegable=tieneCorrecciones?`
       <div style="margin-top:4px;">
@@ -1922,8 +1933,8 @@ async function cargarHistorialEntregas(){
     return`<div style="padding:8px 0;border-bottom:1px solid rgba(0,0,0,0.06);">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;">
         <div>
-          <div style="font-size:0.78rem;font-weight:500;color:var(--soil);">REPROCANN: ${e.nro_reprocann||'S/D'}</div>
-          <div style="font-size:0.68rem;color:var(--sage);margin-top:1px;">${e.registrado_por?'Entregado por: '+e.registrado_por:''}${e.notas?'<br>'+e.notas:''}</div>
+          <div style="font-size:0.78rem;font-weight:500;color:var(--soil);">REPROCANN: ${esc(e.nro_reprocann)||'S/D'}</div>
+          <div style="font-size:0.68rem;color:var(--sage);margin-top:1px;">${e.registrado_por?'Entregado por: '+esc(e.registrado_por):''}${e.notas?'<br>'+esc(e.notas):''}</div>
         </div>
         <div style="text-align:right;flex-shrink:0;margin-left:10px;">
           <div style="font-weight:500;color:var(--soil);">${e.cantidad_otorgada} g</div>
@@ -1934,7 +1945,7 @@ async function cargarHistorialEntregas(){
       ${desplegable}
       <div id="${fcId}" style="display:none;margin-top:10px;padding:12px;background:var(--amber-bg);border-radius:var(--radius-lg);">
         <div style="font-size:0.68rem;font-weight:500;color:var(--amber);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.06em;">Corrección de entrega</div>
-        <div class="field"><label>Nro. REPROCANN<span class="req">*</span></label><input type="text" id="corr-reprocann-${fcId}" value="${e.nro_reprocann}"/></div>
+        <div class="field"><label>Nro. REPROCANN<span class="req">*</span></label><input type="text" id="corr-reprocann-${fcId}" value="${esc(e.nro_reprocann)}"/></div>
         <div class="g2">
           <div class="field"><label>Cantidad (gramos)<span class="req">*</span></label><input type="number" id="corr-cantidad-${fcId}" value="${e.cantidad_otorgada}" min="0.1" step="0.1"/></div>
           <div class="field"><label>Corregido por<span class="opt">opcional</span></label><input type="text" id="corr-por-${fcId}" placeholder="Nombre del responsable"/></div>
@@ -2127,25 +2138,25 @@ function panelReadOnly(key){
   let campos='';
   if(key==='nursery'){
     const metodo=d.metodo_ingreso==='bandejas'?`${d.bandejas||0} bandejas × ${d.alveolos||0} alveolos`:(d.metodo_ingreso||'—');
-    campos=`<div class="g2"><div class="field"><label>Fecha inicio</label><div class="ro-val">${fmtDate(d.fecha_inicio)||'—'}</div></div><div class="field"><label>Origen material</label><div class="ro-val">${d.origen_material||'—'}</div></div></div>
+    campos=`<div class="g2"><div class="field"><label>Fecha inicio</label><div class="ro-val">${fmtDate(d.fecha_inicio)||'—'}</div></div><div class="field"><label>Origen material</label><div class="ro-val">${esc(d.origen_material)||'—'}</div></div></div>
     <div class="g2"><div class="field"><label>Método ingreso</label><div class="ro-val">${metodo}</div></div><div class="field"><label>Cantidad ingreso</label><div class="ro-val">${d.cantidad_ingreso!=null?d.cantidad_ingreso+' plántulas':'—'}</div></div></div>
     <hr style="border:none;border-top:1px solid rgba(0,0,0,0.07);margin:10px 0;">
     <div class="g2"><div class="field"><label>Fecha fin</label><div class="ro-val">${fmtDate(d.fecha_fin)||'—'}</div></div><div class="field"><label>Cantidad egreso</label><div class="ro-val">${d.cantidad_egreso!=null?d.cantidad_egreso+' plántulas':'—'}</div></div></div>
-    <div class="g2"><div class="field"><label>Bajas</label><div class="ro-val">${d.bajas!=null?d.bajas:0}</div></div><div class="field"><label>Notas</label><div class="ro-val">${d.notas||'—'}</div></div></div>`;
+    <div class="g2"><div class="field"><label>Bajas</label><div class="ro-val">${d.bajas!=null?d.bajas:0}</div></div><div class="field"><label>Notas</label><div class="ro-val">${esc(d.notas)||'—'}</div></div></div>`;
   } else if(key==='vegetativa'){
     campos=`<div class="g2"><div class="field"><label>Fecha inicio (Trasplante)</label><div class="ro-val">${fmtDate(d.fecha_inicio)||'—'}</div></div><div class="field"><label>Cantidad ingreso</label><div class="ro-val">${d.cantidad_ingreso!=null?d.cantidad_ingreso+' plantas':'—'}</div></div></div>
     <hr style="border:none;border-top:1px solid rgba(0,0,0,0.07);margin:10px 0;">
     <div class="g2"><div class="field"><label>Fecha fin (Inicio inducción)</label><div class="ro-val">${fmtDate(d.fecha_fin)||'—'}</div></div><div class="field"><label>Cantidad egreso</label><div class="ro-val">${d.cantidad_egreso!=null?d.cantidad_egreso+' plantas':'—'}</div></div></div>
-    <div class="g2"><div class="field"><label>Bajas</label><div class="ro-val">${d.bajas!=null?d.bajas:0}</div></div><div class="field"><label>Notas</label><div class="ro-val">${d.notas||'—'}</div></div></div>`;
+    <div class="g2"><div class="field"><label>Bajas</label><div class="ro-val">${d.bajas!=null?d.bajas:0}</div></div><div class="field"><label>Notas</label><div class="ro-val">${esc(d.notas)||'—'}</div></div></div>`;
   } else if(key==='floracion'){
     campos=`<div class="g2"><div class="field"><label>Fecha inicio (Inducción)</label><div class="ro-val">${fmtDate(d.fecha_inicio)||'—'}</div></div><div class="field"><label>Cantidad ingreso</label><div class="ro-val">${d.cantidad_ingreso!=null?d.cantidad_ingreso+' plantas':'—'}</div></div></div>
     <hr style="border:none;border-top:1px solid rgba(0,0,0,0.07);margin:10px 0;">
     <div class="g2"><div class="field"><label>Fecha fin (Cosecha)</label><div class="ro-val">${fmtDate(d.fecha_fin)||'—'}</div></div><div class="field"><label>Cantidad egreso</label><div class="ro-val">${d.cantidad_egreso!=null?d.cantidad_egreso+' plantas':'—'}</div></div></div>
-    <div class="g2"><div class="field"><label>Bajas</label><div class="ro-val">${d.bajas!=null?d.bajas:0}</div></div><div class="field"><label>Notas</label><div class="ro-val">${d.notas||'—'}</div></div></div>`;
+    <div class="g2"><div class="field"><label>Bajas</label><div class="ro-val">${d.bajas!=null?d.bajas:0}</div></div><div class="field"><label>Notas</label><div class="ro-val">${esc(d.notas)||'—'}</div></div></div>`;
   } else if(key==='cosecha'){
     campos=`<div class="g2"><div class="field"><label>Fecha inicio</label><div class="ro-val">${fmtDate(d.fecha_inicio)||'—'}</div></div><div class="field"><label>Fecha fin</label><div class="ro-val">${fmtDate(d.fecha_fin)||'—'}</div></div></div>
     ${d.peso_humedo_total!=null?`<div class="field"><label>Peso húmedo total</label><div class="ro-val">${d.peso_humedo_total} g</div></div>`:''}
-    <div class="field"><label>Notas</label><div class="ro-val">${d.notas||'—'}</div></div>`;
+    <div class="field"><label>Notas</label><div class="ro-val">${esc(d.notas)||'—'}</div></div>`;
   } else if(key==='curado_secado'){
     const unidad=d.unidad||'gramos';
     const pesoDisp=d.peso_seco_final!=null?(unidad==='kg'?(d.peso_seco_final/1000).toFixed(3)+' kg':d.peso_seco_final+' g'):'—';
@@ -2153,7 +2164,7 @@ function panelReadOnly(key){
     ${d.peso_inicial_humedo!=null?`<div class="field"><label>Peso inicial húmedo</label><div class="ro-val">${d.peso_inicial_humedo} g</div></div>`:''}
     <div class="g2"><div class="field"><label>¿Tiene empaque?</label><div class="ro-val">${d.tiene_empaque?'Sí':'No'}</div></div>${d.tiene_empaque?`<div class="field"><label>Tara empaque</label><div class="ro-val">${d.tara_empaque!=null?d.tara_empaque+' g':'—'}</div></div>`:''}</div>
     <div class="field"><label>Peso seco final</label><div class="ro-val" style="font-weight:600;">${pesoDisp}</div></div>
-    <div class="field"><label>Notas</label><div class="ro-val">${d.notas||'—'}</div></div>`;
+    <div class="field"><label>Notas</label><div class="ro-val">${esc(d.notas)||'—'}</div></div>`;
   }
   const nCorr=CORRECCIONES_LOG[LOTE_ACTIVO?.id+':'+key]||0;
   const corrBadge=nCorr>0?`<span class="corr-badge">✎ Corregido ${nCorr} vez${nCorr>1?'es':''} en esta sesión</span>`:'';
@@ -2449,15 +2460,15 @@ function doSearch(q){
   document.getElementById('sq-label').textContent=`Resultados para "${q}"`;
   document.getElementById('sq-sub').textContent=filtered.length>0?`${filtered.length} lote${filtered.length>1?'s':''} encontrado${filtered.length>1?'s':''}`:'' ;
   let html='';
-  if(filtered.length===0){html=`<div class="no-results-msg">No se encontraron lotes con el nombre "<strong>${q}</strong>".<br/><span style="font-size:0.75rem;">Probá con otra palabra o parte del nombre.</span></div>`;}
+  if(filtered.length===0){html=`<div class="no-results-msg">No se encontraron lotes con el nombre "<strong>${esc(q)}</strong>".<br/><span style="font-size:0.75rem;">Probá con otra palabra o parte del nombre.</span></div>`;}
   else{
-    if(prod.length){html+=`<div class="search-group"><div class="search-group-title">Lotes productivos (${prod.length})</div>`;prod.forEach(l=>{html+=`<div class="search-result-item" onclick="openLote('${l.id}')"><div><div class="sri-name">${highlight(l.name,ql)}</div><div class="sri-sub">${l.info}</div></div><div class="sri-right"><span class="eb ${l.bc}">${l.badge}</span><span class="sri-arrow">→</span></div></div>`;});html+=`</div>`;}
-    if(mat.length){html+=`<div class="search-group"><div class="search-group-title">Material básico (${mat.length})</div>`;mat.forEach(l=>{html+=`<div class="search-result-item" onclick="sv('stock')"><div><div class="sri-name">${highlight(l.name,ql)}</div><div class="sri-sub">${l.info}</div></div><div class="sri-right"><span class="eb ${l.bc}">${l.badge}</span><span class="sri-arrow">→</span></div></div>`;});html+=`</div>`;}
+    if(prod.length){html+=`<div class="search-group"><div class="search-group-title">Lotes productivos (${prod.length})</div>`;prod.forEach(l=>{html+=`<div class="search-result-item" onclick="openLote('${esc(l.id)}')"><div><div class="sri-name">${highlight(l.name,ql)}</div><div class="sri-sub">${esc(l.info)}</div></div><div class="sri-right"><span class="eb ${l.bc}">${l.badge}</span><span class="sri-arrow">→</span></div></div>`;});html+=`</div>`;}
+    if(mat.length){html+=`<div class="search-group"><div class="search-group-title">Material básico (${mat.length})</div>`;mat.forEach(l=>{html+=`<div class="search-result-item" onclick="sv('stock')"><div><div class="sri-name">${highlight(l.name,ql)}</div><div class="sri-sub">${esc(l.info)}</div></div><div class="sri-right"><span class="eb ${l.bc}">${l.badge}</span><span class="sri-arrow">→</span></div></div>`;});html+=`</div>`;}
   }
   document.getElementById('search-results-container').innerHTML=html;sv('busqueda');
 }
 function similarity(a,b){if(a.includes(b)||b.includes(a))return 0.9;let m=0;for(let i=0;i<Math.min(a.length,b.length);i++){if(a[i]===b[i])m++;}return m/Math.max(a.length,b.length);}
-function highlight(text,q){const idx=text.toLowerCase().indexOf(q);if(idx===-1)return text;return text.slice(0,idx)+'<strong style="color:var(--accent);">'+text.slice(idx,idx+q.length)+'</strong>'+text.slice(idx+q.length);}
+function highlight(text,q){const idx=text.toLowerCase().indexOf(q);if(idx===-1)return esc(text);return esc(text.slice(0,idx))+'<strong style="color:var(--accent);">'+esc(text.slice(idx,idx+q.length))+'</strong>'+esc(text.slice(idx+q.length));}
 
 /* ── VALIDACIONES DE NOMBRE DE LOTE ── */
 function normalizarNombre(n){return n.trim().replace(/\s+/g,' ').toLowerCase();}
@@ -2465,10 +2476,10 @@ function validarNombreLote(nombre,excluirId=null){
   const msgs=[];let bloqueo=false;
   if(!nombre||nombre.trim().length===0){return{ok:false,bloqueo:true,msg:'El nombre del lote es obligatorio.'};}
   const n=nombre.trim();
-  const FORBID=/[\/\\"']/;
+  const FORBID=/[\/\\"'<>]/;
   if(FORBID.test(n)){
-    const sugerido=n.replace(/[\/\\"']/g,'-');
-    return{ok:false,bloqueo:true,msg:`El nombre contiene caracteres no permitidos (/ \\ " '). Sugerencia: "${sugerido}"`};
+    const sugerido=n.replace(/[\/\\"'<>]/g,'-');
+    return{ok:false,bloqueo:true,msg:`El nombre contiene caracteres no permitidos (/ \\ " ' < >). Sugerencia: "${sugerido}"`};
   }
   if(n.length<4)msgs.push('El nombre es muy corto (menos de 4 caracteres).');
   if(n.length>60)msgs.push('El nombre supera los 60 caracteres y puede cortarse en reportes.');
@@ -2551,7 +2562,7 @@ function selO(t){
   OA=t;LA=null;UI=false;
   const sel=document.getElementById('p2l');sel.disabled=false;
   sel.innerHTML='<option value="">— Elegí el lote —</option>';
-  LM[t].forEach(l=>{sel.innerHTML+=`<option value="${l.v}">${l.l}</option>`;});
+  LM[t].forEach(l=>{sel.innerHTML+=`<option value="${esc(l.v)}">${esc(l.l)}</option>`;});
   document.getElementById('sp').style.display='none';
   document.getElementById('umw').style.display=t==='semillas'?'block':'none';
   document.getElementById('cnw').style.display=t!=='semillas'?'block':'none';
@@ -2771,11 +2782,11 @@ function onNMOrigen(v){
     sel.innerHTML='<option value="">— Elegí el lote de origen —</option>';
     if(v==='esqueje_produccion'||v==='lote_produccion_propio'){
       // Lotes de producción activos
-      LD.forEach(l=>sel.innerHTML+=`<option value="${l.id}">${l.n} (${l.bt})</option>`);
+      LD.forEach(l=>sel.innerHTML+=`<option value="${esc(l.id)}">${esc(l.n)} (${l.bt})</option>`);
       if(LD.length===0)sel.innerHTML='<option value="">— Sin lotes de producción registrados —</option>';
     } else if(v==='esqueje_material_basico'){
       // Lotes de esquejes registrados como Material Básico
-      LM.esquejes.forEach(l=>sel.innerHTML+=`<option value="${l.v}">${l.l} (stock: ${l.stock} esquejes)</option>`);
+      LM.esquejes.forEach(l=>sel.innerHTML+=`<option value="${esc(l.v)}">${esc(l.l)} (stock: ${l.stock} esquejes)</option>`);
       if(LM.esquejes.length===0)sel.innerHTML='<option value="">— Sin lotes de esquejes registrados —</option>';
     }
   }
@@ -2820,14 +2831,14 @@ function renderMBFileLista(tipo){
     const el=document.getElementById('nm-rotulo-lista');
     if(!el)return;
     el.innerHTML=_mbArchivosRotulo.map((f,i)=>`
-      <div class="mb-doc-file-item">📎 ${f.name}
+      <div class="mb-doc-file-item">📎 ${esc(f.name)}
         <button class="mb-doc-remove" onclick="removeMBFile('rotulo_estampilla',${i})">✕</button>
       </div>`).join('');
   } else {
     const el=document.getElementById('nm-factura-lista');
     if(!el)return;
     el.innerHTML=_mbArchivoFactura?`
-      <div class="mb-doc-file-item">📄 ${_mbArchivoFactura.name}
+      <div class="mb-doc-file-item">📄 ${esc(_mbArchivoFactura.name)}
         <button class="mb-doc-remove" onclick="removeMBFile('factura',0)">✕</button>
       </div>`:'';
   }

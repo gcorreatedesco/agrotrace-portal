@@ -371,6 +371,14 @@ const SUPABASE_URL  = 'https://jqkyifuyaxxwugrnjfnq.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impxa3lpZnV5YXh4d3Vncm5qZm5xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyMjE1NjgsImV4cCI6MjA5Njc5NzU2OH0.0r2A5wC4hZ6sg0TAC9_pEdvit5PMHj8XB1wsXWdDVww';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
+/* Escapa texto de usuario antes de interpolarlo en innerHTML (previene XSS). */
+function esc(v){
+  if(v==null)return'';
+  return String(v)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
 let ONGS = [];
 
 /* ── INIT ── */
@@ -457,10 +465,10 @@ function renderONGs() {
     <div class="ong-card">
       <div class="ong-card-header">
         <div>
-          <div class="ong-name">${o.nombre}</div>
+          <div class="ong-name">${esc(o.nombre)}</div>
           <div class="ong-location">
             <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
-            ${o.localidad || '—'}
+            ${esc(o.localidad) || '—'}
           </div>
         </div>
         <span class="ong-badge badge-ok">Activa</span>
@@ -471,8 +479,8 @@ function renderONGs() {
         <div class="ong-stat"><div class="ong-stat-val">0</div><div class="ong-stat-lbl">Entregas/mes</div></div>
       </div>
       <div class="ong-footer">
-        <div class="ong-last">Responsable: ${o.resp_nombre || '—'}</div>
-        <button class="btn-supervisar" onclick="supervisar('${o.id}','${o.nombre}')">
+        <div class="ong-last">Responsable: ${esc(o.resp_nombre) || '—'}</div>
+        <button class="btn-supervisar" onclick="supervisar('${esc(o.id)}','${esc((o.nombre||'').replace(/'/g,"\\'"))}')">
           <svg viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
           Supervisar
         </button>
