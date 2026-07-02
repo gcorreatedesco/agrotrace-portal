@@ -36,7 +36,6 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);c
 .nav-it svg{width:14px;height:14px;fill:currentColor;flex-shrink:0;}
 .nav-it:hover{color:var(--dew);background:rgba(255,255,255,0.05);}
 .nav-it.active{color:var(--leaf);border-left-color:var(--leaf);background:rgba(142,170,123,0.1);}
-.nav-badge{margin-left:auto;background:var(--amber-light);color:var(--amber);font-size:0.58rem;font-weight:700;padding:1px 5px;border-radius:10px;}
 .nav-it.new-mat{color:rgba(142,170,123,0.7);font-size:0.72rem;}
 .nav-it.new-mat:hover{color:var(--leaf);}
 
@@ -122,10 +121,6 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);c
 .lotes-grid{display:flex;flex-direction:column;gap:8px;}
 .lote-card{background:var(--white);border:1px solid rgba(0,0,0,0.07);border-radius:var(--radius-lg);padding:12px 14px;cursor:pointer;transition:all var(--trans);}
 .lote-card:hover{border-color:var(--accent);}
-.lote-card.lc-orig{border-color:#1D9E75;}
-.lote-card.lc-suba{border-left:3px solid #639922;}
-.lote-card.lc-subb{border-left:3px solid #BA7517;}
-.lote-card.lc-padre{border-color:#1D9E75;opacity:0.85;}
 .lote-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;gap:8px;}
 .lote-hl{display:flex;align-items:flex-start;gap:8px;flex:1;min-width:0;}
 .lote-name{font-size:0.85rem;font-weight:500;color:var(--soil);}
@@ -136,9 +131,6 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);c
 .b-flo{background:var(--amber-bg);color:var(--amber);}
 .b-cos{background:var(--error-bg);color:var(--error);}
 .b-fl2{background:var(--purple-bg);color:var(--purple);}
-.b-cer{background:#f1efe8;color:#5F5E5A;}
-.b-sub{background:#f1efe8;color:#5F5E5A;font-size:0.58rem;padding:1px 6px;border-radius:100px;margin-left:5px;}
-.b-pad{background:#E1F5EE;color:#085041;font-size:0.58rem;padding:1px 6px;border-radius:100px;margin-left:5px;}
 .b-sem{background:rgba(78,124,63,0.1);color:var(--accent);}
 .b-esq{background:rgba(78,124,63,0.1);color:var(--accent);}
 .b-pm{background:rgba(78,124,63,0.1);color:var(--accent);}
@@ -147,40 +139,18 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);c
 .step{height:3px;flex:1;border-radius:2px;}
 .step.done{background:var(--accent);}
 .step.act{background:var(--leaf);}
-.step.act2{background:var(--amber-light);}
-.step.spl{background:var(--purple);}
 .step.fut{background:rgba(0,0,0,0.1);}
 .sc{font-size:0.65rem;color:var(--sage);white-space:nowrap;}
 .lm{display:flex;gap:14px;flex-wrap:wrap;padding-top:8px;border-top:1px solid rgba(0,0,0,0.05);}
 .mi{font-size:0.7rem;color:var(--sage);}
 .mi b{color:var(--soil);font-weight:500;}
 
-/* expand btn */
-.xbtn{width:20px;height:20px;border-radius:50%;border:1.5px solid rgba(0,0,0,0.15);background:rgba(0,0,0,0.04);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--sage);flex-shrink:0;margin-top:1px;transition:all var(--trans);user-select:none;}
-.xbtn:hover{border-color:var(--accent);color:var(--accent);}
-.xbtn.open{background:var(--soil);color:var(--dew);border-color:var(--soil);}
-
-/* children */
-.ch{overflow:hidden;transition:max-height 0.3s ease,opacity 0.3s ease;max-height:0;opacity:0;}
-.ch.open{max-height:800px;opacity:1;}
-.chi{margin-top:6px;margin-left:28px;position:relative;display:flex;flex-direction:column;gap:5px;padding-bottom:3px;}
-.chi::before{content:'';position:absolute;left:-16px;top:0;bottom:18px;width:1.5px;background:rgba(0,0,0,0.1);}
-.cw{position:relative;}
-.cw::before{content:'';position:absolute;left:-16px;top:20px;width:16px;height:1.5px;background:rgba(0,0,0,0.1);}
-
 /* ── 2COL ── */
 .lay2{display:grid;grid-template-columns:1fr 260px;gap:16px;}
 .panel{background:var(--white);border:1px solid rgba(0,0,0,0.07);border-radius:var(--radius-lg);padding:12px 14px;}
 .pt{font-size:0.65rem;font-weight:500;text-transform:uppercase;letter-spacing:0.08em;color:var(--sage);margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;}
-.al{display:flex;align-items:flex-start;gap:8px;padding:7px 10px;border-radius:var(--radius);margin-bottom:6px;font-size:0.72rem;line-height:1.5;}
-.al.warn{background:var(--amber-bg);color:var(--amber);}
-.al.info{background:var(--dew);color:var(--accent);}
-.ald{width:5px;height:5px;border-radius:50%;flex-shrink:0;margin-top:4px;}
-.dw{background:var(--amber);}
-.di{background:var(--accent);}
 .ait{font-size:0.7rem;padding:7px 0;border-bottom:1px solid rgba(0,0,0,0.05);}
 .ait:last-child{border-bottom:none;}
-.ad{font-weight:500;color:var(--soil);display:block;margin-bottom:1px;}
 
 /* ── DETALLE LOTE ── */
 .lhero{background:var(--soil);border-radius:var(--radius-lg);padding:18px 20px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:flex-end;}
@@ -206,17 +176,6 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);c
 .tli.done .tll{color:var(--accent);}
 .tli.done .tll::after{content:' ✓';font-size:0.58rem;}
 
-/* historial panel */
-.hist-panel{background:var(--dew);border:1px solid rgba(78,124,63,0.2);border-radius:var(--radius-lg);padding:12px 14px;margin-bottom:14px;display:none;}
-.hist-panel.show{display:block;}
-.hist-title{font-size:0.68rem;font-weight:500;color:var(--accent);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.08em;display:flex;justify-content:space-between;align-items:center;}
-.hist-close{cursor:pointer;font-size:0.65rem;color:var(--sage);}
-.hist-row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(78,124,63,0.15);font-size:0.75rem;}
-.hist-row:last-child{border-bottom:none;}
-.hist-label{color:var(--sage);}
-.hist-val{font-weight:500;color:var(--soil);}
-.hist-readonly{font-size:0.62rem;color:var(--sage);margin-top:6px;font-style:italic;}
-
 /* ── FORMS ── */
 .field{margin-bottom:10px;}
 .field label{display:block;font-size:0.68rem;font-weight:500;color:var(--bark);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.06em;}
@@ -227,20 +186,13 @@ input[type=text],input[type=number],input[type=date],select,textarea{width:100%;
 input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(78,124,63,0.1);}
 input[readonly],input[disabled],select:disabled{background:var(--cream);color:var(--sage);cursor:not-allowed;}
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
 
 /* auto field */
 .af{border-radius:var(--radius);padding:9px 12px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;}
 .af.pending{background:var(--dew);border:1px solid rgba(78,124,63,0.3);}
-.af.confirmed{background:#f5f9f3;border:1px solid rgba(78,124,63,0.15);}
 .afl{font-size:0.7rem;}
 .af.pending .afl{color:var(--accent);}
-.af.confirmed .afl{color:var(--sage);}
 .afv{font-size:0.85rem;font-weight:500;color:var(--soil);}
-.af-right{display:flex;align-items:center;gap:8px;}
-.afc{font-size:0.65rem;padding:3px 8px;border-radius:100px;background:var(--white);border:1px solid var(--accent);color:var(--accent);cursor:pointer;transition:all var(--trans);}
-.afc:hover{background:var(--accent);color:white;}
-.af-done{font-size:0.65rem;color:var(--accent);}
 
 /* method */
 .mg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;}
@@ -324,20 +276,6 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
 .sss{font-size:0.8rem;color:var(--sage);margin-bottom:20px;line-height:1.6;}
 .ssa{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;}
 
-/* sublotes tree */
-.tw{display:flex;gap:0;align-items:stretch;}
-.tl2{width:38px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;}
-.vs{width:1.5px;background:rgba(0,0,0,0.12);}
-.ob{width:24px;height:24px;border-radius:50%;border:1.5px solid rgba(0,0,0,0.15);background:var(--cream);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--sage);transition:all var(--trans);user-select:none;flex-shrink:0;}
-.ob:hover{border-color:#1D9E75;color:#1D9E75;}
-.ob.open{background:#1D9E75;color:white;border-color:#1D9E75;}
-.tr2{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;}
-.str{display:flex;align-items:flex-start;}
-.ah{height:1.5px;width:14px;background:rgba(0,0,0,0.12);margin-top:20px;flex-shrink:0;}
-.scw{flex:1;min-width:0;}
-.ps2{overflow:hidden;transition:max-height 0.35s ease,opacity 0.35s ease;max-height:0;opacity:0;}
-.ps2.open{max-height:220px;opacity:1;}
-
 /* stock */
 .sgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;}
 .scard{background:var(--white);border:1px solid rgba(0,0,0,0.07);border-radius:var(--radius-lg);overflow:hidden;}
@@ -346,7 +284,8 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
 .sch.s2{background:var(--bark);}
 .sch.s3{background:var(--sage);}
 .scb{padding:10px 12px;}
-.sl{border-bottom:1px solid rgba(0,0,0,0.06);padding:7px 0;}
+.sl{border-bottom:1px solid rgba(0,0,0,0.06);padding:7px 0;cursor:pointer;transition:background var(--trans);}
+.sl:hover{background:var(--dew);border-radius:var(--radius);}
 .sl:last-child{border-bottom:none;}
 .sln{font-size:0.75rem;font-weight:500;color:var(--soil);margin-bottom:3px;}
 .sbw{display:flex;align-items:center;gap:6px;}
@@ -357,8 +296,6 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
 .fst{font-size:0.75rem;font-weight:500;color:var(--soil);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid rgba(0,0,0,0.07);}
 
 /* búsqueda resultados */
-.search-results-view{display:none;}
-.search-results-view.show{display:block;}
 .search-header{margin-bottom:14px;}
 .search-query-label{font-size:0.85rem;font-weight:500;color:var(--soil);}
 .search-query-sub{font-size:0.72rem;color:var(--sage);margin-top:2px;}
@@ -371,8 +308,6 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
 .sri-right{display:flex;align-items:center;gap:8px;flex-shrink:0;}
 .sri-arrow{font-size:0.65rem;color:var(--sage);}
 .no-results-msg{text-align:center;padding:32px;color:var(--sage);font-size:0.82rem;}
-.sl{cursor:pointer;transition:background var(--trans);}
-.sl:hover{background:var(--dew);border-radius:var(--radius);}
 .hist-section{margin-top:10px;border:1px solid rgba(0,0,0,0.08);border-radius:var(--radius-lg);overflow:hidden;}
 .hist-section-header{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--cream);cursor:pointer;font-size:0.75rem;font-weight:500;color:var(--bark);user-select:none;}
 .hist-section-header:hover{background:var(--dew);}
@@ -391,7 +326,6 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
 .analisis-card{background:var(--cream);border:1px solid rgba(0,0,0,0.07);border-radius:var(--radius);padding:12px 14px;margin-bottom:8px;}
 .analisis-card-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;}
 .analisis-card-title{font-size:0.82rem;font-weight:500;color:var(--soil);}
-.analisis-card-fecha{font-size:0.68rem;color:var(--sage);}
 .analisis-valores{display:flex;gap:10px;flex-wrap:wrap;margin:8px 0;}
 .analisis-val{background:var(--white);border:1px solid rgba(0,0,0,0.07);border-radius:var(--radius);padding:5px 10px;text-align:center;min-width:72px;}
 .analisis-val-num{font-size:1rem;font-weight:500;color:var(--soil);font-family:'DM Serif Display',serif;}
@@ -452,7 +386,6 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
   .lay2{grid-template-columns:1fr;}
   .sgrid{grid-template-columns:1fr;}
   .form-2col{grid-template-columns:1fr;gap:0;}
-  .g3{grid-template-columns:1fr 1fr;}
 
   /* hero del lote apilado */
   .lhero{flex-direction:column;align-items:flex-start;gap:10px;padding:14px 16px;}
@@ -467,32 +400,23 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
   /* formularios: 16px evita el zoom automático de iOS al enfocar */
   input[type=text],input[type=number],input[type=date],select,textarea{font-size:16px;padding:10px 12px;}
   .btn{padding:10px 16px;}
-  .afc{padding:6px 10px;}
   .cf input{width:70px;}
 
   /* barra de acciones: botones cómodos al pulgar */
   .ab{flex-wrap:wrap;}
   .ab .btn{flex:1 1 auto;}
-
-  /* árboles de sublotes más compactos */
-  .chi{margin-left:18px;}
-  .chi::before{left:-11px;}
-  .cw::before{left:-11px;width:11px;}
-  .tl2{width:30px;}
-  .ah{width:10px;}
 }
 
 @media(max-width:520px){
   .metrics{gap:8px;}
   .metric-val{font-size:1.25rem;}
-  .g2,.g3,.mg,.og{grid-template-columns:1fr;}
+  .g2,.mg,.og{grid-template-columns:1fr;}
   .sec-tabs{overflow-x:auto;-webkit-overflow-scrolling:touch;}
   .sec-tab{padding:8px 10px;font-size:0.72rem;}
   .lote-header{flex-wrap:wrap;}
   .org-card{flex-direction:column;align-items:flex-start;}
   .cerrar-banner{flex-direction:column;align-items:stretch;}
   .af{flex-direction:column;align-items:flex-start;gap:6px;}
-  .af-right{width:100%;justify-content:space-between;}
   .cr{flex-direction:column;align-items:stretch;}
   .cf input{width:100%;}
   .cop{padding-top:0;text-align:center;}
@@ -575,7 +499,7 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
     </div>
     <div class="nav-it" onclick="sv('lotes')">
       <svg viewBox="0 0 24 24"><path d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z"/></svg>
-      Mis lotes productivos<span class="nav-badge">6</span>
+      Mis lotes productivos
     </div>
     <div class="nav-it" onclick="sv('nuevo-lote')">
       <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>Nuevo lote
@@ -657,15 +581,11 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
     <div style="display:flex;flex-direction:column;gap:12px;">
       <div class="panel">
         <div class="pt">Alertas</div>
-        <div class="al warn"><div class="ald dw"></div>Otoño 2025 lleva 8 días sin registros en Vegetativa</div>
-        <div class="al info"><div class="ald di"></div>Verano 2024 — curado completado, avanzar a Flores</div>
+        <div class="ait" style="color:var(--sage);">Sin alertas por ahora.</div>
       </div>
       <div class="panel">
         <div class="pt">Actividad reciente</div>
-        <div class="ait"><span class="ad">Hoy 09:14</span><span style="color:var(--sage);">Primavera 2025 — actualización Floración</span></div>
-        <div class="ait"><span class="ad">Ayer 16:30</span><span style="color:var(--sage);">Verano 2024 — peso seco: 1.8 kg</span></div>
-        <div class="ait"><span class="ad">20/03 11:00</span><span style="color:var(--sage);">Invierno 2025 — inicio Nursery</span></div>
-        <div class="ait"><span class="ad">18/03 08:45</span><span style="color:var(--sage);">Primavera 2024 — entrega 100g</span></div>
+        <div class="ait" style="color:var(--sage);">El registro de actividad estará disponible próximamente.</div>
       </div>
     </div>
   </div>
@@ -686,13 +606,8 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
       <div class="pill" onclick="fL(this,'floracion')">Floración</div>
       <div class="pill" onclick="fL(this,'cosecha')">Cosecha</div>
       <div class="pill" onclick="fL(this,'flores')">Flores</div>
-      <div class="pill" onclick="fL(this,'sublotes')">Sublotes</div>
     </div>
-    <div id="lotes-normal"><div class="lotes-grid" id="lotes-list"></div></div>
-    <div id="lotes-sub" style="display:none;">
-      <div style="font-size:11px;color:var(--sage);margin-bottom:12px;padding:7px 12px;background:var(--cream);border-radius:8px;">Sublotes activos — clickeá <strong>+</strong> para ver el lote padre</div>
-      <div class="ps2" id="ps-sub"></div>
-    </div>
+    <div class="lotes-grid" id="lotes-list"></div>
   </div>
   <div id="stab-terminados" style="display:none;">
     <div class="lotes-grid" id="lotes-term-list"><div style="color:var(--sage);font-size:0.78rem;padding:24px 0;text-align:center;">Sin lotes terminados aún.</div></div>
@@ -1051,12 +966,6 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 </script>
 
 <script>
-/* ── CONFIG DEV (sin login en la UI) ── */
-// 1. Crear usuario en Supabase > Authentication > Users > Add user
-// 2. Reemplazar estos valores con tu email y contraseña
-const DEV_EMAIL    = 'admin@agrotrace.dev';
-const DEV_PASSWORD = 'AgroTrace2025!';
-
 let CURRENT_USER = null;
 let TIPO_NM = null;
 let _mbArchivosRotulo = [];   // array de File para rótulo/estampilla
@@ -1064,7 +973,6 @@ let _mbArchivoFactura = null; // File único para factura
 
 /* ── DATA (desde Supabase) ── */
 let LD = [];
-let SD = [];
 let LM = { semillas:[], esquejes:[], pm:[] };
 let LD_TERM=[],LD_CERR=[],LM_HIST={semillas:[],esquejes:[],pm:[]};
 let ALL_LOTES = [];
@@ -1084,17 +992,10 @@ function seleccionarPerfil(rol, nombre){
   initApp();
 }
 
-function cerrarSesion(){
-  sessionStorage.removeItem('agrotrace_role');
-  sessionStorage.removeItem('agrotrace_user');
-  location.reload();
-}
-
 /* ── INIT ── */
 async function initApp(){
   // Mostrar selector de perfil si no hay sesión activa
   const rolActivo=sessionStorage.getItem('agrotrace_role');
-  console.log('[initApp] rolActivo:', rolActivo, '| supervisando:', sessionStorage.getItem('agrotrace_supervisando_ong_nombre'));
   if(!rolActivo){
     document.getElementById('perfil-overlay').style.display='flex';
     return;
@@ -1445,9 +1346,8 @@ function sc(s){return s===1?'done':s===2?'act':'fut';}
 
 function rLC(l){
   const sc2=l.s.map(s=>sc(s));
-  return`<div class="lote-card" data-et="${l.et}" onclick="openLote('${l.id}')" style="cursor:pointer;">
+  return`<div class="lote-card" onclick="openLote('${l.id}')" style="cursor:pointer;">
     <div class="lote-header"><div class="lote-hl">
-      <div style="width:20px;flex-shrink:0;"></div>
       <div><div class="lote-name">${l.n}</div><div class="lote-orig">${l.o}</div></div>
     </div><span class="eb ${l.b}">${l.bt}</span></div>
     <div class="pb"><div class="steps">${sc2.map(c=>`<div class="step ${c}"></div>`).join('')}</div><div class="sc">${l.sc}</div></div>
@@ -1574,7 +1474,7 @@ function renderLotesHistorico(tipo){
 }
 
 function rLCHist(l){
-  const sc2=l.s.map(s=>s===1?'done':s===2?'act':'fut');
+  const sc2=l.s.map(s=>sc(s));
   const extra=l.motivo_cierre?`<div class="hist-motivo">Motivo: ${l.motivo_cierre}</div>`:'';
   const fechaCierre=l.fecha_cierre?`<div class="mi">Cierre <b>${fmtDate(l.fecha_cierre)}</b></div>`:'';
   return`<div class="lote-card lc-hist" onclick="openLote('${l.id}')">
@@ -2068,10 +1968,6 @@ function abrirFormCorreccion(entregaId,fcId){
   if(fc){fc.style.display=fc.style.display==='none'?'block':'none';if(fc.style.display==='block')fc.scrollIntoView({behavior:'smooth',block:'nearest'});}
 }
 
-function cerrarFormCorreccion(){
-  document.querySelectorAll('[id^="fc-"]').forEach(el=>el.style.display='none');
-}
-
 async function guardarCorreccion(entregaId,fcId){
   const nuevoReprocann=document.getElementById('corr-reprocann-'+fcId)?.value.trim();
   const nuevaCantStr=document.getElementById('corr-cantidad-'+fcId)?.value;
@@ -2368,17 +2264,9 @@ function volverDesdePantalla(){sv(PREV_VIEW);}
 function fD(el,et){document.querySelectorAll('#view-dashboard .pill').forEach(p=>p.classList.remove('active'));el.classList.add('active');rAll('dash-lotes',et);}
 function fL(el,et){
   document.querySelectorAll('#view-lotes .pill').forEach(p=>p.classList.remove('active'));el.classList.add('active');
-  const n=document.getElementById('lotes-normal');const s=document.getElementById('lotes-sub');
-  if(et==='sublotes'){n.style.display='none';s.style.display='block';}
-  else{n.style.display='block';s.style.display='none';rAll('lotes-list',et);}
+  rAll('lotes-list',et);
 }
-function tSub(id){const ch=document.getElementById('ch'+id);const btn=document.getElementById('xb'+id);if(!ch||!btn)return;const op=ch.classList.toggle('open');btn.textContent=op?'−':'+';btn.classList.toggle('open',op);}
-function togSubOr(){const p=document.getElementById('ps-sub');const b=document.getElementById('ob-sub');const v=document.getElementById('vs-top');const op=p.classList.toggle('open');b.textContent=op?'−':'+';b.classList.toggle('open',op);if(v)v.style.height=op?'4px':'14px';}
-
-/* ── HISTORIAL ── */
-
 /* ── CONFIRMAR / AVANZAR ── */
-function confirmarAF(divId,btn){const div=document.getElementById(divId);div.classList.remove('pending');div.classList.add('confirmed');btn.outerHTML='<span class="af-done">✓ Confirmado</span>';}
 
 async function guardarBorrador(){
   if(!LOTE_ACTIVO)return;
