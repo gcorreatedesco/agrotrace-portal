@@ -266,6 +266,28 @@ Portal de acceso no autentica — redirige directamente al sistema con el rol se
 
 ---
 
+### 9. Calidad de código y CI
+
+**Auditoría y simplificación:**
+- Eliminadas ~183 líneas de código muerto en los 3 archivos activos (CSS sin uso, funciones huérfanas, restos del árbol de sublotes viejo, credenciales dev hardcodeadas, variables globales sin uso).
+- `supabase_schema.sql` completado con la tabla `entregas_correcciones` que faltaba (estaba solo en las migraciones anotadas).
+
+**Sanity check en GitHub Actions (`ci/sanity_check.py` + `.github/workflows/ci.yml`):**
+- Corre en cada push y pull request (Python sin dependencias + Node para `--check`).
+- Verifica: JS de cada `<script>` parsea, CSS con llaves balanceadas, IDs duplicados, handlers `onclick` que llaman a funciones inexistentes, meta viewport presente.
+- Consistencia entre capas: cada `sb.from('tabla')` existe en el schema; cada `sv('x')`/`showView('x')` tiene su vista.
+
+---
+
+### 10. Seguridad — XSS almacenado corregido
+
+- **Defecto:** el render por concatenación a `innerHTML` interpolaba datos de usuario (nombres de lote, notas, proveedor, variedad, Nº REPROCANN, nombres de ONG) sin escapar → XSS almacenado explotable, que en modo multi-tenant escala del productor al RT/admin que ve sus datos.
+- **Fix:** helper `esc()` (HTML-escape) en `agrotrace_prototipo_v3.html` y `portal_rt.html`, aplicado en ~40 puntos de render (tarjetas, detalles, entregas, dropdowns, búsqueda, adjuntos, cards de ONG). Handlers inline con doble escape (JS + atributo). Validación de nombre de lote ahora bloquea también `< >`.
+- Verificado: `esc()` neutraliza payloads (`<img onerror>`, `"><script>`, breakout de comilla); la app sigue renderizando correcto.
+- Convención documentada: todo dato de usuario nuevo en `innerHTML` debe pasar por `esc()`.
+
+---
+
 ## Pendientes identificados
 
 1. **Verificar Edge Function** — regenerar API Key en resend.com, actualizar secret `RESEND_API_KEY` en Supabase, probar formulario de solicitud end-to-end.
@@ -277,3 +299,4 @@ Portal de acceso no autentica — redirige directamente al sistema con el rol se
 7. **Política RLS para rol administrador** — ver todos los datos de todos los productores.
 8. **Multi-tenancy** — tabla `organizaciones` + `rt_organizaciones`, actualizar RLS, conectar portal RT con datos reales.
 9. **Módulo Reportes** — timeline, stock, CSV/PDF.
+10. **Revisar grants a `anon` al activar auth real** — `entregas_correcciones` y `material_documentos` tienen `GRANT ... TO anon`; confirmar que ninguna tabla quede accesible sin sesión una vez que haya login.
