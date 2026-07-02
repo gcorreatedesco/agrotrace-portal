@@ -686,7 +686,7 @@ async function cargarDetallesONGs() {
 
   const { data: { session } } = await sb.auth.getSession();
   if (session) {
-    const { data, error } = await sb.from('organizaciones').select('*').order('created_at', { ascending: false });
+    const { data, error } = await sb.from('organizaciones').select('*').order('creado_en', { ascending: false });
     if (error) { console.error('[detallesONG]', error); ONGS_DET = []; }
     else ONGS_DET = data || [];
   } else {
@@ -719,7 +719,7 @@ function renderDetallesONGs() {
       o.cuit ? `CUIT ${o.cuit}` : null,
       o.localidad || null,
       o.reprocann ? `REPROCANN ${o.reprocann}` : null,
-      o.created_at ? `Alta ${fmtDate(o.created_at)}` : null,
+      (o.creado_en || o.created_at) ? `Alta ${fmtDate(o.creado_en || o.created_at)}` : null,
       (!isActiva && o.fecha_baja) ? `<span style="color:var(--error);">Baja ${fmtDate(o.fecha_baja)}</span>` : null,
     ].filter(Boolean).join(' · ');
     const safeName = (o.nombre || '').replace(/'/g, "\\'");
