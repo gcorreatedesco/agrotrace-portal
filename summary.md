@@ -55,6 +55,15 @@ Archivo HTML/CSS/JS con toda la interfaz del sistema. Es la versión más avanza
 - Correcciones de entregas: formulario inline por entrega, guarda valores anteriores y nuevos en `entregas_correcciones`, ajusta stock automáticamente si cambia la cantidad
 - Desplegable "Correcciones (N)" por entrega con historial completo de cambios y registro original
 
+**Adaptación responsive (celulares y tablets):**
+- Sidebar como cajón deslizable con menú hamburguesa y fondo oscurecido en pantallas ≤900px (celulares y iPad vertical); se cierra solo al navegar
+- Grillas apiladas: métricas 4→2 columnas, layout de 2 columnas → 1, tarjetas de stock 3→1, formularios de 2/3 columnas → 1
+- Timeline de etapas y wizard con scroll horizontal en móvil
+- Hero del detalle de lote apilado; barra de acciones con botones al ancho
+- Inputs con `font-size: 16px` en móvil (evita el zoom automático de iOS al enfocar)
+- Targets táctiles más grandes en navegación y botones
+- iPad horizontal (≥1024px) conserva el layout de escritorio
+
 ---
 
 ### 2. Portal de acceso (index.html)
@@ -90,6 +99,7 @@ Panel de supervisión para el Responsable Técnico.
 - Botón "Supervisar" → guarda ONG en `sessionStorage` y abre v3 con banner de supervisión
 - Botón "← Cambiar organización" en v3 → vuelve al portal RT
 - Datos simulados (hardcodeados) por ahora — se conectará a Supabase al implementar multi-tenancy
+- Responsive: mismo cajón deslizable con hamburguesa que v3 en pantallas ≤900px; grilla de ONGs a 1 columna
 
 ---
 
