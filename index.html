@@ -350,6 +350,12 @@
       .wrapper { grid-template-columns: 1fr; }
       .panel-left { display: none; }
       .panel-right { padding: 48px 28px; }
+      /* 16px evita el zoom automático de iOS al enfocar campos */
+      input[type="text"], input[type="email"], input[type="password"],
+      select, textarea { font-size: 16px !important; }
+    }
+    @media (max-width: 420px) {
+      .panel-right { padding: 32px 18px; }
     }
   </style>
 </head>

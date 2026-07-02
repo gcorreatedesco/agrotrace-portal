@@ -422,6 +422,83 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
 .rt-supervision-bar-right{display:flex;align-items:center;gap:8px;}
 .btn-cambiar-ong{font-size:0.72rem;color:var(--leaf);background:rgba(142,170,123,0.12);border:1px solid rgba(142,170,123,0.25);border-radius:var(--radius);padding:4px 10px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all var(--trans);}
 .btn-cambiar-ong:hover{background:rgba(142,170,123,0.2);}
+
+/* ── RESPONSIVE MÓVIL ── */
+.menu-btn{display:none;width:38px;height:38px;border:1px solid rgba(0,0,0,0.12);border-radius:var(--radius);background:var(--white);cursor:pointer;align-items:center;justify-content:center;flex-shrink:0;padding:0;}
+.menu-btn svg{width:20px;height:20px;fill:var(--soil);}
+.sb-backdrop{display:none;position:fixed;inset:0;background:rgba(44,31,14,0.5);z-index:399;}
+#perfil-overlay{padding:16px;}
+
+@media(max-width:900px){
+  /* sidebar como cajón deslizable */
+  .sidebar{position:fixed;left:0;top:0;bottom:0;height:100dvh;z-index:400;transform:translateX(-100%);transition:transform 0.25s ease;box-shadow:4px 0 24px rgba(0,0,0,0.3);width:min(280px,84vw);}
+  .sidebar.open{transform:translateX(0);}
+  .sb-backdrop.show{display:block;}
+  .menu-btn{display:flex;}
+  /* targets táctiles más grandes en navegación */
+  .nav-it{padding:12px 16px;font-size:0.85rem;}
+  .nav-it svg{width:16px;height:16px;}
+  .search-sb-input{font-size:16px;padding:9px 10px;}
+  .search-sb-wrap.open{max-height:70px;}
+
+  .topbar{padding:10px 12px;gap:8px;flex-wrap:wrap;}
+  .topbar-actions{flex-wrap:wrap;}
+  .topbar-actions .btn{padding:9px 12px;font-size:0.72rem;}
+  .rt-supervision-bar{padding:7px 12px;flex-wrap:wrap;}
+  .content{padding:14px 12px;}
+
+  /* grillas a menos columnas */
+  .metrics{grid-template-columns:1fr 1fr;}
+  .lay2{grid-template-columns:1fr;}
+  .sgrid{grid-template-columns:1fr;}
+  .form-2col{grid-template-columns:1fr;gap:0;}
+  .g3{grid-template-columns:1fr 1fr;}
+
+  /* hero del lote apilado */
+  .lhero{flex-direction:column;align-items:flex-start;gap:10px;padding:14px 16px;}
+  .lhr{text-align:left;}
+
+  /* timeline y wizard con scroll horizontal */
+  .tln{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  .tli{min-width:84px;padding:10px 4px;}
+  .ws{overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px;}
+  .wst{min-width:72px;}
+
+  /* formularios: 16px evita el zoom automático de iOS al enfocar */
+  input[type=text],input[type=number],input[type=date],select,textarea{font-size:16px;padding:10px 12px;}
+  .btn{padding:10px 16px;}
+  .afc{padding:6px 10px;}
+  .cf input{width:70px;}
+
+  /* barra de acciones: botones cómodos al pulgar */
+  .ab{flex-wrap:wrap;}
+  .ab .btn{flex:1 1 auto;}
+
+  /* árboles de sublotes más compactos */
+  .chi{margin-left:18px;}
+  .chi::before{left:-11px;}
+  .cw::before{left:-11px;width:11px;}
+  .tl2{width:30px;}
+  .ah{width:10px;}
+}
+
+@media(max-width:520px){
+  .metrics{gap:8px;}
+  .metric-val{font-size:1.25rem;}
+  .g2,.g3,.mg,.og{grid-template-columns:1fr;}
+  .sec-tabs{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  .sec-tab{padding:8px 10px;font-size:0.72rem;}
+  .lote-header{flex-wrap:wrap;}
+  .org-card{flex-direction:column;align-items:flex-start;}
+  .cerrar-banner{flex-direction:column;align-items:stretch;}
+  .af{flex-direction:column;align-items:flex-start;gap:6px;}
+  .af-right{width:100%;justify-content:space-between;}
+  .cr{flex-direction:column;align-items:stretch;}
+  .cf input{width:100%;}
+  .cop{padding-top:0;text-align:center;}
+  .analisis-val{flex:1;}
+  .topbar-sub{display:none;}
+}
 </style>
 </head>
 <body>
@@ -533,6 +610,7 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
   </nav>
   <div class="sb-footer"><p>AgroTrace · Prototipo v3</p></div>
 </aside>
+<div class="sb-backdrop" id="sb-backdrop" onclick="closeSidebar()"></div>
 
 <!-- ══ MAIN ══ -->
 <div class="main">
@@ -547,7 +625,8 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
   </div>
 </div>
 <div class="topbar">
-  <div style="display:flex;align-items:center;gap:12px;">
+  <div style="display:flex;align-items:center;gap:12px;min-width:0;">
+    <button class="menu-btn" onclick="toggleSidebar()" aria-label="Abrir menú"><svg viewBox="0 0 24 24"><path d="M3 6h18v2H3V6zm0 5h18v2H3v-2zm0 5h18v2H3v-2z"/></svg></button>
     <button class="topbar-back" id="tb-back" style="display:none;" onclick="volverDesdePantalla()"><svg viewBox="0 0 16 16"><path d="M10 3L5 8l5 5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg> <span id="tb-back-label">Volver</span></button>
     <div><div class="topbar-title" id="tt">Dashboard</div><div class="topbar-sub" id="ts">Resumen de tu producción</div></div>
   </div>
@@ -2243,7 +2322,18 @@ async function guardarEtapaHist(key){
 
 /* ── NAVIGATION ── */
 let PREV_VIEW='lotes';
+/* ── SIDEBAR MÓVIL ── */
+function toggleSidebar(){
+  const open=document.querySelector('.sidebar').classList.toggle('open');
+  document.getElementById('sb-backdrop').classList.toggle('show',open);
+}
+function closeSidebar(){
+  document.querySelector('.sidebar').classList.remove('open');
+  document.getElementById('sb-backdrop').classList.remove('show');
+}
+
 function sv(id){
+  closeSidebar();
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.getElementById('view-'+id).classList.add('active');
   document.querySelectorAll('.nav-it').forEach(n=>n.classList.remove('active'));
