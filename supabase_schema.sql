@@ -551,3 +551,32 @@ CREATE POLICY "rt elimina sus docs" ON public.documentos_ong FOR DELETE
 -- ── MIGRACIÓN: fecha_baja en organizaciones ──────
 ALTER TABLE public.organizaciones
   ADD COLUMN IF NOT EXISTS fecha_baja TIMESTAMPTZ;
+
+-- ── MIGRACIÓN: correcciones de entregas ──
+-- Guarda valores anteriores y nuevos de cada corrección de una entrega
+CREATE TABLE IF NOT EXISTS public.entregas_correcciones (
+  id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  entrega_id          UUID NOT NULL REFERENCES public.entregas(id) ON DELETE CASCADE,
+  nro_reprocann_ant   TEXT,
+  cantidad_ant        NUMERIC,
+  notas_ant           TEXT,
+  registrado_por_ant  TEXT,
+  nro_reprocann_nvo   TEXT,
+  cantidad_nvo        NUMERIC,
+  notas_nvo           TEXT,
+  corregido_por       TEXT,
+  fecha_correccion    TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE public.entregas_correcciones ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "via entregas correcciones" ON public.entregas_correcciones
+  FOR ALL USING (
+    EXISTS (
+      SELECT 1 FROM public.entregas e
+      JOIN public.flores_cosechadas fc ON fc.id = e.flores_id
+      JOIN public.lotes_produccion lp ON lp.id = fc.lote_id
+      WHERE e.id = entrega_id AND lp.usuario_id = auth.uid()
+    )
+  );
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.entregas_correcciones TO anon;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.entregas_correcciones TO authenticated;

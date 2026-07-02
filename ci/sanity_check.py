@@ -87,10 +87,44 @@ def check_file(name):
     if src.count("<body") != src.count("</body>"):
         err(name, "tag <body> sin cerrar")
 
+    # 6. Navegación interna: cada sv('x') debe tener su <div id="view-x">,
+    # y cada showView('x') su <div id="x"> (un botón que navega a una
+    # vista inexistente no da error de sintaxis pero rompe la app)
+    for v in sorted(set(re.findall(r"\bsv\('([\w-]+)'\)", src))):
+        if f'id="view-{v}"' not in src:
+            err(name, f"sv('{v}') navega a una vista inexistente (falta id=\"view-{v}\")")
+    for v in sorted(set(re.findall(r"\bshowView\('([\w-]+)'", src))):
+        if f'id="{v}"' not in src:
+            err(name, f"showView('{v}') navega a una vista inexistente (falta id=\"{v}\")")
+
+
+def check_supabase_tables():
+    """Cada sb.from('tabla') del código debe existir en supabase_schema.sql.
+
+    Un typo en un nombre de tabla parsea perfecto y explota recién en
+    producción; este cruce lo atrapa en el CI.
+    """
+    schema_path = ROOT / "supabase_schema.sql"
+    if not schema_path.exists():
+        err("supabase_schema.sql", "el archivo no existe")
+        return
+    schema = schema_path.read_text(encoding="utf-8")
+    tables = set(re.findall(
+        r"CREATE TABLE (?:IF NOT EXISTS )?(?:public\.)?([a-z_]+)", schema, re.I))
+    for name in APP_FILES:
+        path = ROOT / name
+        if not path.exists():
+            continue
+        src = path.read_text(encoding="utf-8")
+        for t in sorted(set(re.findall(r"\.from\('([a-z_]+)'\)", src))):
+            if t not in tables:
+                err(name, f"usa la tabla '{t}' que no existe en supabase_schema.sql")
+
 
 def main():
     for f in APP_FILES:
         check_file(f)
+    check_supabase_tables()
     if errors:
         print(f"✗ Sanity check falló ({len(errors)} problema/s):\n")
         for e in errors:
