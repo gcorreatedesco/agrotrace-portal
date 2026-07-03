@@ -2563,7 +2563,16 @@ function gw(step){
     const c=gC();document.getElementById('sc2').textContent=c+' '+(LA?LA.u:'');
     const b=parseInt(document.getElementById('nb').value)||0;const a=parseInt(document.getElementById('na').value)||0;
     document.getElementById('sp2').textContent=(b*a)+' plántulas ('+b+'×'+a+')';
-    document.getElementById('ss2').textContent=Math.max(0,(LA?LA.stock:0)-c)+' '+(LA?LA.u:'');
+    const ss2Row=document.getElementById('ss2')?.parentElement;
+    const chk2=document.getElementById('chk2');
+    if(OA==='pm'){
+      if(ss2Row)ss2Row.style.display='none';
+      if(chk2)chk2.style.display='none';
+    } else {
+      document.getElementById('ss2').textContent=Math.max(0,(LA?LA.stock:0)-c)+' '+(LA?LA.u:'');
+      if(ss2Row)ss2Row.style.display='flex';
+      if(chk2)chk2.style.display='flex';
+    }
     const ci=document.getElementById('chki');if(ci)ci.style.display=UI?'flex':'none';
   }
 }
@@ -2585,8 +2594,8 @@ function selO(t){
 function onLC(v){if(!v||!OA){LA=null;return;}LA=LM[OA].find(l=>l.v===v)||null;if(!LA)return;document.getElementById('sh').textContent='Stock disponible: '+LA.stock+' '+LA.u;document.getElementById('p1v').value=LA.var;if(OA==='semillas')document.getElementById('upl').textContent='('+LA.u+')';document.getElementById('sp').style.display='block';uS(0);}
 function onUM(v){document.getElementById('mpred').style.display=v==='pred'?'block':'none';document.getElementById('mman').style.display=v==='man'?'block':'none';UI=false;document.getElementById('uiw').style.display='none';}
 function chkUC(){if(!LA)return;const s=document.getElementById('um2').value;const inc=s&&s!==LA.u;UI=inc;document.getElementById('uiw').style.display=inc?'block':'none';}
-function uS(v){if(!LA){document.getElementById('sp').style.display='none';return;}const val=parseInt(v)||0;const r=Math.max(0,LA.stock-val);document.getElementById('spa').textContent=LA.stock+' '+LA.u;document.getElementById('spu').textContent='− '+val+' '+LA.u;document.getElementById('spf').textContent=r+' '+LA.u;document.getElementById('sp').style.display='block';}
-function uNW(){const w=document.getElementById('nw');if(!w)return;const c=gC();if(LA&&!UI){w.className='wb';w.innerHTML='Al confirmar se descontarán <strong>'+c+' '+LA.u+'</strong> del stock de "'+LA.l+'". Stock resultante: <strong>'+Math.max(0,LA.stock-c)+' '+LA.u+'</strong>';}else if(UI){w.className='erb';w.innerHTML='⚠ Unidades no compatibles. El stock <strong>NO será descontado</strong> automáticamente.';}}
+function uS(v){if(!LA){document.getElementById('sp').style.display='none';return;}const val=parseInt(v)||0;const r=Math.max(0,LA.stock-val);document.getElementById('spa').textContent=LA.stock+' '+LA.u;const isPM=OA==='pm';document.getElementById('spu').textContent=isPM?'':('− '+val+' '+LA.u);document.getElementById('spf').textContent=isPM?'':( r+' '+LA.u);const spRows=document.getElementById('sp').querySelectorAll('.sr:not(:first-child)');spRows.forEach(el=>el.style.display=isPM?'none':'flex');document.getElementById('sp').style.display='block';}
+function uNW(){const w=document.getElementById('nw');if(!w)return;if(OA==='pm'){w.className='wb';w.innerHTML='Plantas Madre: el stock de plantas <strong>no se modifica</strong>. Solo se registra el vínculo con el lote de origen.';return;}const c=gC();if(LA&&!UI){w.className='wb';w.innerHTML='Al confirmar se descontarán <strong>'+c+' '+LA.u+'</strong> del stock de "'+LA.l+'". Stock resultante: <strong>'+Math.max(0,LA.stock-c)+' '+LA.u+'</strong>';}else if(UI){w.className='erb';w.innerHTML='⚠ Unidades no compatibles. El stock <strong>NO será descontado</strong> automáticamente.';}}
 function sm(m){
   document.getElementById('mcb').classList.toggle('sel',m==='b');
   document.getElementById('mcd').classList.toggle('sel',m==='d');
@@ -2610,7 +2619,7 @@ function tc(di,ci){const cb=document.getElementById(ci);cb.checked=!cb.checked;d
 /* ── CREAR LOTE ── */
 async function cL(){
   if(UI&&!document.getElementById('cbi').checked){alert('Por favor confirmá el checkbox de unidades incompatibles.');return;}
-  if(!document.getElementById('cb2').checked){alert('Por favor confirmá el descuento de stock.');return;}
+  if(OA!=='pm'&&!document.getElementById('cb2').checked){alert('Por favor confirmá el descuento de stock.');return;}
   const nombre=document.getElementById('p1n').value.trim();
   const fecha=document.getElementById('p1f').value;
   const etapa=document.getElementById('p1e').value;
