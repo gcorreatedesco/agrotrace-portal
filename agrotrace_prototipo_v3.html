@@ -67,6 +67,8 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);c
 .btn-secondary:hover{background:var(--cream);}
 .btn-dark{background:var(--soil);color:var(--dew);}
 .btn-dark:hover{background:var(--bark);}
+.btn-cancel{background:transparent;border:1.5px solid var(--error);color:var(--error);}
+.btn-cancel:hover{background:#fdf0ee;}
 .btn-advance{background:#3d6230;color:white;}
 .btn-advance:hover{background:var(--accent);}
 .content{padding:20px 24px;flex:1;}
@@ -661,8 +663,8 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
       <div class="field"><label>Variedad<span class="opt">se completa automáticamente desde el lote de origen en paso 2</span></label><input type="text" id="p1v" placeholder="Se completará automáticamente" readonly/></div>
       <div class="erb" id="p1-err" style="display:none;"></div>
       <div class="wb" id="p1-warn" style="display:none;white-space:pre-line;"></div>
-      <div class="ab">
-        <button class="btn btn-secondary" onclick="sv('dashboard')">Cancelar</button>
+      <div class="ab" style="justify-content:space-between;">
+        <button class="btn btn-cancel" onclick="cancelarWizard()">Cancelar</button>
         <button class="btn btn-primary" onclick="wizPaso1Siguiente()">Siguiente: Origen →</button>
       </div>
     </div>
@@ -720,9 +722,12 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
         <div class="sr"><span>A utilizar</span><span id="spu">—</span></div>
         <div class="sr fin"><span>Stock final de material básico de origen</span><span id="spf">—</span></div>
       </div>
-      <div class="ab">
-        <button class="btn btn-secondary" onclick="gw(1)">← Anterior</button>
-        <button class="btn btn-primary" onclick="gw(3)">Siguiente: Nursery →</button>
+      <div class="ab" style="justify-content:space-between;">
+        <button class="btn btn-cancel" onclick="cancelarWizard()">Cancelar</button>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-secondary" onclick="gw(1)">← Anterior</button>
+          <button class="btn btn-primary" onclick="gw(3)">Siguiente: Nursery →</button>
+        </div>
       </div>
     </div>
   </div>
@@ -2665,6 +2670,11 @@ async function cL(){
   await cargarLotes();await cargarMaterial();rebuildSearchIndex();actualizarMetricasDash();
 }
 
+function cancelarWizard(){
+  if(!confirm('⚠ ¿Cancelar la carga del nuevo lote?\n\nLos datos ingresados hasta ahora se perderán y no podrán recuperarse.'))return;
+  rW();
+  sv('lotes');
+}
 function rW(){
   document.getElementById('cpanel').style.display='block';document.getElementById('sscreen').style.display='none';
   OA=null;LA=null;UI=false;gw(1);
