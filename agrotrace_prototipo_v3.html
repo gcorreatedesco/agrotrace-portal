@@ -2277,6 +2277,7 @@ function sv(id){
   if(id==='dashboard')rAll('dash-lotes','todos');
   if(id==='stock')renderStock();
   if(id==='organizaciones')cargarOrganizaciones();
+  if(id==='nuevo-lote')rW();
 }
 function volverDesdePantalla(){sv(PREV_VIEW);}
 
@@ -2686,11 +2687,45 @@ function cancelarWizard(){
   sv('lotes');
 }
 function rW(){
-  document.getElementById('cpanel').style.display='block';document.getElementById('sscreen').style.display='none';
-  OA=null;LA=null;UI=false;gw(1);
+  document.getElementById('cpanel').style.display='block';
+  document.getElementById('sscreen').style.display='none';
+  OA=null;LA=null;UI=false;
+
+  // Paso 1
   ['p1n','p1f','p1v'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  const p1e=document.getElementById('p1e');if(p1e)p1e.selectedIndex=0;
+  ['p1-err','p1-warn'].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display='none';});
+
+  // Paso 2 — tipo de origen
   ['os','oe','op'].forEach(id=>{const e=document.getElementById(id);if(e)e.classList.remove('sel');});
-  const sel=document.getElementById('p2l');sel.disabled=true;sel.innerHTML='<option value="">— Primero elegí el tipo de material —</option>';
+  const sel=document.getElementById('p2l');if(sel){sel.disabled=true;sel.innerHTML='<option value="">— Primero elegí el tipo de material —</option>';}
+  const sh=document.getElementById('sh');if(sh)sh.textContent='';
+  document.getElementById('umw').style.display='none';
+  document.getElementById('cnw').style.display='none';
+  document.getElementById('sp').style.display='none';
+  document.getElementById('uiw').style.display='none';
+  // campos semillas
+  ['cp','cm'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  const umPred=document.querySelector('input[name="um"][value="pred"]');if(umPred)umPred.checked=true;
+  document.getElementById('mpred').style.display='block';
+  document.getElementById('mman').style.display='none';
+  const um2=document.getElementById('um2');if(um2)um2.value='';
+
+  // Paso 3 — Nursery
+  const p3f=document.getElementById('p3f');if(p3f)p3f.value='';
+  ['nb','na','cnd'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  const ctot=document.getElementById('ctot');if(ctot)ctot.textContent='0';
+  document.getElementById('mcb').classList.add('sel');
+  document.getElementById('mcd').classList.remove('sel');
+  document.getElementById('calcb').style.display='block';
+  document.getElementById('calcd').style.display='none';
+  const nw=document.getElementById('nw');if(nw){nw.className='wb';nw.textContent='Al confirmar se descontarán unidades del stock del material de origen.';}
+
+  // Paso 4 — checkboxes
+  ['cb2','cbi'].forEach(id=>{const e=document.getElementById(id);if(e)e.checked=false;});
+  ['chk2','chki'].forEach(id=>{const e=document.getElementById(id);if(e)e.classList.remove('checked');});
+
+  gw(1);
 }
 
 /* ── BAJA ── */
