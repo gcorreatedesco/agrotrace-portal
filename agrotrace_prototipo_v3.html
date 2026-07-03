@@ -2560,11 +2560,15 @@ function gw(step){
     document.getElementById('sv').textContent=LA?LA.var:'—';
     document.getElementById('sf').textContent=document.getElementById('p1f').value||'—';
     document.getElementById('so').textContent=LA?LA.l:'—';
-    const c=gC();document.getElementById('sc2').textContent=c+' '+(LA?LA.u:'');
+    const c=gC();
+    const sc2Row=document.getElementById('sc2')?.parentElement;
+    if(OA==='pm'){if(sc2Row)sc2Row.style.display='none';}else{document.getElementById('sc2').textContent=c+' '+(LA?LA.u:'');if(sc2Row)sc2Row.style.display='flex';}
     const b=parseInt(document.getElementById('nb').value)||0;const a=parseInt(document.getElementById('na').value)||0;
     const tn4=termNur(OA==='pm'?'plantas_madre':OA);
     const lsp2h=document.getElementById('lbl-sp2-header');if(lsp2h)lsp2h.textContent=tn4.charAt(0).toUpperCase()+tn4.slice(1)+' en Nursery';
-    document.getElementById('sp2').textContent=(b*a)+' '+tn4+' ('+b+'×'+a+')';
+    const isBandConf=document.getElementById('mcb')?.classList.contains('sel');
+    const totNur=isBandConf?b*a:(parseInt(document.getElementById('cnd').value)||0);
+    document.getElementById('sp2').textContent=isBandConf?(totNur+' '+tn4+' ('+b+'×'+a+')'):( totNur+' '+tn4);
     const ss2Row=document.getElementById('ss2')?.parentElement;
     const chk2=document.getElementById('chk2');
     if(OA==='pm'){
@@ -2579,7 +2583,7 @@ function gw(step){
   }
 }
 function termNur(origen){return(!origen||origen==='semillas')?'plántulas':'esquejes';}
-function gC(){const m=document.querySelector('input[name="um"]:checked');if(OA==='semillas'&&m){if(m.value==='pred')return parseInt(document.getElementById('cp').value)||0;else return parseInt(document.getElementById('cm').value)||0;}return parseInt(document.getElementById('cn').value)||0;}
+function gC(){const m=document.querySelector('input[name="um"]:checked');if(OA==='semillas'&&m){if(m.value==='pred')return parseInt(document.getElementById('cp').value)||0;else return parseInt(document.getElementById('cm').value)||0;}const isBand=document.getElementById('mcb')?.classList.contains('sel');if(isBand){const b=parseInt(document.getElementById('nb').value)||0;const a=parseInt(document.getElementById('na').value)||0;return b*a;}return parseInt(document.getElementById('cnd').value)||0;}
 function selO(t){
   ['s','e','p'].forEach(x=>{const map={s:'os',e:'oe',p:'op'};const e=document.getElementById(map[x]);if(e)e.classList.toggle('sel',x===t[0]);});
   OA=t;LA=null;UI=false;
@@ -2588,7 +2592,7 @@ function selO(t){
   LM[t].forEach(l=>{sel.innerHTML+=`<option value="${l.v}">${l.l}</option>`;});
   document.getElementById('sp').style.display='none';
   document.getElementById('umw').style.display=t==='semillas'?'block':'none';
-  document.getElementById('cnw').style.display=t!=='semillas'?'block':'none';
+  document.getElementById('cnw').style.display='none';
   document.getElementById('uiw').style.display='none';
   document.getElementById('sh').textContent='';document.getElementById('p1v').value='';
   const ll=document.getElementById('lsl');
@@ -2597,7 +2601,7 @@ function selO(t){
 function onLC(v){if(!v||!OA){LA=null;return;}LA=LM[OA].find(l=>l.v===v)||null;if(!LA)return;document.getElementById('sh').textContent='Stock disponible: '+LA.stock+' '+LA.u;document.getElementById('p1v').value=LA.var;if(OA==='semillas')document.getElementById('upl').textContent='('+LA.u+')';document.getElementById('sp').style.display='block';uS(0);}
 function onUM(v){document.getElementById('mpred').style.display=v==='pred'?'block':'none';document.getElementById('mman').style.display=v==='man'?'block':'none';UI=false;document.getElementById('uiw').style.display='none';}
 function chkUC(){if(!LA)return;const s=document.getElementById('um2').value;const inc=s&&s!==LA.u;UI=inc;document.getElementById('uiw').style.display=inc?'block':'none';}
-function uS(v){if(!LA){document.getElementById('sp').style.display='none';return;}const val=parseInt(v)||0;const r=Math.max(0,LA.stock-val);document.getElementById('spa').textContent=LA.stock+' '+LA.u;const isPM=OA==='pm';document.getElementById('spu').textContent=isPM?'':('− '+val+' '+LA.u);document.getElementById('spf').textContent=isPM?'':( r+' '+LA.u);const spRows=document.getElementById('sp').querySelectorAll('.sr:not(:first-child)');spRows.forEach(el=>el.style.display=isPM?'none':'flex');document.getElementById('sp').style.display='block';}
+function uS(v){if(!LA){document.getElementById('sp').style.display='none';return;}const val=parseInt(v)||0;const r=Math.max(0,LA.stock-val);document.getElementById('spa').textContent=LA.stock+' '+LA.u;const hideDesc=OA!=='semillas';document.getElementById('spu').textContent=hideDesc?'':('− '+val+' '+LA.u);document.getElementById('spf').textContent=hideDesc?'':( r+' '+LA.u);const spRows=document.getElementById('sp').querySelectorAll('.sr:not(:first-child)');spRows.forEach(el=>el.style.display=hideDesc?'none':'flex');document.getElementById('sp').style.display='block';}
 function uNW(){const w=document.getElementById('nw');if(!w)return;if(OA==='pm'){w.className='wb';w.innerHTML='Plantas Madre: el stock de plantas <strong>no se modifica</strong>. Solo se registra el vínculo con el lote de origen.';return;}const c=gC();if(LA&&!UI){w.className='wb';w.innerHTML='Al confirmar se descontarán <strong>'+c+' '+LA.u+'</strong> del stock de "'+LA.l+'". Stock resultante: <strong>'+Math.max(0,LA.stock-c)+' '+LA.u+'</strong>';}else if(UI){w.className='erb';w.innerHTML='⚠ Unidades no compatibles. El stock <strong>NO será descontado</strong> automáticamente.';}}
 function sm(m){
   document.getElementById('mcb').classList.toggle('sel',m==='b');
@@ -2616,6 +2620,7 @@ function ct(){
   const b=parseInt(document.getElementById('nb').value)||0;
   const a=parseInt(document.getElementById('na').value)||0;
   document.getElementById('ctot').textContent=b*a;
+  if(OA!=='semillas')uNW();
 }
 function tc(di,ci){const cb=document.getElementById(ci);cb.checked=!cb.checked;document.getElementById(di).classList.toggle('checked',cb.checked);}
 
