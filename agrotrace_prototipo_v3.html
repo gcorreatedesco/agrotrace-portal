@@ -804,7 +804,7 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
       <div class="sss" id="smsg">El lote fue creado y está activo en Nursery.</div>
       <div class="ssa">
         <button class="btn btn-primary" onclick="sv('dashboard')">Ver dashboard</button>
-        <button class="btn btn-secondary" onclick="sv('detalle')">Continuar en Nursery</button>
+        <button class="btn btn-secondary" onclick="openLote(NUEVO_LOTE_ID)">Continuar en Nursery</button>
         <button class="btn btn-secondary" onclick="rW()">Crear otro lote</button>
       </div>
     </div>
@@ -997,6 +997,7 @@ let ALL_LOTES = [];
 
 let LOTE_ACTIVO=null;
 let HIST_DATA={};
+let NUEVO_LOTE_ID=null;
 let INCONSISTENCIAS={};
 let CORRECCIONES_LOG={};
 
@@ -1421,9 +1422,14 @@ async function openLote(id){
   const results=await Promise.all(reqs);
   const keys=['nursery','vegetativa','floracion','cosecha','curado_secado','flores'];
   for(let i=0;i<results.length;i++){if(results[i].data)HIST_DATA[keys[i]]=results[i].data;}
-  checkInconsistencias();
-  renderTimeline(lote.etapaRaw);
-  renderPanelActivo();
+  try{
+    checkInconsistencias();
+    renderTimeline(lote.etapaRaw);
+    renderPanelActivo();
+  }catch(e){
+    document.getElementById('det-panel').innerHTML=`<div class="panel"><div style="color:var(--error);padding:24px;font-size:0.82rem;"><strong>Error al cargar el panel:</strong> ${e.message}</div></div>`;
+    console.error('renderPanelActivo error:',e);
+  }
 }
 
 function renderTimeline(etapa){
@@ -2666,6 +2672,7 @@ async function cL(){
     if(OA==='semillas')await sb.from('lotes_semillas').update({stock_actual:Math.max(0,LA.stock-c)}).eq('id',LA.v);
     else if(OA==='esquejes')await sb.from('lotes_esquejes').update({stock_actual:Math.max(0,LA.stock-c)}).eq('id',LA.v);
   }
+  NUEVO_LOTE_ID=lote.id;
   document.getElementById('cpanel').style.display='none';
   document.getElementById('sscreen').style.display='block';
   document.getElementById('smsg').innerHTML='<strong>'+nombre+'</strong> fue creado y está activo en Nursery.';
