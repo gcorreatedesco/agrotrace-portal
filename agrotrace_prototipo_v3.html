@@ -755,7 +755,7 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
           <div class="cop">×</div>
           <div class="cf"><label>Alvéolos</label><input type="number" id="na" min="1" placeholder="0" oninput="ct()"/></div>
           <div class="cop">=</div>
-          <div class="crs"><div class="crsl">Total plántulas</div><div class="crsv" id="ctot">200</div></div>
+          <div class="crs"><div class="crsl" id="lbl-total-nur">Total plántulas</div><div class="crsv" id="ctot">200</div></div>
         </div></div>
         <div id="calcd" style="display:none;"><input type="number" id="cnd" min="0" placeholder="Nº plántulas o esquejes sembrados" oninput="ct()"/></div>
       </div>
@@ -783,7 +783,7 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
         <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(0,0,0,0.06);font-size:0.78rem;"><span style="color:var(--sage);">Fecha de inicio</span><span style="font-weight:500;" id="sf">—</span></div>
         <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(0,0,0,0.06);font-size:0.78rem;"><span style="color:var(--sage);">Material de origen</span><span style="font-weight:500;" id="so">—</span></div>
         <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(0,0,0,0.06);font-size:0.78rem;"><span style="color:var(--sage);">Cantidad utilizada</span><span style="font-weight:500;" id="sc2">—</span></div>
-        <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(0,0,0,0.06);font-size:0.78rem;"><span style="color:var(--sage);">Plántulas en Nursery</span><span style="font-weight:500;color:var(--accent);" id="sp2">—</span></div>
+        <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(0,0,0,0.06);font-size:0.78rem;"><span id="lbl-sp2-header" style="color:var(--sage);">Plántulas en Nursery</span><span style="font-weight:500;color:var(--accent);" id="sp2">—</span></div>
         <div style="display:flex;justify-content:space-between;padding:7px 0;font-size:0.78rem;"><span style="color:var(--sage);">Stock final de material básico de origen</span><span style="font-weight:500;color:var(--amber);" id="ss2">—</span></div>
       </div>
       <div class="chi2" id="chk2" onclick="tc('chk2','cb2')"><input type="checkbox" id="cb2"/> Confirmo el descuento de unidades del stock del material de origen.</div>
@@ -1566,8 +1566,8 @@ function panelNursery(hist=false){
       <div>
         <div class="form-col-hdr">Cantidades</div>
         <div class="field"><label>Origen</label><div class="ro-val">${d.origen_material||'—'}</div></div>
-        <div class="field"><label>${metodo}</label><div class="ro-val">${d.cantidad_ingreso!=null?d.cantidad_ingreso+' plántulas':'—'}</div></div>
-        <div class="field"><label>Cantidad egreso<span class="req">*</span></label><input type="number" id="nur-egreso" min="0" value="${d.cantidad_egreso||''}" placeholder="Nº de plántulas" oninput="bajasNur()"/></div>
+        <div class="field"><label>${metodo}</label><div class="ro-val">${d.cantidad_ingreso!=null?d.cantidad_ingreso+' '+termNur(d.origen_material):'—'}</div></div>
+        <div class="field"><label>Cantidad egreso<span class="req">*</span></label><input type="number" id="nur-egreso" min="0" value="${d.cantidad_egreso||''}" placeholder="Nº de ${termNur(d.origen_material)}" oninput="bajasNur()"/></div>
         <div class="field"><label>Bajas (automático)</label><div class="bajas-auto${typeof bajasIni==='number'&&bajasIni<0?' bajas-neg':''}" id="nur-bajas-auto">${bajasIni}</div></div>
         <div class="field"><label>Notas<span class="opt">opcional</span></label><input type="text" id="nur-notas" value="${d.notas||''}" placeholder="Observaciones..."/></div>
       </div>
@@ -2153,9 +2153,9 @@ function panelReadOnly(key){
   if(key==='nursery'){
     const metodo=d.metodo_ingreso==='bandejas'?`${d.bandejas||0} bandejas × ${d.alveolos||0} alveolos`:(d.metodo_ingreso||'—');
     campos=`<div class="g2"><div class="field"><label>Fecha inicio</label><div class="ro-val">${fmtDate(d.fecha_inicio)||'—'}</div></div><div class="field"><label>Origen material</label><div class="ro-val">${d.origen_material||'—'}</div></div></div>
-    <div class="g2"><div class="field"><label>Método ingreso</label><div class="ro-val">${metodo}</div></div><div class="field"><label>Cantidad ingreso</label><div class="ro-val">${d.cantidad_ingreso!=null?d.cantidad_ingreso+' plántulas':'—'}</div></div></div>
+    <div class="g2"><div class="field"><label>Método ingreso</label><div class="ro-val">${metodo}</div></div><div class="field"><label>Cantidad ingreso</label><div class="ro-val">${d.cantidad_ingreso!=null?d.cantidad_ingreso+' '+termNur(d.origen_material):'—'}</div></div></div>
     <hr style="border:none;border-top:1px solid rgba(0,0,0,0.07);margin:10px 0;">
-    <div class="g2"><div class="field"><label>Fecha fin</label><div class="ro-val">${fmtDate(d.fecha_fin)||'—'}</div></div><div class="field"><label>Cantidad egreso</label><div class="ro-val">${d.cantidad_egreso!=null?d.cantidad_egreso+' plántulas':'—'}</div></div></div>
+    <div class="g2"><div class="field"><label>Fecha fin</label><div class="ro-val">${fmtDate(d.fecha_fin)||'—'}</div></div><div class="field"><label>Cantidad egreso</label><div class="ro-val">${d.cantidad_egreso!=null?d.cantidad_egreso+' '+termNur(d.origen_material):'—'}</div></div></div>
     <div class="g2"><div class="field"><label>Bajas</label><div class="ro-val">${d.bajas!=null?d.bajas:0}</div></div><div class="field"><label>Notas</label><div class="ro-val">${d.notas||'—'}</div></div></div>`;
   } else if(key==='vegetativa'){
     campos=`<div class="g2"><div class="field"><label>Fecha inicio (Trasplante)</label><div class="ro-val">${fmtDate(d.fecha_inicio)||'—'}</div></div><div class="field"><label>Cantidad ingreso</label><div class="ro-val">${d.cantidad_ingreso!=null?d.cantidad_ingreso+' plantas':'—'}</div></div></div>
@@ -2359,7 +2359,7 @@ async function guardarAvanzar(){
     if(!document.getElementById('nur-egreso').value)return showErr('La Cantidad egreso es obligatoria para avanzar.');
     const wFin=warnFechaFutura(fechaFin)||warnFechaOrden(HIST_DATA.nursery?.fecha_inicio,fechaFin);
     if(wFin&&!confirm('⚠ '+wFin+'\n\n¿Avanzar igual?'))return;
-    if(egreso===0){if(!confirm('La cantidad de egreso es 0 (todas las plántulas murieron). ¿Querés cerrar el lote anticipadamente en lugar de avanzar?'))return;else{await cerrarLoteAnticipado();return;}}
+    if(egreso===0){const termE=termNur(HIST_DATA.nursery?.origen_material);if(!confirm('La cantidad de egreso es 0 (todas las '+termE+' murieron). ¿Querés cerrar el lote anticipadamente en lugar de avanzar?'))return;else{await cerrarLoteAnticipado();return;}}
     if(bajas<0&&!confirm(`⚠ Las bajas calculadas son negativas (${bajas}): el egreso supera el ingreso. ¿Avanzar igual?`))return;
     const d=HIST_DATA.nursery;
     if(d){({error:dbErr}=await sb.from('etapa_nursery').update({fecha_fin:fechaFin,cantidad_egreso:egreso,bajas,notas}).eq('id',d.id));}
@@ -2554,7 +2554,7 @@ function wizPaso1Siguiente(){
 function gw(step){
   [1,2,3,4].forEach(n=>{const e=document.getElementById('wp'+n);if(e)e.style.display=n===step?'block':'none';});
   if(step===2){const n=document.getElementById('p1n').value||'Nuevo lote';const f=document.getElementById('p1f').value||'Sin fecha';const e=document.getElementById('cs1');if(e)e.textContent=n+' · '+f;}
-  if(step===3){const n=document.getElementById('p1n').value||'Nuevo lote';const e1=document.getElementById('cs1b');if(e1)e1.textContent=n;const e2=document.getElementById('cs2b');if(e2&&LA)e2.textContent=LA.l+' · '+gC()+' '+LA.u;const nm=document.getElementById('nm');if(nm&&LA)nm.textContent=LA.l+' · '+gC()+' '+LA.u;uNW();}
+  if(step===3){const n=document.getElementById('p1n').value||'Nuevo lote';const e1=document.getElementById('cs1b');if(e1)e1.textContent=n;const e2=document.getElementById('cs2b');if(e2&&LA)e2.textContent=LA.l+' · '+gC()+' '+LA.u;const nm=document.getElementById('nm');if(nm&&LA)nm.textContent=LA.l+' · '+gC()+' '+LA.u;const tn=termNur(OA==='pm'?'plantas_madre':OA);const ltn=document.getElementById('lbl-total-nur');if(ltn)ltn.textContent='Total '+tn;const cnd=document.getElementById('cnd');if(cnd)cnd.placeholder='Nº de '+tn;uNW();}
   if(step===4){
     document.getElementById('sn').textContent=document.getElementById('p1n').value||'—';
     document.getElementById('sv').textContent=LA?LA.var:'—';
@@ -2562,7 +2562,9 @@ function gw(step){
     document.getElementById('so').textContent=LA?LA.l:'—';
     const c=gC();document.getElementById('sc2').textContent=c+' '+(LA?LA.u:'');
     const b=parseInt(document.getElementById('nb').value)||0;const a=parseInt(document.getElementById('na').value)||0;
-    document.getElementById('sp2').textContent=(b*a)+' plántulas ('+b+'×'+a+')';
+    const tn4=termNur(OA==='pm'?'plantas_madre':OA);
+    const lsp2h=document.getElementById('lbl-sp2-header');if(lsp2h)lsp2h.textContent=tn4.charAt(0).toUpperCase()+tn4.slice(1)+' en Nursery';
+    document.getElementById('sp2').textContent=(b*a)+' '+tn4+' ('+b+'×'+a+')';
     const ss2Row=document.getElementById('ss2')?.parentElement;
     const chk2=document.getElementById('chk2');
     if(OA==='pm'){
@@ -2576,6 +2578,7 @@ function gw(step){
     const ci=document.getElementById('chki');if(ci)ci.style.display=UI?'flex':'none';
   }
 }
+function termNur(origen){return(!origen||origen==='semillas')?'plántulas':'esquejes';}
 function gC(){const m=document.querySelector('input[name="um"]:checked');if(OA==='semillas'&&m){if(m.value==='pred')return parseInt(document.getElementById('cp').value)||0;else return parseInt(document.getElementById('cm').value)||0;}return parseInt(document.getElementById('cn').value)||0;}
 function selO(t){
   ['s','e','p'].forEach(x=>{const map={s:'os',e:'oe',p:'op'};const e=document.getElementById(map[x]);if(e)e.classList.toggle('sel',x===t[0]);});
