@@ -276,6 +276,7 @@ Portal de acceso no autentica — redirige directamente al sistema con el rol se
 - Corre en cada push y pull request (Python sin dependencias + Node para `--check`).
 - Verifica: JS de cada `<script>` parsea, CSS con llaves balanceadas, IDs duplicados, handlers `onclick` que llaman a funciones inexistentes, meta viewport presente.
 - Consistencia entre capas: cada `sb.from('tabla')` existe en el schema; cada `sv('x')`/`showView('x')` tiene su vista.
+- Guard anti-XSS: todo campo de usuario interpolado en un template debe pasar por `esc()` (regresión que atrapa código nuevo o merges sin escapar).
 
 ---
 

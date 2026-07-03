@@ -98,6 +98,58 @@ def check_file(name):
             err(name, f"showView('{v}') navega a una vista inexistente (falta id=\"{v}\")")
 
 
+# Campos de texto controlados por el usuario que provienen de la base y
+# siempre se renderizan como HTML. Deben pasar por esc() al interpolarse.
+# NO se incluye File.name porque también se usa en rutas de Storage (donde
+# escaparlo corrompería la ruta), solo en display de HTML.
+USER_FIELDS = (
+    "nombre", "nombre_completo", "nombre_lote", "nombre_base", "notas",
+    "proveedor", "variedad", "nro_reprocann", "descripcion", "nombre_archivo",
+    "localidad", "resp_nombre", "motivo_cierre", "origen_material",
+    "registrado_por", "corregido_por", "reprocann", "cuit",
+)
+USER_FIELD_RE = re.compile(r"\.(?:" + "|".join(USER_FIELDS) + r")\b")
+
+
+def _interp_blocks(src):
+    """Genera (offset_inicio, texto) de cada interpolación ${...} de template
+    literal, con matcheo balanceado de llaves (incluye anidados)."""
+    i = 0
+    while True:
+        s = src.find("${", i)
+        if s < 0:
+            return
+        depth, k = 1, s + 2
+        while k < len(src) and depth > 0:
+            if src[k] == "{":
+                depth += 1
+            elif src[k] == "}":
+                depth -= 1
+            k += 1
+        yield s, src[s:k]
+        i = k
+
+
+def check_xss_escaping():
+    """Guard de regresión: todo campo de usuario interpolado en un template
+    debe pasar por esc(). Protege el fix de XSS almacenado — si alguien agrega
+    un render nuevo (o un merge trae código sin escapar), falla el CI."""
+    for name in APP_FILES:
+        path = ROOT / name
+        if not path.exists():
+            continue
+        src = path.read_text(encoding="utf-8")
+        # esc() solo existe en los archivos que renderizan datos de usuario
+        if "function esc(" not in src:
+            continue
+        for off, block in _interp_blocks(src):
+            if USER_FIELD_RE.search(block) and "esc(" not in block:
+                line = src.count("\n", 0, off) + 1
+                campo = USER_FIELD_RE.search(block).group(0)[1:]
+                err(name, f"línea {line}: campo de usuario '{campo}' "
+                          f"interpolado sin esc() (riesgo XSS)")
+
+
 def check_supabase_tables():
     """Cada sb.from('tabla') del código debe existir en supabase_schema.sql.
 
@@ -124,6 +176,7 @@ def check_supabase_tables():
 def main():
     for f in APP_FILES:
         check_file(f)
+    check_xss_escaping()
     check_supabase_tables()
     if errors:
         print(f"✗ Sanity check falló ({len(errors)} problema/s):\n")
