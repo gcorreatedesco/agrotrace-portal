@@ -118,6 +118,54 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);c
 .error-msg{font-size:0.75rem;color:var(--error);display:none;margin-top:2px;}
 .error-msg.show{display:block;}
 
+/* ── DETALLES ONG ── */
+.det-tabs{display:flex;gap:0;margin-bottom:20px;border-bottom:2px solid rgba(0,0,0,0.08);}
+.det-tab{padding:9px 18px;font-size:0.82rem;font-weight:500;color:var(--sage);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all var(--trans);}
+.det-tab:hover{color:var(--soil);}
+.det-tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.det-tab-count{font-size:0.65rem;background:rgba(0,0,0,0.08);padding:1px 6px;border-radius:10px;margin-left:5px;color:var(--sage);}
+.det-tab.active .det-tab-count{background:rgba(78,124,63,0.15);color:var(--accent);}
+.det-row{background:var(--white);border:1px solid rgba(0,0,0,0.07);border-radius:var(--radius-lg);padding:14px 18px;margin-bottom:8px;display:flex;align-items:center;gap:14px;transition:border-color var(--trans);}
+.det-row:hover{border-color:var(--mist);}
+.det-row-info{flex:1;min-width:0;}
+.det-row-nombre{font-weight:500;font-size:0.9rem;color:var(--soil);margin-bottom:3px;}
+.det-row-meta{font-size:0.72rem;color:var(--sage);display:flex;gap:10px;flex-wrap:wrap;}
+.det-row-actions{display:flex;gap:8px;flex-shrink:0;}
+.btn-det{padding:6px 14px;border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:0.75rem;font-weight:500;cursor:pointer;transition:all var(--trans);}
+.btn-det.ver{background:var(--dew);color:var(--bark);border:1px solid var(--mist);}
+.btn-det.ver:hover{background:var(--mist);}
+.btn-det.baja{background:#faece7;color:var(--error);border:1px solid rgba(185,74,58,0.2);}
+.btn-det.baja:hover{background:#f5d5d0;}
+.btn-det.alta{background:var(--dew);color:var(--accent);border:1px solid var(--mist);}
+.btn-det.alta:hover{background:var(--mist);}
+.det-empty{text-align:center;padding:40px 20px;color:var(--sage);font-size:0.82rem;}
+
+/* ── MODAL DOCS ── */
+.btn-habilitar{background:none;border:1.5px solid var(--error);color:var(--error);padding:7px 14px;border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:0.78rem;font-weight:500;cursor:pointer;transition:all var(--trans);}
+.btn-habilitar:hover{background:var(--error);color:white;}
+.docs-upload-area{border:1.5px dashed var(--mist);border-radius:var(--radius);padding:14px;background:var(--cream);margin-bottom:10px;}
+.docs-upload-area .form-grid{margin-bottom:8px;}
+.doc-item{display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--cream);border-radius:var(--radius);margin-bottom:6px;}
+.doc-item-icon{width:28px;height:28px;background:var(--dew);border-radius:4px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.doc-item-icon svg{width:14px;height:14px;fill:var(--accent);}
+.doc-item-info{flex:1;min-width:0;}
+.doc-item-name{font-size:0.8rem;font-weight:500;color:var(--soil);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.doc-item-meta{font-size:0.68rem;color:var(--sage);margin-top:1px;}
+.doc-item-del{background:none;border:none;cursor:pointer;color:var(--sage);padding:4px;border-radius:4px;transition:color var(--trans);flex-shrink:0;}
+.doc-item-del:hover{color:var(--error);}
+.doc-item-del svg{width:14px;height:14px;fill:currentColor;}
+
+/* ── MODAL ONG ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:500;display:none;align-items:center;justify-content:center;padding:20px;}
+.modal-overlay.open{display:flex;}
+.modal-box{background:var(--white);border-radius:var(--radius-lg);padding:28px;max-width:660px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.2);}
+.modal-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;}
+.modal-title{font-family:'DM Serif Display',serif;font-size:1.2rem;color:var(--soil);}
+.modal-close{background:none;border:none;cursor:pointer;color:var(--sage);font-size:1.3rem;padding:0;line-height:1;transition:color var(--trans);}
+.modal-close:hover{color:var(--error);}
+.modal-footer{display:flex;align-items:center;gap:10px;margin-top:22px;padding-top:18px;border-top:1px solid var(--dew);}
+.badge-inactiva{background:var(--amber-bg);color:var(--amber);}
+
 /* ── POPUP BIENVENIDA ── */
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px;}
 .overlay.hidden{display:none;}
@@ -193,6 +241,10 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);c
       </div>
 
       <div class="nav-sec" style="margin-top:6px;">Gestión</div>
+      <div class="nav-it" id="nav-detalles-ong" onclick="showView('view-detalles-ong',this)">
+        <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+        Detalles de ONG
+      </div>
       <div class="nav-it" id="nav-nueva-ong" onclick="showView('view-nueva-ong',this)">
         <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
         Nueva Asociación Civil
@@ -264,6 +316,20 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);c
         </div>
       </div>
 
+      <!-- ── VIEW: DETALLES ONG ── -->
+      <div class="view" id="view-detalles-ong">
+        <div class="det-tabs">
+          <div class="det-tab active" id="det-tab-activas" onclick="switchDetTab('activas')">
+            Activas <span class="det-tab-count" id="det-count-activas">0</span>
+          </div>
+          <div class="det-tab" id="det-tab-inactivas" onclick="switchDetTab('inactivas')">
+            Inactivas <span class="det-tab-count" id="det-count-inactivas">0</span>
+          </div>
+        </div>
+        <div id="det-list-activas"></div>
+        <div id="det-list-inactivas" style="display:none;"></div>
+      </div>
+
       <!-- ── VIEW: NUEVA ONG ── -->
       <div class="view" id="view-nueva-ong">
         <div class="sec-header" style="margin-bottom:20px;">
@@ -331,6 +397,22 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);c
             </div>
           </div>
 
+          <div class="form-section-title" style="margin-top:24px;">Documentación adjunta <span style="font-weight:300;text-transform:none;letter-spacing:0;">(opcional)</span></div>
+          <div id="nueva-ong-docs-preview"></div>
+          <div class="docs-upload-area">
+            <div class="form-grid">
+              <div class="field">
+                <label>Archivo(s)</label>
+                <input type="file" id="nueva-doc-file" multiple style="padding:5px;font-size:0.82rem;"/>
+              </div>
+              <div class="field">
+                <label>Descripción <span>(opcional)</span></label>
+                <input type="text" id="nueva-doc-desc" placeholder="Ej: Estatuto social, resolución REPROCANN…"/>
+              </div>
+            </div>
+            <button type="button" class="btn-secondary" onclick="agregarArchivosNuevaONG()" style="font-size:0.78rem;margin-top:4px;">+ Agregar a la lista</button>
+          </div>
+
           <div class="error-msg" id="error-nueva-ong">Completá los campos obligatorios (*).</div>
 
           <div class="form-actions">
@@ -345,6 +427,52 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);c
       </div>
 
     </div>
+  </div>
+</div>
+
+<!-- ── MODAL DETALLE / EDITAR ONG ── -->
+<div class="modal-overlay" id="modal-ong">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-ong-title">Datos de la organización</div>
+      <button class="modal-close" onclick="cerrarModalONG()">✕</button>
+    </div>
+    <div class="form-section-title">Datos de la organización</div>
+    <div class="form-grid">
+      <div class="field"><label>Nombre de la Asociación Civil</label><input type="text" id="mod-nombre"/></div>
+      <div class="field"><label>CUIT / CUIL</label><input type="text" id="mod-cuit"/></div>
+      <div class="field"><label>Localidad</label><input type="text" id="mod-localidad"/></div>
+      <div class="field"><label>Dirección</label><input type="text" id="mod-direccion"/></div>
+      <div class="field"><label>Email institucional</label><input type="email" id="mod-email"/></div>
+      <div class="field"><label>Teléfono</label><input type="text" id="mod-telefono"/></div>
+    </div>
+    <div class="form-section-title">Datos REPROCANN</div>
+    <div class="form-grid">
+      <div class="field"><label>Nro. resolución REPROCANN</label><input type="text" id="mod-reprocann"/></div>
+      <div class="field"><label>Fecha de inscripción</label><input type="date" id="mod-fecha-inscripcion"/></div>
+    </div>
+    <div class="form-grid full" style="margin-top:14px;">
+      <div class="field"><label>Notas</label><textarea id="mod-notas"></textarea></div>
+    </div>
+
+    <div class="form-section-title" style="margin-top:24px;">Documentación adjunta</div>
+    <div id="docs-list"></div>
+    <div class="docs-upload-area">
+      <div class="form-grid">
+        <div class="field">
+          <label>Archivo(s)</label>
+          <input type="file" id="doc-file" multiple style="padding:5px;font-size:0.82rem;"/>
+        </div>
+        <div class="field">
+          <label>Descripción <span>(opcional)</span></label>
+          <input type="text" id="doc-desc" placeholder="Ej: Estatuto social, resolución REPROCANN…"/>
+        </div>
+      </div>
+      <button class="btn-secondary" onclick="subirDocumentos()" style="font-size:0.78rem;">+ Subir archivo(s)</button>
+      <span id="doc-upload-msg" style="font-size:0.72rem;color:var(--sage);margin-left:10px;"></span>
+    </div>
+
+    <div class="modal-footer" id="modal-footer" style="justify-content:space-between;"></div>
   </div>
 </div>
 
@@ -428,6 +556,7 @@ function showView(viewId, navEl) {
 
   const titles = {
     'view-mis-ongs': ['Mis Organizaciones', 'Panel de Supervisión'],
+    'view-detalles-ong': ['Detalles de ONG', 'Gestión de Asociaciones Civiles'],
     'view-nueva-ong': ['Nueva Asociación Civil', 'Gestión de Asociaciones'],
   };
   const t = titles[viewId];
@@ -435,6 +564,7 @@ function showView(viewId, navEl) {
     document.getElementById('tb-title').textContent = t[0];
     document.getElementById('tb-sub').textContent = t[1];
   }
+  if (viewId === 'view-detalles-ong') cargarDetallesONGs();
 }
 
 /* ── RENDER ONGs ── */
@@ -556,6 +686,25 @@ async function guardarONG() {
         throw new Error(errMsg);
       }
 
+      const resData = await res.json();
+      const orgId = resData.org_id;
+
+      // Subir documentos si los hay
+      if (orgId && NUEVA_ONG_DOCS.length) {
+        for (const doc of NUEVA_ONG_DOCS) {
+          const path = `${orgId}/${Date.now()}_${doc.file.name}`;
+          const { error: upErr } = await sb.storage.from('documentos-ong').upload(path, doc.file);
+          if (!upErr) {
+            await sb.from('documentos_ong').insert({
+              ong_id: orgId, nombre_archivo: doc.file.name,
+              descripcion: doc.desc || null, storage_path: path,
+              subido_por: session.user.id,
+            });
+          }
+        }
+        NUEVA_ONG_DOCS = [];
+      }
+
       await cargarONGsSupabase();
       limpiarFormONG();
       showView('view-mis-ongs', document.getElementById('nav-mis-ongs'));
@@ -582,9 +731,48 @@ async function guardarONG() {
 function limpiarFormONG() {
   ['ong-nombre','ong-cuit','ong-localidad','ong-direccion','ong-email',
    'ong-telefono','ong-resp-nombre','ong-resp-email','ong-reprocann',
-   'ong-fecha-inscripcion','ong-notas'].forEach(id => {
+   'ong-fecha-inscripcion','ong-notas','nueva-doc-file','nueva-doc-desc'].forEach(id => {
     document.getElementById(id).value = '';
   });
+  NUEVA_ONG_DOCS = [];
+  renderNuevaONGDocs();
+}
+
+/* ── DOCS EN FORMULARIO DE ALTA ── */
+let NUEVA_ONG_DOCS = [];
+
+function agregarArchivosNuevaONG() {
+  const fileInput = document.getElementById('nueva-doc-file');
+  const desc = document.getElementById('nueva-doc-desc').value.trim();
+  if (!fileInput.files.length) return;
+  for (const file of fileInput.files) {
+    NUEVA_ONG_DOCS.push({ file, desc });
+  }
+  fileInput.value = '';
+  document.getElementById('nueva-doc-desc').value = '';
+  renderNuevaONGDocs();
+}
+
+function quitarDocNuevaONG(idx) {
+  NUEVA_ONG_DOCS.splice(idx, 1);
+  renderNuevaONGDocs();
+}
+
+function renderNuevaONGDocs() {
+  const cont = document.getElementById('nueva-ong-docs-preview');
+  if (!cont) return;
+  if (!NUEVA_ONG_DOCS.length) { cont.innerHTML = ''; return; }
+  cont.innerHTML = NUEVA_ONG_DOCS.map((d, i) => `
+    <div class="doc-item">
+      <div class="doc-item-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg></div>
+      <div class="doc-item-info">
+        <div class="doc-item-name">${esc(d.file.name)}</div>
+        <div class="doc-item-meta">${d.desc ? esc(d.desc) : 'Sin descripción'} · ${(d.file.size/1024).toFixed(0)} KB</div>
+      </div>
+      <button class="doc-item-del" onclick="quitarDocNuevaONG(${i})" title="Quitar de la lista">
+        <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+      </button>
+    </div>`).join('');
 }
 
 /* ── SUPERVISAR ONG ── */
@@ -594,6 +782,254 @@ function supervisar(ongId, ongNombre) {
   sessionStorage.setItem('agrotrace_role', 'rt');
   sessionStorage.setItem('agrotrace_user', sessionStorage.getItem('agrotrace_user') || 'Responsable Técnico');
   window.location.href = 'agrotrace_prototipo_v3.html';
+}
+
+/* ── DETALLES ONG ── */
+let ONGS_DET = [];
+let DET_TAB = 'activas';
+let MODAL_ONG_ID = null;
+
+async function cargarDetallesONGs() {
+  const listA = document.getElementById('det-list-activas');
+  if (listA) listA.innerHTML = '<div class="det-empty">Cargando…</div>';
+
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) {
+    const { data, error } = await sb.from('organizaciones').select('*').order('creado_en', { ascending: false });
+    if (error) { console.error('[detallesONG]', error); ONGS_DET = []; }
+    else ONGS_DET = data || [];
+  } else {
+    ONGS_DET = ONGS.map(o => ({ ...o, activa: o.activa !== false }));
+    if (!ONGS_DET.length) {
+      ONGS_DET = [{ id: 'demo-1', nombre: 'ONG Demo (sin sesión real)', localidad: '—', activa: true }];
+    }
+  }
+  renderDetallesONGs();
+}
+
+function switchDetTab(tab) {
+  DET_TAB = tab;
+  document.getElementById('det-tab-activas').classList.toggle('active', tab === 'activas');
+  document.getElementById('det-tab-inactivas').classList.toggle('active', tab === 'inactivas');
+  document.getElementById('det-list-activas').style.display = tab === 'activas' ? 'block' : 'none';
+  document.getElementById('det-list-inactivas').style.display = tab === 'inactivas' ? 'block' : 'none';
+}
+
+function renderDetallesONGs() {
+  const activas = ONGS_DET.filter(o => o.activa !== false);   // true o null → activa
+  const inactivas = ONGS_DET.filter(o => o.activa === false);
+  document.getElementById('det-count-activas').textContent = activas.length;
+  document.getElementById('det-count-inactivas').textContent = inactivas.length;
+
+  const fmtDate = d => d ? new Date(d).toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: 'numeric' }) : null;
+
+  const renderRow = (o, isActiva) => {
+    const meta = [
+      o.cuit ? `CUIT ${esc(o.cuit)}` : null,
+      o.localidad ? esc(o.localidad) : null,
+      o.reprocann ? `REPROCANN ${esc(o.reprocann)}` : null,
+      (o.creado_en || o.created_at) ? `Alta ${fmtDate(o.creado_en || o.created_at)}` : null,
+      (!isActiva && o.fecha_baja) ? `<span style="color:var(--error);">Baja ${fmtDate(o.fecha_baja)}</span>` : null,
+    ].filter(Boolean).join(' · ');
+    const safeName = esc((o.nombre || '').replace(/'/g, "\\'"));
+    return `<div class="det-row">
+      <div class="det-row-info">
+        <div class="det-row-nombre">${esc(o.nombre) || '—'}</div>
+        ${meta ? `<div class="det-row-meta">${meta}</div>` : ''}
+      </div>
+      <div class="det-row-actions">
+        <button class="btn-det ver" onclick="abrirModalONG('${o.id}',${isActiva})">Ver datos</button>
+        ${isActiva
+          ? `<button class="btn-det baja" onclick="confirmarBajaONG('${o.id}','${safeName}')">Dar de baja</button>`
+          : `<button class="btn-det alta" onclick="reactivarONG('${o.id}','${safeName}')">Reactivar</button>`}
+      </div>
+    </div>`;
+  };
+
+  const listA = document.getElementById('det-list-activas');
+  const listI = document.getElementById('det-list-inactivas');
+  listA.innerHTML = activas.length ? activas.map(o => renderRow(o, true)).join('') : '<div class="det-empty">No hay organizaciones activas.</div>';
+  listI.innerHTML = inactivas.length ? inactivas.map(o => renderRow(o, false)).join('') : '<div class="det-empty">No hay organizaciones inactivas.</div>';
+}
+
+function abrirModalONG(ongId, isActiva) {
+  const o = ONGS_DET.find(x => x.id === ongId);
+  if (!o) return;
+  MODAL_ONG_ID = ongId;
+  document.getElementById('modal-ong-title').textContent = o.nombre || 'Datos de la organización';
+  document.getElementById('mod-nombre').value = o.nombre || '';
+  document.getElementById('mod-cuit').value = o.cuit || '';
+  document.getElementById('mod-localidad').value = o.localidad || '';
+  document.getElementById('mod-direccion').value = o.direccion || '';
+  document.getElementById('mod-email').value = o.email || '';
+  document.getElementById('mod-telefono').value = o.telefono || '';
+  document.getElementById('mod-reprocann').value = o.reprocann || '';
+  document.getElementById('mod-fecha-inscripcion').value = o.fecha_inscripcion || '';
+  document.getElementById('mod-notas').value = o.notas || '';
+
+  // Siempre bloqueado al abrir
+  document.querySelectorAll('#modal-ong input:not([type=file]), #modal-ong textarea').forEach(el => el.disabled = true);
+  document.getElementById('doc-file').value = '';
+  document.getElementById('doc-desc').value = '';
+  document.getElementById('doc-upload-msg').textContent = '';
+
+  _renderFooterModal(isActiva, false);
+  cargarDocumentosONG(ongId);
+  document.getElementById('modal-ong').classList.add('open');
+}
+
+function _renderFooterModal(isActiva, editando) {
+  const footer = document.getElementById('modal-footer');
+  if (!isActiva) {
+    footer.innerHTML = `<span style="font-size:0.75rem;color:var(--sage);">Organización inactiva — datos en modo lectura</span>
+      <button class="btn-secondary" onclick="cerrarModalONG()">Cerrar</button>`;
+    return;
+  }
+  if (editando) {
+    footer.innerHTML = `<div></div>
+      <div style="display:flex;gap:10px;">
+        <button class="btn-primary" onclick="guardarCambiosONG()">Guardar cambios</button>
+        <button class="btn-secondary" onclick="cerrarModalONG()">Cancelar</button>
+      </div>`;
+  } else {
+    footer.innerHTML = `<button class="btn-habilitar" onclick="habilitarEdicionONG()">🔓 Habilitar modificación</button>
+      <button class="btn-secondary" onclick="cerrarModalONG()">Cerrar</button>`;
+  }
+}
+
+function habilitarEdicionONG() {
+  document.querySelectorAll('#modal-ong input:not([type=file]), #modal-ong textarea').forEach(el => el.disabled = false);
+  _renderFooterModal(true, true);
+}
+
+function cerrarModalONG() {
+  document.getElementById('modal-ong').classList.remove('open');
+  MODAL_ONG_ID = null;
+}
+
+async function guardarCambiosONG() {
+  if (!MODAL_ONG_ID) return;
+  const { data: { session } } = await sb.auth.getSession();
+  const updates = {
+    nombre: document.getElementById('mod-nombre').value.trim(),
+    cuit: document.getElementById('mod-cuit').value.trim() || null,
+    localidad: document.getElementById('mod-localidad').value.trim() || null,
+    direccion: document.getElementById('mod-direccion').value.trim() || null,
+    email: document.getElementById('mod-email').value.trim() || null,
+    telefono: document.getElementById('mod-telefono').value.trim() || null,
+    reprocann: document.getElementById('mod-reprocann').value.trim() || null,
+    fecha_inscripcion: document.getElementById('mod-fecha-inscripcion').value || null,
+    notas: document.getElementById('mod-notas').value.trim() || null,
+  };
+  if (session) {
+    const { error } = await sb.from('organizaciones').update(updates).eq('id', MODAL_ONG_ID);
+    if (error) { alert('Error al guardar: ' + error.message); return; }
+  }
+  const idx = ONGS_DET.findIndex(o => o.id === MODAL_ONG_ID);
+  if (idx >= 0) ONGS_DET[idx] = { ...ONGS_DET[idx], ...updates };
+  cerrarModalONG();
+  renderDetallesONGs();
+}
+
+async function confirmarBajaONG(ongId, ongNombre) {
+  if (!confirm(`¿Dar de baja a "${ongNombre}"?\n\nLa organización quedará inactiva pero todos sus datos se conservarán.`)) return;
+  const fechaBaja = new Date().toISOString();
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) {
+    const { error } = await sb.from('organizaciones').update({ activa: false, fecha_baja: fechaBaja }).eq('id', ongId);
+    if (error) { alert('Error al dar de baja: ' + error.message); return; }
+  }
+  const idx = ONGS_DET.findIndex(o => o.id === ongId);
+  if (idx >= 0) ONGS_DET[idx] = { ...ONGS_DET[idx], activa: false, fecha_baja: fechaBaja };
+  renderDetallesONGs();
+}
+
+async function reactivarONG(ongId, ongNombre) {
+  if (!confirm(`¿Reactivar "${ongNombre}"?`)) return;
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) {
+    const { error } = await sb.from('organizaciones').update({ activa: true, fecha_baja: null }).eq('id', ongId);
+    if (error) { alert('Error al reactivar: ' + error.message); return; }
+  }
+  const idx = ONGS_DET.findIndex(o => o.id === ongId);
+  if (idx >= 0) ONGS_DET[idx] = { ...ONGS_DET[idx], activa: true, fecha_baja: null };
+  renderDetallesONGs();
+}
+
+/* ── DOCUMENTOS ONG ── */
+let DOCS_ONG = [];
+
+async function cargarDocumentosONG(ongId) {
+  document.getElementById('docs-list').innerHTML = '';
+  DOCS_ONG = [];
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { renderDocumentos(); return; }
+  const { data, error } = await sb.from('documentos_ong')
+    .select('*').eq('ong_id', ongId).order('created_at', { ascending: false });
+  if (!error && data) DOCS_ONG = data;
+  renderDocumentos();
+}
+
+function renderDocumentos() {
+  const cont = document.getElementById('docs-list');
+  if (!DOCS_ONG.length) { cont.innerHTML = '<p style="font-size:0.75rem;color:var(--sage);margin-bottom:10px;">Sin documentos adjuntos.</p>'; return; }
+  const fmt = d => new Date(d).toLocaleDateString('es-AR', { day:'numeric', month:'short', year:'numeric' });
+  cont.innerHTML = DOCS_ONG.map(d => `
+    <div class="doc-item">
+      <div class="doc-item-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg></div>
+      <div class="doc-item-info">
+        <div class="doc-item-name">
+          <a href="#" onclick="abrirDoc('${esc((d.storage_path||'').replace(/'/g,"\\'"))}');return false;" style="color:var(--accent);text-decoration:none;">${esc(d.nombre_archivo)}</a>
+        </div>
+        <div class="doc-item-meta">${d.descripcion ? esc(d.descripcion) + ' · ' : ''}${fmt(d.created_at)}</div>
+      </div>
+      <button class="doc-item-del" onclick="eliminarDocumento('${esc(d.id)}','${esc((d.storage_path||'').replace(/'/g,"\\'"))}')" title="Eliminar archivo">
+        <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+      </button>
+    </div>`).join('');
+}
+
+async function abrirDoc(storagePath) {
+  const { data, error } = await sb.storage.from('documentos-ong').createSignedUrl(storagePath, 60);
+  if (error || !data?.signedUrl) { alert('No se pudo obtener el archivo.'); return; }
+  window.open(data.signedUrl, '_blank');
+}
+
+async function subirDocumentos() {
+  const fileInput = document.getElementById('doc-file');
+  const desc = document.getElementById('doc-desc').value.trim();
+  const msg = document.getElementById('doc-upload-msg');
+  if (!fileInput.files.length) { msg.textContent = 'Seleccioná al menos un archivo.'; return; }
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { msg.textContent = 'Requiere sesión activa.'; return; }
+  msg.textContent = 'Subiendo…';
+  const errores = [];
+  for (const file of fileInput.files) {
+    const path = `${MODAL_ONG_ID}/${Date.now()}_${file.name}`;
+    const { error: upErr } = await sb.storage.from('documentos-ong').upload(path, file);
+    if (upErr) { errores.push(file.name); continue; }
+    const { error: dbErr } = await sb.from('documentos_ong').insert({
+      ong_id: MODAL_ONG_ID, nombre_archivo: file.name,
+      descripcion: desc || null, storage_path: path,
+      subido_por: session.user.id,
+    });
+    if (dbErr) errores.push(file.name);
+  }
+  if (errores.length) { msg.textContent = `Error en: ${errores.join(', ')}`; }
+  else { msg.textContent = 'Archivo(s) subido(s) correctamente.'; }
+  fileInput.value = '';
+  document.getElementById('doc-desc').value = '';
+  await cargarDocumentosONG(MODAL_ONG_ID);
+}
+
+async function eliminarDocumento(docId, storagePath) {
+  if (!confirm('¿Eliminar este archivo? La acción no se puede deshacer.')) return;
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) return;
+  await sb.storage.from('documentos-ong').remove([storagePath]);
+  await sb.from('documentos_ong').delete().eq('id', docId);
+  DOCS_ONG = DOCS_ONG.filter(d => d.id !== docId);
+  renderDocumentos();
 }
 
 /* ── CERRAR SESIÓN ── */
