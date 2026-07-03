@@ -2560,7 +2560,7 @@ function wizPaso1Siguiente(){
 function gw(step){
   [1,2,3,4].forEach(n=>{const e=document.getElementById('wp'+n);if(e)e.style.display=n===step?'block':'none';});
   if(step===2){const n=document.getElementById('p1n').value||'Nuevo lote';const f=document.getElementById('p1f').value||'Sin fecha';const e=document.getElementById('cs1');if(e)e.textContent=n+' · '+f;}
-  if(step===3){const n=document.getElementById('p1n').value||'Nuevo lote';const e1=document.getElementById('cs1b');if(e1)e1.textContent=n;const e2=document.getElementById('cs2b');if(e2&&LA)e2.textContent=LA.l+' · '+gC()+' '+LA.u;const nm=document.getElementById('nm');if(nm&&LA)nm.textContent=LA.l+' · '+gC()+' '+LA.u;const tn=termNur(OA==='pm'?'plantas_madre':OA);const ltn=document.getElementById('lbl-total-nur');if(ltn)ltn.textContent='Total '+tn;const cnd=document.getElementById('cnd');if(cnd)cnd.placeholder='Nº de '+tn;uNW();}
+  if(step===3){const n=document.getElementById('p1n').value||'Nuevo lote';const e1=document.getElementById('cs1b');if(e1)e1.textContent=n;const e2=document.getElementById('cs2b');if(e2&&LA)e2.textContent=LA.l+' · '+gC()+' '+LA.u;const nm=document.getElementById('nm');if(nm&&LA)nm.textContent=LA.l+' · '+gC()+' '+LA.u;const tn=termNur(OA==='pm'?'plantas_madre':OA);const ltn=document.getElementById('lbl-total-nur');if(ltn)ltn.textContent='Total '+tn;const cnd=document.getElementById('cnd');if(cnd)cnd.placeholder='Nº de '+tn;const p3f=document.getElementById('p3f');if(p3f&&!p3f.value){p3f.value=document.getElementById('p1f').value||'';}uNW();}
   if(step===4){
     document.getElementById('sn').textContent=document.getElementById('p1n').value||'—';
     document.getElementById('sv').textContent=LA?LA.var:'—';
