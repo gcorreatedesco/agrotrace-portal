@@ -3130,9 +3130,22 @@ async function crearSublote(){
     etapa_actual:et,cantidad_inicial:plantasVal,fecha_inicio:fecha,
   });
   if(error)return showMErr('Error al crear el sublote: '+error.message);
+  // Actualizar cantidad del lote padre en la etapa actual
+  const etaTbl={vegetativa:'etapa_vegetativa',floracion:'etapa_floracion'}[et];
+  const inputId={vegetativa:'veg-cant-ini',floracion:'flo-cant-ini'}[et];
+  const nuevaCant=Math.max(1,disponibles-plantasVal);
+  if(etaTbl){
+    const padreEtapa=HIST_DATA[et];
+    if(padreEtapa?.id){
+      await sb.from(etaTbl).update({cantidad_ingreso:nuevaCant}).eq('id',padreEtapa.id);
+      HIST_DATA[et].cantidad_ingreso=nuevaCant;
+    }
+    const inputEl=document.getElementById(inputId);
+    if(inputEl)inputEl.value=nuevaCant;
+  }
   cerrarModalSublote();
   await cargarLotes();rebuildSearchIndex();actualizarMetricasDash();
-  alert('Sublote "'+nombreFinal+'" creado correctamente.');
+  alert('Sublote "'+nombreFinal+'" creado correctamente.\nLote origen actualizado a '+nuevaCant+' plantas.');
 }
 
 /* ── INIT ── */
