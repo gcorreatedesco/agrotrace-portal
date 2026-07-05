@@ -1576,7 +1576,7 @@ function panelNursery(hist=false){
       </div>
       <div>
         <div class="form-col-hdr">Cantidades</div>
-        <div class="field"><label>Origen</label><div class="ro-val">${d.origen_material||'—'}</div></div>
+        <div class="field"><label>Origen</label><div class="ro-val">${fmtOrigen(d.origen_material)}</div></div>
         <div class="field"><label>${metodo}</label><div class="ro-val">${d.cantidad_ingreso!=null?d.cantidad_ingreso+' '+termNur(d.origen_material):'—'}</div></div>
         <div class="field"><label>Cantidad egreso<span class="req">*</span></label><input type="number" id="nur-egreso" min="0" value="${d.cantidad_egreso||''}" placeholder="Nº de ${termNur(d.origen_material)}" oninput="bajasNur()"/></div>
         <div class="field"><label>Bajas (automático)</label><div class="bajas-auto${typeof bajasIni==='number'&&bajasIni<0?' bajas-neg':''}" id="nur-bajas-auto">${bajasIni}</div></div>
@@ -2163,7 +2163,7 @@ function panelReadOnly(key){
   let campos='';
   if(key==='nursery'){
     const metodo=d.metodo_ingreso==='bandejas'?`${d.bandejas||0} bandejas × ${d.alveolos||0} alveolos`:(d.metodo_ingreso||'—');
-    campos=`<div class="g2"><div class="field"><label>Fecha inicio</label><div class="ro-val">${fmtDate(d.fecha_inicio)||'—'}</div></div><div class="field"><label>Origen material</label><div class="ro-val">${d.origen_material||'—'}</div></div></div>
+    campos=`<div class="g2"><div class="field"><label>Fecha inicio</label><div class="ro-val">${fmtDate(d.fecha_inicio)||'—'}</div></div><div class="field"><label>Origen material</label><div class="ro-val">${fmtOrigen(d.origen_material)}</div></div></div>
     <div class="g2"><div class="field"><label>Método ingreso</label><div class="ro-val">${metodo}</div></div><div class="field"><label>Cantidad ingreso</label><div class="ro-val">${d.cantidad_ingreso!=null?d.cantidad_ingreso+' '+termNur(d.origen_material):'—'}</div></div></div>
     <hr style="border:none;border-top:1px solid rgba(0,0,0,0.07);margin:10px 0;">
     <div class="g2"><div class="field"><label>Fecha fin</label><div class="ro-val">${fmtDate(d.fecha_fin)||'—'}</div></div><div class="field"><label>Cantidad egreso</label><div class="ro-val">${d.cantidad_egreso!=null?d.cantidad_egreso+' '+termNur(d.origen_material):'—'}</div></div></div>
@@ -2595,6 +2595,7 @@ function gw(step){
   }
 }
 function termNur(origen){return(!origen||origen==='semillas')?'plántulas':'esquejes';}
+function fmtOrigen(o){if(!o)return'—';if(o==='plantas_madre')return'Plantas Madre';return o.charAt(0).toUpperCase()+o.slice(1);}
 function gC(){const m=document.querySelector('input[name="um"]:checked');if(OA==='semillas'&&m){if(m.value==='pred')return parseInt(document.getElementById('cp').value)||0;else return parseInt(document.getElementById('cm').value)||0;}const isBand=document.getElementById('mcb')?.classList.contains('sel');if(isBand){const b=parseInt(document.getElementById('nb').value)||0;const a=parseInt(document.getElementById('na').value)||0;return b*a;}return parseInt(document.getElementById('cnd').value)||0;}
 function selO(t){
   ['s','e','p'].forEach(x=>{const map={s:'os',e:'oe',p:'op'};const e=document.getElementById(map[x]);if(e)e.classList.toggle('sel',x===t[0]);});
