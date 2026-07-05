@@ -3066,8 +3066,8 @@ async function guardarMaterial(){
 /* ── SUBLOTES ── */
 function getPlantasDisponibles(){
   const et=LOTE_ACTIVO?.etapaRaw;
-  if(et==='vegetativa')return parseInt(HIST_DATA.vegetativa?.cantidad_ingreso)||0;
-  if(et==='floracion')return parseInt(HIST_DATA.floracion?.cantidad_ingreso)||0;
+  if(et==='vegetativa')return parseInt(HIST_DATA.vegetativa?.cantidad_ingreso)||parseInt(document.getElementById('veg-cant-ini')?.value)||0;
+  if(et==='floracion')return parseInt(HIST_DATA.floracion?.cantidad_ingreso)||parseInt(document.getElementById('flo-cant-ini')?.value)||0;
   if(et==='cosecha')return parseInt(HIST_DATA.floracion?.cantidad_egreso||HIST_DATA.floracion?.cantidad_ingreso)||0;
   return 0;
 }
