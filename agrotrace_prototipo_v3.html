@@ -1683,9 +1683,27 @@ function panelCosecha(hist=false){
   </div>`;
 }
 
-function selUnidad(id){return`<select id="${id}" style="width:82px;flex-shrink:0;"><option value="gramos">gramos</option><option value="kg">kg</option></select>`;}
-function pesoField(labelHtml,inputId,unidadId,val){
-  return`<div class="field"><label>${labelHtml}</label><div style="display:flex;gap:6px;"><input type="number" id="${inputId}" min="0" value="${val||''}" step="0.001" placeholder="0" style="flex:1;min-width:0;"/>${selUnidad(unidadId)}</div></div>`;
+function selUnidad(id,cb=''){return`<select id="${id}" style="width:82px;flex-shrink:0;"${cb?` onchange="${cb}"`:''}><option value="gramos">gramos</option><option value="kg">kg</option></select>`;}
+function pesoField(labelHtml,inputId,unidadId,val,cb=''){
+  const ev=cb?` oninput="${cb}"`:'';
+  return`<div class="field"><label>${labelHtml}</label><div style="display:flex;gap:6px;"><input type="number" id="${inputId}" min="0" value="${val||''}" step="0.001" placeholder="0" style="flex:1;min-width:0;"${ev}/>${selUnidad(unidadId,cb)}</div></div>`;
+}
+function toggleEmpaque(){
+  const tiene=document.getElementById('cur-empaque').value==='true';
+  document.getElementById('cur-tara-wrap').style.display=tiene?'block':'none';
+  calcPesoNeto();
+}
+function calcPesoNeto(){
+  const tiene=document.getElementById('cur-empaque').value==='true';
+  const bruto=parseFloat(document.getElementById('cur-peso-seco')?.value)||0;
+  const tara=parseFloat(document.getElementById('cur-tara')?.value)||0;
+  const uS=document.getElementById('cur-unidad-seco')?.value||'gramos';
+  const uT=document.getElementById('cur-unidad-tara')?.value||'gramos';
+  const brutoG=uS==='kg'?Math.round(bruto*1000*100)/100:bruto;
+  const taraG=uT==='kg'?Math.round(tara*1000*100)/100:tara;
+  const neto=tiene?Math.max(0,brutoG-taraG):brutoG;
+  const el=document.getElementById('cur-peso-neto');
+  if(el)el.textContent=neto>0?neto+' g':'—';
 }
 
 function panelCuradoSecado(hist=false){
@@ -1706,9 +1724,10 @@ function panelCuradoSecado(hist=false){
       <div>
         <div class="form-col-hdr">Pesos</div>
         ${pesoField('Peso inicial húmedo<span class="opt">opcional</span>','cur-peso-ini','cur-unidad-ini',d.peso_inicial_humedo)}
-        ${pesoField('Peso seco final<span class="req">*</span>','cur-peso-seco','cur-unidad-seco',d.peso_seco_final)}
-        <div class="field"><label>¿Tiene empaque?</label><select id="cur-empaque"><option value="false" ${!d.tiene_empaque?'selected':''}>No</option><option value="true" ${d.tiene_empaque?'selected':''}>Sí</option></select></div>
-        ${pesoField('Tara empaque<span class="opt">si tiene empaque</span>','cur-tara','cur-unidad-tara',d.tara_empaque)}
+        ${pesoField('Peso seco final<span class="req">*</span>','cur-peso-seco','cur-unidad-seco',d.peso_seco_final,'calcPesoNeto()')}
+        <div class="field"><label>¿El peso incluye empaque?</label><select id="cur-empaque" onchange="toggleEmpaque()"><option value="false" ${!d.tiene_empaque?'selected':''}>No</option><option value="true" ${d.tiene_empaque?'selected':''}>Sí</option></select></div>
+        <div id="cur-tara-wrap" style="display:${d.tiene_empaque?'block':'none'};">${pesoField('Tara del empaque','cur-tara','cur-unidad-tara',d.tara_empaque,'calcPesoNeto()')}</div>
+        <div class="field"><label>Peso neto de flores</label><div class="ro-val" id="cur-peso-neto">${d.peso_seco_final!=null?(d.tiene_empaque&&d.tara_empaque?Math.max(0,d.peso_seco_final-d.tara_empaque):d.peso_seco_final)+' g':'—'}</div></div>
       </div>
     </div>
     <div class="field" style="margin-top:4px;"><label>Notas<span class="opt">opcional</span></label><input type="text" id="cur-notas" value="${d.notas||''}" placeholder="Observaciones..."/></div>
@@ -1729,7 +1748,7 @@ function panelFlores(){
     ${warnVariedad}
     <div class="pt">Flores Cosechadas${yaCompletado?' <span style="font-size:0.65rem;color:var(--accent);font-weight:400;text-transform:none;">— lote completado</span>':''}</div>
     <div class="g2">
-      <div class="field"><label>Stock inicial</label><div class="ro-val">${d.stock_inicial!=null?d.stock_inicial+' g':'—'}</div></div>
+      <div class="field"><label>Peso neto de flores<span class="opt">desde Curado/Secado</span></label><div class="ro-val">${d.stock_inicial!=null?d.stock_inicial+' g':'—'}</div></div>
       <div class="field"><label>Stock actual</label><div class="ro-val" id="flores-stock-actual">${d.stock_actual!=null?d.stock_actual+' g':'—'}</div></div>
     </div>
     ${d.fecha_disponible?`<div class="field"><label>Fecha disponible</label><div class="ro-val">${fmtDate(d.fecha_disponible)}</div></div>`:''}
@@ -2463,8 +2482,9 @@ async function guardarAvanzar(){
     if(d){({error:dbErr}=await sb.from('etapa_curado_secado').update({fecha_inicio:fi,fecha_fin:ff,peso_inicial_humedo:pesoIni,tiene_empaque:tieneEmp,tara_empaque:tieneEmp?tara:null,unidad:'gramos',peso_seco_final:pesoG,notas}).eq('id',d.id));}
     else{({error:dbErr}=await sb.from('etapa_curado_secado').insert({lote_id:loteId,fecha_inicio:fi,fecha_fin:ff,peso_inicial_humedo:pesoIni,tiene_empaque:tieneEmp,tara_empaque:tieneEmp?tara:null,unidad:'gramos',peso_seco_final:pesoG,notas}));}
     if(dbErr)return showErr('Error guardando curado/secado: '+dbErr.message);
+    const pesoNeto=tieneEmp&&tara?Math.max(0,pesoG-tara):pesoG;
     const{data:floresExist}=await sb.from('flores_cosechadas').select('id').eq('lote_id',loteId).maybeSingle();
-    if(!floresExist){({error:dbErr}=await sb.from('flores_cosechadas').insert({lote_id:loteId,stock_inicial:pesoG,stock_actual:pesoG}));if(dbErr)return showErr('Error creando stock de flores: '+dbErr.message);}
+    if(!floresExist){({error:dbErr}=await sb.from('flores_cosechadas').insert({lote_id:loteId,stock_inicial:pesoNeto,stock_actual:pesoNeto}));if(dbErr)return showErr('Error creando stock de flores: '+dbErr.message);}
     ({error:dbErr}=await sb.from('lotes_produccion').update({etapa_actual:'flores'}).eq('id',loteId));
     if(dbErr)return showErr('Error actualizando etapa: '+dbErr.message);
     await cargarLotes();rebuildSearchIndex();actualizarMetricasDash();
