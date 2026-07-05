@@ -317,6 +317,12 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
 .st2{display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--cream);border:1px dashed rgba(0,0,0,0.15);border-radius:var(--radius);cursor:pointer;font-size:0.72rem;color:var(--sage);margin-top:8px;transition:all var(--trans);}
 .st2:hover{border-color:var(--accent);color:var(--accent);}
 .si{width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,0.08);display:flex;align-items:center;justify-content:center;font-size:13px;}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:1000;display:flex;align-items:center;justify-content:center;}
+.modal-box{background:#fff;border-radius:12px;padding:24px;width:min(440px,92vw);max-height:90vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,0.18);}
+.modal-title{font-family:'DM Serif Display',serif;font-size:1.15rem;color:var(--soil);margin-bottom:3px;}
+.modal-sub{font-size:0.72rem;color:var(--sage);margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid rgba(0,0,0,0.07);}
+.restantes-calc{font-size:0.74rem;color:var(--accent);font-weight:500;margin-top:4px;}
+.restantes-err{color:var(--error)!important;}
 
 /* success */
 .ss{text-align:center;padding:36px 20px;display:none;}
@@ -1622,6 +1628,7 @@ function panelVegetativa(hist=false){
       </div>
     </div>
     <div class="erb" id="det-validacion" style="display:none;"></div>
+    ${!hist?`<div class="st2" onclick="abrirModalSublote()"><div class="si">÷</div>Crear sublote desde Vegetativa</div>`:''}
     <div class="ab">${ab}</div>
   </div>`;
 }
@@ -1656,7 +1663,7 @@ function panelFloracion(hist=false){
       </div>
     </div>
     <div class="erb" id="det-validacion" style="display:none;"></div>
-    ${!hist?`<div class="st2" onclick="alert('Sublotes: funcionalidad en desarrollo')"><div class="si">÷</div>Dividir este lote en sublotes desde Floración</div>`:''}
+    ${!hist?`<div class="st2" onclick="abrirModalSublote()"><div class="si">÷</div>Crear sublote desde Floración</div>`:''}
     <div class="ab">${ab}</div>
   </div>`;
 }
@@ -1683,6 +1690,7 @@ function panelCosecha(hist=false){
       </div>
     </div>
     <div class="erb" id="det-validacion" style="display:none;"></div>
+    ${!hist?`<div class="st2" onclick="abrirModalSublote()"><div class="si">÷</div>Crear sublote desde Cosecha</div>`:''}
     <div class="ab">${ab}</div>
   </div>`;
 }
@@ -3055,8 +3063,111 @@ async function guardarMaterial(){
   await cargarMaterial();rebuildSearchIndex();sv('stock');
 }
 
+/* ── SUBLOTES ── */
+function getPlantasDisponibles(){
+  const et=LOTE_ACTIVO?.etapaRaw;
+  if(et==='vegetativa')return parseInt(HIST_DATA.vegetativa?.cantidad_ingreso)||0;
+  if(et==='floracion')return parseInt(HIST_DATA.floracion?.cantidad_ingreso)||0;
+  if(et==='cosecha')return parseInt(HIST_DATA.floracion?.cantidad_egreso||HIST_DATA.floracion?.cantidad_ingreso)||0;
+  return 0;
+}
+async function abrirModalSublote(){
+  if(!LOTE_ACTIVO)return;
+  const{data:subs}=await sb.from('lotes_produccion').select('id').eq('lote_padre_id',LOTE_ACTIVO.id);
+  const nextNum=(subs?.length||0)+1;
+  const plantas=getPlantasDisponibles();
+  const etLabel={vegetativa:'Vegetativa',floracion:'Floración',cosecha:'Cosecha'}[LOTE_ACTIVO.etapaRaw]||LOTE_ACTIVO.etapaRaw;
+  document.getElementById('msub-info').textContent=`${LOTE_ACTIVO.n} · ${etLabel} · ${plantas} plantas disponibles`;
+  document.getElementById('msub-nombre').value=`${LOTE_ACTIVO.n} → Sublote ${nextNum}`;
+  document.getElementById('msub-plantas').value='';
+  document.getElementById('msub-plantas').max=plantas-1;
+  document.getElementById('msub-fecha').value=new Date().toISOString().split('T')[0];
+  document.getElementById('msub-notas').value='';
+  document.getElementById('msub-restantes').style.display='none';
+  document.getElementById('msub-err').style.display='none';
+  document.getElementById('modal-sublote').style.display='flex';
+}
+function cerrarModalSublote(){document.getElementById('modal-sublote').style.display='none';}
+function calcRestantesSublote(){
+  const plantas=getPlantasDisponibles();
+  const val=parseInt(document.getElementById('msub-plantas').value)||0;
+  const el=document.getElementById('msub-restantes');
+  el.style.display='block';
+  if(val<=0){el.textContent='';el.className='restantes-calc';return;}
+  if(val>=plantas){
+    el.textContent=val===plantas?'⚠ No quedaría ninguna planta en el lote origen. Dejá al menos 1.':'⚠ Supera las plantas disponibles ('+plantas+').';
+    el.className='restantes-calc restantes-err';return;
+  }
+  el.textContent='Quedan en lote origen: '+(plantas-val)+' plantas';
+  el.className='restantes-calc';
+}
+async function crearSublote(){
+  const nombreCompleto=document.getElementById('msub-nombre').value.trim();
+  const plantasVal=parseInt(document.getElementById('msub-plantas').value)||0;
+  const fecha=document.getElementById('msub-fecha').value;
+  const notas=document.getElementById('msub-notas').value.trim()||null;
+  const disponibles=getPlantasDisponibles();
+  const errEl=document.getElementById('msub-err');
+  const showMErr=(msg)=>{errEl.textContent=msg;errEl.style.display='block';};
+  errEl.style.display='none';
+  if(!nombreCompleto)return showMErr('El nombre del sublote es obligatorio.');
+  if(!plantasVal||plantasVal<=0)return showMErr('La cantidad de plantas debe ser mayor a 0.');
+  if(plantasVal>=disponibles)return showMErr('Debés dejar al menos 1 planta en el lote origen. Máximo: '+(disponibles-1)+'.');
+  if(!fecha)return showMErr('La fecha de separación es obligatoria.');
+  const nombreBase=LOTE_ACTIVO.n.split(' → ')[0];
+  const prefix=nombreBase+' → ';
+  const nombreFinal=nombreCompleto.startsWith(nombreBase)?nombreCompleto:prefix+nombreCompleto;
+  const nombreAgregado=nombreFinal.startsWith(prefix)?nombreFinal.slice(prefix.length):nombreFinal;
+  const et=LOTE_ACTIVO.etapaRaw;
+  const{error}=await sb.from('lotes_produccion').insert({
+    usuario_id:CURRENT_USER.id,lote_padre_id:LOTE_ACTIVO.id,
+    origen_semilla_id:LOTE_ACTIVO.origen_semilla_id||null,
+    origen_esqueje_id:LOTE_ACTIVO.origen_esqueje_id||null,
+    origen_pm_id:LOTE_ACTIVO.origen_pm_id||null,
+    etapa_origen_division:['vegetativa','floracion','cosecha'].includes(et)?et:null,
+    motivo_division:notas,nombre_base:nombreBase,
+    nombre_agregado:nombreAgregado,nombre_completo:nombreFinal,
+    etapa_actual:et,cantidad_inicial:plantasVal,fecha_inicio:fecha,
+  });
+  if(error)return showMErr('Error al crear el sublote: '+error.message);
+  cerrarModalSublote();
+  await cargarLotes();rebuildSearchIndex();actualizarMetricasDash();
+  alert('Sublote "'+nombreFinal+'" creado correctamente.');
+}
+
 /* ── INIT ── */
 initApp();
 </script>
+
+<div id="modal-sublote" class="modal-overlay" style="display:none;" onclick="if(event.target===this)cerrarModalSublote()">
+  <div class="modal-box">
+    <div class="modal-title">÷ Crear sublote</div>
+    <div class="modal-sub" id="msub-info"></div>
+    <div class="field">
+      <label>Nombre del sublote<span class="req">*</span></label>
+      <input type="text" id="msub-nombre" placeholder="Ej: Sector Norte, Grupo A..."/>
+    </div>
+    <div class="g2" style="align-items:start;margin-top:4px;">
+      <div class="field">
+        <label>Plantas a separar<span class="req">*</span></label>
+        <input type="number" id="msub-plantas" min="1" step="1" placeholder="0" oninput="calcRestantesSublote()"/>
+        <div id="msub-restantes" class="restantes-calc" style="display:none;"></div>
+      </div>
+      <div class="field">
+        <label>Fecha de separación<span class="req">*</span></label>
+        <input type="date" id="msub-fecha"/>
+      </div>
+    </div>
+    <div class="field">
+      <label>Observaciones<span class="opt">opcional</span></label>
+      <input type="text" id="msub-notas" placeholder="Motivo de la separación..."/>
+    </div>
+    <div class="erb" id="msub-err" style="display:none;margin-top:8px;"></div>
+    <div class="ab" style="margin-top:16px;">
+      <button class="btn btn-secondary" onclick="cerrarModalSublote()">Cancelar</button>
+      <button class="btn btn-primary" onclick="crearSublote()">Crear sublote →</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>

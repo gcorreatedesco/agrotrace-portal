@@ -223,7 +223,7 @@ CREATE TABLE IF NOT EXISTS public.lotes_produccion (
   origen_pm_id          UUID REFERENCES public.lotes_plantas_madre(id),
   -- sublotes
   lote_padre_id         UUID REFERENCES public.lotes_produccion(id),
-  etapa_origen_division TEXT CHECK (etapa_origen_division IN ('nursery','vegetativa','floracion')),
+  etapa_origen_division TEXT CHECK (etapa_origen_division IN ('nursery','vegetativa','floracion','cosecha')),
   motivo_division       TEXT,
   -- nomenclatura
   nombre_base           TEXT NOT NULL,  -- generado automáticamente, no editable
