@@ -1319,9 +1319,13 @@ async function cargarHistorialMaterial(){
   } else {
     for(const lote of lotesFiltrados){
       let cant='—';
-      if(tipo==='semillas'||tipo==='esquejes'){
+      if(tipo==='semillas'||tipo==='esquejes'||tipo==='pm'){
         const{data:nur}=await sb.from('etapa_nursery').select('cantidad_ingreso,material_utilizado,fecha_inicio').eq('lote_id',lote.id??'').maybeSingle();
-        if(nur)cant=(tipo==='semillas'?(nur.material_utilizado||nur.cantidad_ingreso):nur.cantidad_ingreso)+' '+( tipo==='semillas'?'unidades':'esquejes');
+        if(nur){
+          if(tipo==='semillas')cant=(nur.material_utilizado||nur.cantidad_ingreso)+' unidades';
+          else if(tipo==='esquejes')cant=nur.cantidad_ingreso+' esquejes';
+          else cant=nur.cantidad_ingreso+' esquejes (informativo — stock no descontado)';
+        }
       }
       const em={nursery:'Nursery',vegetativa:'Vegetativa',floracion:'Floración',cosecha:'Cosecha',curado_secado:'Curado/Secado',flores:'Flores Cosechadas'};
       usoHtml+=`<div class="hist-item"><div class="hist-item-desc"><strong>${lote.nombre_completo}</strong><br><span style="color:var(--sage);">Etapa actual: ${em[lote.etapa_actual]||lote.etapa_actual} · Usado: ${cant}</span></div><div class="hist-item-meta">${fmtDate(lote.creado_en?.split('T')[0])}</div></div>`;
