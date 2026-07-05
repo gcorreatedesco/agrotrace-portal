@@ -3073,10 +3073,18 @@ function getPlantasDisponibles(){
 }
 async function abrirModalSublote(){
   if(!LOTE_ACTIVO)return;
+  const et=LOTE_ACTIVO.etapaRaw;
+  const etLabel={vegetativa:'Vegetativa',floracion:'Floración',cosecha:'Cosecha'}[et]||et;
+  // Bloquear si la etapa ya fue cerrada (tiene egreso registrado)
+  const etapaData=HIST_DATA[et];
+  if(etapaData?.cantidad_egreso!=null){
+    alert('Este lote ya registró el egreso de '+etLabel+' y avanzó a la siguiente etapa.\nNo es posible crear sublotes en etapas que ya finalizaron.');
+    return;
+  }
   const{data:subs}=await sb.from('lotes_produccion').select('id').eq('lote_padre_id',LOTE_ACTIVO.id);
   const nextNum=(subs?.length||0)+1;
   const plantas=getPlantasDisponibles();
-  const etLabel={vegetativa:'Vegetativa',floracion:'Floración',cosecha:'Cosecha'}[LOTE_ACTIVO.etapaRaw]||LOTE_ACTIVO.etapaRaw;
+  const sinGuardar=!etapaData?.id;
   document.getElementById('msub-info').textContent=`${LOTE_ACTIVO.n} · ${etLabel} · ${plantas} plantas disponibles`;
   document.getElementById('msub-nombre').value=`${LOTE_ACTIVO.n} → Sublote ${nextNum}`;
   document.getElementById('msub-plantas').value='';
@@ -3084,7 +3092,11 @@ async function abrirModalSublote(){
   document.getElementById('msub-fecha').value=new Date().toISOString().split('T')[0];
   document.getElementById('msub-notas').value='';
   document.getElementById('msub-restantes').style.display='none';
-  document.getElementById('msub-err').style.display='none';
+  const errEl=document.getElementById('msub-err');
+  if(sinGuardar){
+    errEl.textContent='⚠ Los datos de '+etLabel+' aún no fueron guardados. Guardá el borrador antes de crear el sublote para asegurar la consistencia de las cantidades.';
+    errEl.style.display='block';
+  }else{errEl.style.display='none';}
   document.getElementById('modal-sublote').style.display='flex';
 }
 function cerrarModalSublote(){document.getElementById('modal-sublote').style.display='none';}
@@ -3110,6 +3122,7 @@ async function crearSublote(){
   const errEl=document.getElementById('msub-err');
   const showMErr=(msg)=>{errEl.textContent=msg;errEl.style.display='block';};
   errEl.style.display='none';
+  if(HIST_DATA[et]?.cantidad_egreso!=null)return showMErr('Esta etapa ya finalizó. No es posible crear sublotes en etapas que ya avanzaron.');
   if(!nombreCompleto)return showMErr('El nombre del sublote es obligatorio.');
   if(!plantasVal||plantasVal<=0)return showMErr('La cantidad de plantas debe ser mayor a 0.');
   if(plantasVal>=disponibles)return showMErr('Debés dejar al menos 1 planta en el lote origen. Máximo: '+(disponibles-1)+'.');
