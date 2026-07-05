@@ -621,7 +621,9 @@
     sessionStorage.setItem('agrotrace_user', nombre);
     sessionStorage.removeItem('agrotrace_supervisando_ong_id');
     sessionStorage.removeItem('agrotrace_supervisando_ong_nombre');
-    window.location.href = rol === 'rt' ? 'portal_rt.html' : 'agrotrace_prototipo_v3.html';
+    if (rol === 'rt') window.location.href = 'portal_rt.html';
+    else if (rol === 'superadmin') window.location.href = 'portal_superadmin.html';
+    else window.location.href = 'agrotrace_prototipo_v3.html';
   }
 
   function showView(id) {
@@ -686,10 +688,10 @@
     sessionStorage.removeItem('agrotrace_supervisando_ong_id');
     sessionStorage.removeItem('agrotrace_supervisando_ong_nombre');
 
-    console.log('[LOGIN] redirigiendo a:', rol === 'rt' ? 'portal_rt.html' : 'agrotrace_prototipo_v3.html');
-
     if (rol === 'rt') {
       window.location.href = 'portal_rt.html';
+    } else if (rol === 'superadmin') {
+      window.location.href = 'portal_superadmin.html';
     } else {
       window.location.href = 'agrotrace_prototipo_v3.html';
     }

@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AgroTrace — Portal Superadmin</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --soil:#2C1F0E;--bark:#4A3520;--sage:#6B7F5E;--leaf:#8EAA7B;--mist:#C8D9BC;
+  --dew:#EDF2E8;--cream:#F7F4EF;--white:#FFFFFF;--accent:#4E7C3F;
+  --amber:#854F0B;--amber-bg:#FAEEDA;--amber-light:#FAC775;
+  --purple:#534AB7;--purple-bg:#EEEDFE;
+  --error:#B94A3A;--error-bg:#FAECE7;
+  --radius:6px;--radius-lg:10px;--trans:0.2s ease;
+  --sidebar:248px;
+}
+html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--soil);font-size:14px;}
+.app{display:flex;min-height:100vh;}
+
+/* ── SIDEBAR ── */
+.sidebar{width:var(--sidebar);flex-shrink:0;background:var(--soil);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto;}
+.sb-brand{padding:20px 16px 14px;border-bottom:1px solid rgba(255,255,255,0.08);}
+.brand-mark{display:flex;align-items:center;gap:10px;}
+.brand-icon{width:32px;height:32px;border:1.5px solid var(--leaf);border-radius:50%;display:flex;align-items:center;justify-content:center;}
+.brand-icon svg{width:16px;height:16px;fill:var(--leaf);}
+.brand-name{font-family:'DM Serif Display',serif;font-size:1.2rem;color:var(--dew);}
+.brand-tag{font-size:0.58rem;font-weight:300;color:var(--mist);letter-spacing:0.12em;text-transform:uppercase;margin-top:1px;}
+.sb-user{padding:10px 16px;border-bottom:1px solid rgba(255,255,255,0.08);}
+.sb-user-row{display:flex;align-items:center;gap:8px;}
+.user-av{width:28px;height:28px;border-radius:50%;background:var(--amber);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;color:white;flex-shrink:0;}
+.user-nm{font-size:0.75rem;color:var(--mist);font-weight:400;}
+.user-role{font-size:0.62rem;color:var(--amber-light);font-weight:300;margin-top:1px;}
+.sb-nav{padding:10px 0;flex:1;}
+.nav-sec{font-size:0.58rem;font-weight:500;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.3);padding:10px 16px 4px;}
+.nav-it{display:flex;align-items:center;gap:8px;padding:8px 16px;cursor:pointer;color:rgba(255,255,255,0.55);font-size:0.78rem;transition:all var(--trans);border-left:2px solid transparent;user-select:none;}
+.nav-it svg{width:14px;height:14px;fill:currentColor;flex-shrink:0;}
+.nav-it:hover{color:var(--dew);background:rgba(255,255,255,0.05);}
+.nav-it.active{color:var(--leaf);border-left-color:var(--leaf);background:rgba(142,170,123,0.1);}
+.sb-footer{padding:14px 16px;border-top:1px solid rgba(255,255,255,0.08);}
+.sb-logout{display:flex;align-items:center;gap:6px;color:rgba(255,255,255,0.35);font-size:0.72rem;cursor:pointer;background:none;border:none;font-family:'DM Sans',sans-serif;padding:0;transition:color var(--trans);}
+.sb-logout:hover{color:var(--error);}
+.sb-logout svg{width:13px;height:13px;fill:currentColor;}
+
+/* ── MAIN ── */
+.main{flex:1;display:flex;flex-direction:column;min-width:0;}
+.topbar{background:var(--white);border-bottom:1px solid rgba(0,0,0,0.06);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.topbar-title{font-size:0.95rem;font-weight:500;color:var(--soil);}
+.topbar-sub{font-size:0.72rem;color:var(--sage);margin-top:1px;}
+.content{padding:24px;flex:1;}
+
+/* ── VIEWS ── */
+.view{display:none;}
+.view.active{display:block;}
+
+/* ── MÉTRICAS ── */
+.rt-metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:24px;}
+.rt-metric{background:var(--white);border:1px solid rgba(0,0,0,0.07);border-radius:var(--radius-lg);padding:14px 16px;}
+.rt-metric-label{font-size:0.62rem;font-weight:500;text-transform:uppercase;letter-spacing:0.08em;color:var(--sage);margin-bottom:5px;}
+.rt-metric-val{font-size:1.6rem;font-weight:500;color:var(--soil);font-family:'DM Serif Display',serif;}
+.rt-metric-sub{font-size:0.68rem;color:var(--sage);margin-top:3px;}
+
+/* ── SECCIÓN TÍTULO ── */
+.sec-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.sec-title{font-family:'DM Serif Display',serif;font-size:1.15rem;color:var(--soil);}
+.sec-count{font-size:0.75rem;color:var(--sage);margin-left:6px;}
+
+/* ── BOTONES ── */
+.btn-primary{padding:9px 18px;background:var(--accent);color:white;border:none;border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:0.82rem;font-weight:500;cursor:pointer;transition:background var(--trans);display:inline-flex;align-items:center;gap:7px;}
+.btn-primary:hover{background:#3d6230;}
+.btn-primary svg{width:14px;height:14px;fill:currentColor;}
+.btn-secondary{padding:9px 18px;background:none;color:var(--sage);border:1.5px solid var(--mist);border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:0.82rem;font-weight:400;cursor:pointer;transition:all var(--trans);}
+.btn-secondary:hover{border-color:var(--sage);color:var(--bark);}
+.btn-sm{padding:6px 12px;font-size:0.75rem;border-radius:var(--radius);font-family:'DM Sans',sans-serif;cursor:pointer;transition:all var(--trans);font-weight:500;border:none;}
+.btn-sm.supervisar{background:var(--accent);color:white;}
+.btn-sm.supervisar:hover{background:#3d6230;}
+.btn-sm.gestionar{background:none;color:var(--bark);border:1.5px solid var(--mist);}
+.btn-sm.gestionar:hover{border-color:var(--sage);color:var(--soil);}
+
+/* ── GRID RTs ── */
+.rt-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;}
+.rt-card{background:var(--white);border:1px solid rgba(0,0,0,0.07);border-radius:var(--radius-lg);padding:18px;transition:box-shadow var(--trans),border-color var(--trans);}
+.rt-card:hover{box-shadow:0 4px 16px rgba(0,0,0,0.08);border-color:rgba(0,0,0,0.12);}
+.rt-card-header{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+.rt-av{width:36px;height:36px;border-radius:50%;background:var(--amber-bg);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;color:var(--amber);flex-shrink:0;}
+.rt-card-nombre{font-weight:500;font-size:0.9rem;color:var(--soil);}
+.rt-card-email{font-size:0.72rem;color:var(--sage);margin-top:2px;}
+.rt-card-stats{display:flex;gap:0;padding:10px 12px;background:var(--cream);border-radius:var(--radius);margin-bottom:14px;}
+.rt-stat{flex:1;text-align:center;}
+.rt-stat+.rt-stat{border-left:1px solid var(--mist);}
+.rt-stat-val{font-family:'DM Serif Display',serif;font-size:1.15rem;color:var(--soil);}
+.rt-stat-label{font-size:0.6rem;color:var(--sage);text-transform:uppercase;letter-spacing:0.06em;margin-top:2px;}
+.rt-card-actions{display:flex;gap:8px;}
+
+/* ── TABLA ── */
+.table-wrap{background:var(--white);border:1px solid rgba(0,0,0,0.07);border-radius:var(--radius-lg);overflow:hidden;}
+.data-table{width:100%;border-collapse:collapse;}
+.data-table th{font-size:0.65rem;font-weight:500;text-transform:uppercase;letter-spacing:0.08em;color:var(--sage);padding:10px 14px;text-align:left;border-bottom:1px solid rgba(0,0,0,0.07);background:var(--cream);}
+.data-table td{padding:10px 14px;font-size:0.82rem;color:var(--bark);border-bottom:1px solid rgba(0,0,0,0.05);}
+.data-table tr:last-child td{border-bottom:none;}
+.data-table tr:hover td{background:rgba(0,0,0,0.015);}
+
+/* ── BADGES ── */
+.badge{display:inline-block;font-size:0.62rem;font-weight:500;padding:2px 8px;border-radius:10px;}
+.badge-activa{background:var(--dew);color:var(--accent);}
+.badge-sin-rt{background:var(--amber-bg);color:var(--amber);}
+.badge-inactiva{background:rgba(0,0,0,0.06);color:var(--sage);}
+
+/* ── FILTRO ── */
+.filter-bar{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
+.filter-bar select,.filter-bar input{padding:7px 12px;border:1px solid var(--mist);border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:0.82rem;background:var(--white);color:var(--bark);outline:none;}
+.filter-bar select:focus,.filter-bar input:focus{border-color:var(--accent);}
+
+/* ── VARIEDADES RNC ── */
+.rnc-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;}
+.badge-count{font-size:0.7rem;background:var(--dew);color:var(--accent);padding:2px 8px;border-radius:10px;margin-left:8px;}
+
+/* ── MODAL CSV ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:500;display:none;align-items:center;justify-content:center;padding:20px;}
+.modal-overlay.open{display:flex;}
+.modal-box{background:var(--white);border-radius:var(--radius-lg);padding:28px;max-width:520px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.2);}
+.modal-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;}
+.modal-title{font-family:'DM Serif Display',serif;font-size:1.15rem;color:var(--soil);}
+.modal-close{background:none;border:none;cursor:pointer;color:var(--sage);font-size:1.3rem;padding:0;line-height:1;transition:color var(--trans);}
+.modal-close:hover{color:var(--error);}
+.modal-footer{display:flex;align-items:center;gap:10px;margin-top:22px;padding-top:18px;border-top:1px solid var(--dew);}
+.csv-drop{border:1.5px dashed var(--mist);border-radius:var(--radius);padding:28px;text-align:center;background:var(--cream);cursor:pointer;transition:border-color var(--trans);display:block;}
+.csv-drop:hover{border-color:var(--accent);}
+.csv-drop-icon{width:36px;height:36px;margin:0 auto 10px;background:var(--dew);border-radius:50%;display:flex;align-items:center;justify-content:center;}
+.csv-drop-icon svg{width:18px;height:18px;fill:var(--accent);}
+.csv-drop-text{font-size:0.82rem;color:var(--bark);margin-bottom:4px;}
+.csv-drop-sub{font-size:0.72rem;color:var(--sage);}
+.csv-preview{margin-top:14px;padding:12px 14px;background:var(--dew);border-radius:var(--radius);font-size:0.8rem;color:var(--bark);display:none;}
+.err-box{padding:10px 14px;background:var(--error-bg);border-radius:var(--radius);font-size:0.78rem;color:var(--error);margin-top:10px;display:none;}
+
+/* ── EMPTY STATE ── */
+.empty-state{text-align:center;padding:48px 20px;color:var(--sage);}
+.empty-icon{width:48px;height:48px;background:var(--dew);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;}
+.empty-icon svg{width:22px;height:22px;fill:var(--sage);}
+.empty-title{font-family:'DM Serif Display',serif;font-size:1.05rem;color:var(--soil);margin-bottom:6px;}
+.empty-desc{font-size:0.78rem;line-height:1.6;margin-bottom:18px;}
+
+@media(max-width:700px){
+  .rt-metrics{grid-template-columns:1fr 1fr;}
+  .rt-grid{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ── SIDEBAR ── -->
+  <div class="sidebar">
+    <div class="sb-brand">
+      <div class="brand-mark">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24"><path d="M17 8C8 10 5.9 16.17 3.82 21.34L5.71 22l1-2.3A4.49 4.49 0 0 0 8 20C19 20 22 3 22 3c-1 2-8 3-8 3z"/></svg>
+        </div>
+        <div>
+          <div class="brand-name">AgroTrace</div>
+          <div class="brand-tag">Trazabilidad Agrícola</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sb-user">
+      <div class="sb-user-row">
+        <div class="user-av" id="sb-av">SA</div>
+        <div>
+          <div class="user-nm" id="sb-nombre">Superadmin</div>
+          <div class="user-role">Administrador del Sistema</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sb-nav">
+      <div class="nav-sec">Panel Global</div>
+      <div class="nav-it active" id="nav-dashboard" onclick="showView('view-dashboard',this)">
+        <svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+        Dashboard
+      </div>
+      <div class="nav-it" id="nav-rts" onclick="showView('view-rts',this)">
+        <svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+        Responsables Técnicos
+      </div>
+      <div class="nav-it" id="nav-ongs" onclick="showView('view-ongs',this)">
+        <svg viewBox="0 0 24 24"><path d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z"/></svg>
+        Asociaciones Civiles
+      </div>
+
+      <div class="nav-sec" style="margin-top:6px;">Configuración</div>
+      <div class="nav-it" id="nav-variedades" onclick="showView('view-variedades',this)">
+        <svg viewBox="0 0 24 24"><path d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z"/></svg>
+        Variedades RNC
+      </div>
+    </div>
+
+    <div class="sb-footer">
+      <button class="sb-logout" onclick="cerrarSesion()">
+        <svg viewBox="0 0 24 24"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>
+        Cerrar sesión
+      </button>
+    </div>
+  </div>
+
+  <!-- ── MAIN ── -->
+  <div class="main">
+    <div class="topbar">
+      <div>
+        <div class="topbar-title" id="tb-title">Dashboard</div>
+        <div class="topbar-sub" id="tb-sub">Vista global del sistema</div>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- ── VIEW: DASHBOARD ── -->
+      <div class="view active" id="view-dashboard">
+        <div class="rt-metrics">
+          <div class="rt-metric">
+            <div class="rt-metric-label">Responsables Técnicos</div>
+            <div class="rt-metric-val" id="met-rts">—</div>
+            <div class="rt-metric-sub">activos en el sistema</div>
+          </div>
+          <div class="rt-metric">
+            <div class="rt-metric-label">Asociaciones Civiles</div>
+            <div class="rt-metric-val" id="met-ongs">—</div>
+            <div class="rt-metric-sub">registradas</div>
+          </div>
+          <div class="rt-metric">
+            <div class="rt-metric-label">Lotes activos</div>
+            <div class="rt-metric-val" id="met-lotes">—</div>
+            <div class="rt-metric-sub">en producción ahora</div>
+          </div>
+          <div class="rt-metric">
+            <div class="rt-metric-label">Sin RT asignado</div>
+            <div class="rt-metric-val" id="met-sin-rt" style="color:var(--amber);">—</div>
+            <div class="rt-metric-sub">organizaciones sin supervisión</div>
+          </div>
+        </div>
+
+        <div class="sec-header">
+          <div>
+            <span class="sec-title">Responsables Técnicos</span>
+            <span class="sec-count" id="dash-rt-count"></span>
+          </div>
+          <button class="btn-secondary" onclick="showView('view-rts',document.getElementById('nav-rts'))">Ver todos →</button>
+        </div>
+        <div class="rt-grid" id="dash-rt-grid">
+          <div style="color:var(--sage);font-size:0.82rem;padding:20px 0;">Cargando...</div>
+        </div>
+      </div>
+
+      <!-- ── VIEW: RESPONSABLES TÉCNICOS ── -->
+      <div class="view" id="view-rts">
+        <div class="sec-header">
+          <div>
+            <span class="sec-title">Responsables Técnicos</span>
+            <span class="sec-count" id="rts-count"></span>
+          </div>
+        </div>
+        <div class="rt-grid" id="rts-grid">
+          <div style="color:var(--sage);font-size:0.82rem;padding:20px 0;">Cargando...</div>
+        </div>
+      </div>
+
+      <!-- ── VIEW: ASOCIACIONES CIVILES ── -->
+      <div class="view" id="view-ongs">
+        <div class="filter-bar">
+          <select id="filtro-rt" onchange="renderONGs()">
+            <option value="">Todos los RTs</option>
+          </select>
+          <input type="text" id="filtro-ong-nombre" placeholder="Buscar organización..." oninput="renderONGs()" style="flex:1;max-width:280px;"/>
+        </div>
+        <div class="sec-header">
+          <div>
+            <span class="sec-title">Asociaciones Civiles</span>
+            <span class="sec-count" id="ongs-count"></span>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Organización</th>
+                <th>Localidad</th>
+                <th>Responsable Técnico</th>
+                <th>Nº REPROCANN</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody id="ongs-tbody">
+              <tr><td colspan="5" style="color:var(--sage);text-align:center;padding:24px;">Cargando...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ── VIEW: VARIEDADES RNC ── -->
+      <div class="view" id="view-variedades">
+        <div class="rnc-header">
+          <div style="display:flex;align-items:center;flex-wrap:wrap;gap:6px;">
+            <span class="sec-title">Catálogo INASE — Variedades RNC</span>
+            <span class="badge-count" id="rnc-count">0 activas</span>
+          </div>
+          <button class="btn-primary" onclick="abrirModalCSV()">
+            <svg viewBox="0 0 24 24"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg>
+            Cargar CSV de INASE
+          </button>
+        </div>
+
+        <div class="filter-bar">
+          <input type="text" id="filtro-rnc" placeholder="Buscar cultivar o número RNC..." oninput="renderVariedades()" style="flex:1;max-width:300px;"/>
+          <select id="filtro-especie" onchange="renderVariedades()">
+            <option value="">Todas las especies</option>
+            <option value="CANNABIS">Cannabis</option>
+            <option value="CÁÑAMO">Cáñamo</option>
+          </select>
+          <select id="filtro-activa" onchange="renderVariedades()">
+            <option value="true">Solo activas</option>
+            <option value="">Activas e inactivas</option>
+          </select>
+        </div>
+
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Nº RNC</th>
+                <th>Cultivar</th>
+                <th>Especie</th>
+                <th>Estado</th>
+                <th>Fecha carga</th>
+              </tr>
+            </thead>
+            <tbody id="rnc-tbody">
+              <tr><td colspan="5" style="color:var(--sage);text-align:center;padding:24px;">Cargando...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL: CARGAR CSV INASE ── -->
+<div class="modal-overlay" id="modal-csv">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title">Cargar CSV de INASE</div>
+      <button class="modal-close" onclick="cerrarModalCSV()">×</button>
+    </div>
+    <p style="font-size:0.8rem;color:var(--bark);margin-bottom:16px;line-height:1.6;">
+      Subí el archivo <strong>catalogo_consulta.csv</strong> descargado del sitio INASE.
+      Se hará un <em>upsert</em> por número de RNC: actualiza los existentes, agrega los nuevos,
+      y marca como inactivas las variedades ausentes del listado.
+    </p>
+    <label class="csv-drop" id="csv-drop-label" for="csv-input">
+      <div class="csv-drop-icon">
+        <svg viewBox="0 0 24 24"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg>
+      </div>
+      <div class="csv-drop-text" id="csv-drop-text">Seleccioná o arrastrá el archivo CSV</div>
+      <div class="csv-drop-sub">Formato: catalogo_consulta.csv · Codificación Latin-1</div>
+    </label>
+    <input type="file" id="csv-input" accept=".csv" style="display:none;" onchange="previsualizarCSV(this)"/>
+    <div class="csv-preview" id="csv-preview"></div>
+    <div class="err-box" id="csv-err"></div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="cerrarModalCSV()">Cancelar</button>
+      <button class="btn-primary" id="btn-confirmar-csv" onclick="confirmarCSV()" disabled style="opacity:0.5;cursor:not-allowed;">
+        Confirmar carga
+      </button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+const SUPABASE_URL  = 'https://jqkyifuyaxxwugrnjfnq.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impxa3lpZnV5YXh4d3Vncm5qZm5xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyMjE1NjgsImV4cCI6MjA5Njc5NzU2OH0.0r2A5wC4hZ6sg0TAC9_pEdvit5PMHj8XB1wsXWdDVww';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+let ALL_RTS = [];
+let ALL_ONGS = [];
+let ALL_VARIEDADES = [];
+let CSV_PARSED = null;
+
+/* ── INIT ── */
+async function init() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) {
+    cargarDemo();
+    return;
+  }
+
+  const nombre = sessionStorage.getItem('agrotrace_user') || session.user.email || 'Superadmin';
+  const iniciales = nombre.split(' ').map(p => p[0]).join('').toUpperCase().slice(0,2) || 'SA';
+  document.getElementById('sb-av').textContent = iniciales;
+  document.getElementById('sb-nombre').textContent = nombre;
+
+  await Promise.all([cargarRTs(), cargarVariedades()]);
+  await cargarONGs();
+  actualizarMetricas();
+}
+
+function cargarDemo() {
+  ALL_RTS = [
+    {id:'rt1',nombre_completo:'María García',email:'mgarcia@demo.com',ongs_count:3,lotes_count:8},
+    {id:'rt2',nombre_completo:'Carlos López',email:'clopez@demo.com',ongs_count:1,lotes_count:4},
+  ];
+  ALL_ONGS = [
+    {id:'o1',nombre:'Asociación Esperanza Verde',localidad:'Buenos Aires',rt_nombre:'María García',rt_id:'rt1',reprocann:'REP-001',activa:true},
+    {id:'o2',nombre:'ONG Cannabis Medicinal Córdoba',localidad:'Córdoba',rt_nombre:'María García',rt_id:'rt1',reprocann:'REP-002',activa:true},
+    {id:'o3',nombre:'Asociación Vida Natural',localidad:'Rosario',rt_nombre:'Carlos López',rt_id:'rt2',reprocann:'REP-003',activa:true},
+    {id:'o4',nombre:'Fundación Nuevos Horizontes',localidad:'Mendoza',rt_nombre:null,rt_id:null,reprocann:'',activa:true},
+  ];
+  ALL_VARIEDADES = [];
+  actualizarMetricas();
+}
+
+/* ── CARGAR RTs ── */
+async function cargarRTs() {
+  const { data, error } = await sb.from('perfiles').select('id, nombre_completo, email').eq('rol', 'rt');
+  if (error || !data) return;
+
+  const rtIds = data.map(r => r.id);
+  const [{ data: relaciones }, { data: lotesActivos }] = await Promise.all([
+    sb.from('rt_organizaciones').select('rt_id, org_id').in('rt_id', rtIds),
+    sb.from('lotes_produccion').select('usuario_id').not('etapa_actual', 'in', '("completado","cerrado")'),
+  ]);
+
+  const { data: orgs } = await sb.from('organizaciones').select('id, usuario_id');
+  const orgUserMap = {};
+  (orgs || []).forEach(o => { orgUserMap[o.id] = o.usuario_id; });
+
+  ALL_RTS = data.map(rt => {
+    const misOngIds = (relaciones || []).filter(r => r.rt_id === rt.id).map(r => r.org_id);
+    const misUserIds = misOngIds.map(id => orgUserMap[id]).filter(Boolean);
+    const misLotes = (lotesActivos || []).filter(l => misUserIds.includes(l.usuario_id)).length;
+    return { ...rt, ongs_count: misOngIds.length, lotes_count: misLotes };
+  });
+}
+
+/* ── CARGAR ONGs ── */
+async function cargarONGs() {
+  const { data, error } = await sb
+    .from('organizaciones')
+    .select('id, nombre, localidad, reprocann, activa, rt_organizaciones(rt_id, perfiles(nombre_completo))');
+  if (error || !data) return;
+
+  ALL_ONGS = data.map(o => {
+    const rel = (o.rt_organizaciones || [])[0];
+    return {
+      id: o.id, nombre: o.nombre, localidad: o.localidad,
+      reprocann: o.reprocann || '', activa: o.activa !== false,
+      rt_id: rel?.rt_id || null, rt_nombre: rel?.perfiles?.nombre_completo || null,
+    };
+  });
+
+  // Poblar filtro por RT
+  const rtSelect = document.getElementById('filtro-rt');
+  const rtsSeen = new Set();
+  ALL_ONGS.filter(o => o.rt_id && o.rt_nombre).forEach(o => {
+    if (!rtsSeen.has(o.rt_id)) {
+      rtsSeen.add(o.rt_id);
+      const opt = document.createElement('option');
+      opt.value = o.rt_id;
+      opt.textContent = o.rt_nombre;
+      rtSelect.appendChild(opt);
+    }
+  });
+}
+
+/* ── CARGAR VARIEDADES ── */
+async function cargarVariedades() {
+  const { data, error } = await sb
+    .from('variedades_rnc')
+    .select('id, nro_rnc, cultivar, especie, activa, fecha_carga')
+    .order('cultivar');
+  if (error) return;
+  ALL_VARIEDADES = data || [];
+  renderVariedades();
+  const activas = ALL_VARIEDADES.filter(v => v.activa).length;
+  document.getElementById('rnc-count').textContent = activas + ' activas';
+}
+
+/* ── MÉTRICAS ── */
+function actualizarMetricas() {
+  document.getElementById('met-rts').textContent = ALL_RTS.length || '0';
+  document.getElementById('met-ongs').textContent = ALL_ONGS.length || '0';
+  const sinRT = ALL_ONGS.filter(o => !o.rt_id).length;
+  document.getElementById('met-sin-rt').textContent = sinRT || '0';
+  const totalLotes = ALL_RTS.reduce((s, rt) => s + (rt.lotes_count || 0), 0);
+  document.getElementById('met-lotes').textContent = totalLotes || '0';
+
+  renderRTs('dash-rt-grid', 'dash-rt-count', 4);
+  renderRTs('rts-grid', 'rts-count');
+  renderONGs();
+}
+
+/* ── NAVEGACIÓN ── */
+function showView(viewId, navEl) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById(viewId).classList.add('active');
+  document.querySelectorAll('.nav-it').forEach(n => n.classList.remove('active'));
+  if (navEl) navEl.classList.add('active');
+
+  const titles = {
+    'view-dashboard':  ['Dashboard',               'Vista global del sistema'],
+    'view-rts':        ['Responsables Técnicos',    'Usuarios con rol de supervisión'],
+    'view-ongs':       ['Asociaciones Civiles',     'Organizaciones registradas en el sistema'],
+    'view-variedades': ['Variedades RNC',            'Catálogo INASE de cultivares registrados'],
+  };
+  const t = titles[viewId];
+  if (t) {
+    document.getElementById('tb-title').textContent = t[0];
+    document.getElementById('tb-sub').textContent = t[1];
+  }
+}
+
+/* ── RENDER RTs ── */
+function renderRTs(gridId, countId, limit) {
+  const grid = document.getElementById(gridId);
+  const countEl = document.getElementById(countId);
+  const lista = limit ? ALL_RTS.slice(0, limit) : ALL_RTS;
+  if (countEl) countEl.textContent = ALL_RTS.length + (ALL_RTS.length === 1 ? ' RT' : ' RTs');
+
+  if (ALL_RTS.length === 0) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1;">
+      <div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg></div>
+      <div class="empty-title">Sin RTs registrados</div>
+      <div class="empty-desc">Aún no hay Responsables Técnicos en el sistema.</div>
+    </div>`;
+    return;
+  }
+
+  grid.innerHTML = lista.map(rt => {
+    const ini = (rt.nombre_completo || rt.email || 'RT').split(' ').map(p=>p[0]).join('').toUpperCase().slice(0,2);
+    const nombre = rt.nombre_completo || rt.email || '—';
+    const email  = rt.nombre_completo ? (rt.email||'—') : '—';
+    return `<div class="rt-card">
+      <div class="rt-card-header">
+        <div class="rt-av">${ini}</div>
+        <div>
+          <div class="rt-card-nombre">${nombre}</div>
+          <div class="rt-card-email">${email}</div>
+        </div>
+      </div>
+      <div class="rt-card-stats">
+        <div class="rt-stat">
+          <div class="rt-stat-val">${rt.ongs_count||0}</div>
+          <div class="rt-stat-label">Organizaciones</div>
+        </div>
+        <div class="rt-stat">
+          <div class="rt-stat-val">${rt.lotes_count||0}</div>
+          <div class="rt-stat-label">Lotes activos</div>
+        </div>
+      </div>
+      <div class="rt-card-actions">
+        <button class="btn-sm supervisar" onclick="abrirPortalRT('${rt.id}','${(nombre).replace(/'/g,"\\'")}')">Supervisar →</button>
+        <button class="btn-sm gestionar" onclick="verOngsDeRT('${rt.id}','${(nombre).replace(/'/g,"\\'")}')">Ver ONGs</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ── RENDER ONGs ── */
+function renderONGs() {
+  const filtroRTId  = document.getElementById('filtro-rt')?.value || '';
+  const filtroNombre = (document.getElementById('filtro-ong-nombre')?.value || '').toLowerCase();
+  let lista = ALL_ONGS;
+  if (filtroRTId) lista = lista.filter(o => o.rt_id === filtroRTId);
+  if (filtroNombre) lista = lista.filter(o => o.nombre.toLowerCase().includes(filtroNombre));
+
+  const countEl = document.getElementById('ongs-count');
+  if (countEl) countEl.textContent = lista.length + (lista.length === 1 ? ' organización' : ' organizaciones');
+
+  const tbody = document.getElementById('ongs-tbody');
+  if (!tbody) return;
+  if (lista.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--sage);">Sin resultados</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = lista.map(o => `
+    <tr>
+      <td style="font-weight:500;color:var(--soil);">${o.nombre}</td>
+      <td>${o.localidad || '—'}</td>
+      <td>${o.rt_nombre
+        ? `<span style="color:var(--bark);">${o.rt_nombre}</span>`
+        : `<span class="badge badge-sin-rt">Sin RT asignado</span>`
+      }</td>
+      <td style="font-family:monospace;font-size:0.78rem;">${o.reprocann || '—'}</td>
+      <td><span class="badge ${o.activa ? 'badge-activa' : 'badge-inactiva'}">${o.activa ? 'Activa' : 'Inactiva'}</span></td>
+    </tr>`).join('');
+}
+
+/* ── RENDER VARIEDADES ── */
+function renderVariedades() {
+  const filtroNombre  = (document.getElementById('filtro-rnc')?.value || '').toLowerCase();
+  const filtroEspecie = document.getElementById('filtro-especie')?.value || '';
+  const filtroActiva  = document.getElementById('filtro-activa')?.value || '';
+
+  let lista = ALL_VARIEDADES;
+  if (filtroNombre)  lista = lista.filter(v => v.cultivar.toLowerCase().includes(filtroNombre) || v.nro_rnc.toLowerCase().includes(filtroNombre));
+  if (filtroEspecie) lista = lista.filter(v => (v.especie||'').toUpperCase() === filtroEspecie.toUpperCase());
+  if (filtroActiva === 'true')  lista = lista.filter(v => v.activa);
+  if (filtroActiva === 'false') lista = lista.filter(v => !v.activa);
+
+  const tbody = document.getElementById('rnc-tbody');
+  if (lista.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:28px;color:var(--sage);">
+      ${ALL_VARIEDADES.length === 0
+        ? 'No hay variedades cargadas. Usá el botón "Cargar CSV de INASE" para importar el catálogo.'
+        : 'Sin resultados para los filtros seleccionados.'}
+    </td></tr>`;
+    return;
+  }
+  tbody.innerHTML = lista.map(v => {
+    const fecha = v.fecha_carga ? new Date(v.fecha_carga).toLocaleDateString('es-AR') : '—';
+    return `<tr>
+      <td style="font-family:monospace;font-size:0.78rem;color:var(--soil);">${v.nro_rnc}</td>
+      <td style="font-weight:500;">${v.cultivar}</td>
+      <td style="font-size:0.75rem;color:var(--sage);">${v.especie || '—'}</td>
+      <td><span class="badge ${v.activa ? 'badge-activa' : 'badge-inactiva'}">${v.activa ? 'Activa' : 'Inactiva'}</span></td>
+      <td style="font-size:0.75rem;color:var(--sage);">${fecha}</td>
+    </tr>`;
+  }).join('');
+}
+
+/* ── ACCIONES RT ── */
+function abrirPortalRT(rtId, rtNombre) {
+  sessionStorage.setItem('superadmin_supervisando_rt', rtId);
+  sessionStorage.setItem('superadmin_supervisando_nombre', rtNombre);
+  window.open('portal_rt.html', '_blank');
+}
+
+function verOngsDeRT(rtId, rtNombre) {
+  showView('view-ongs', document.getElementById('nav-ongs'));
+  const sel = document.getElementById('filtro-rt');
+  if (sel) { sel.value = rtId; renderONGs(); }
+}
+
+/* ── MODAL CSV ── */
+function abrirModalCSV() {
+  CSV_PARSED = null;
+  document.getElementById('csv-input').value = '';
+  document.getElementById('csv-preview').style.display = 'none';
+  document.getElementById('csv-err').style.display = 'none';
+  document.getElementById('csv-drop-text').textContent = 'Seleccioná o arrastrá el archivo CSV';
+  const btn = document.getElementById('btn-confirmar-csv');
+  btn.disabled = true; btn.style.opacity = '0.5'; btn.style.cursor = 'not-allowed';
+  document.getElementById('modal-csv').classList.add('open');
+}
+
+function cerrarModalCSV() {
+  document.getElementById('modal-csv').classList.remove('open');
+}
+
+function previsualizarCSV(input) {
+  const file = input.files[0];
+  if (!file) return;
+  document.getElementById('csv-drop-text').textContent = file.name;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const text = new TextDecoder('iso-8859-1').decode(e.target.result);
+      const lines = text.split('\n').filter(l => l.trim());
+      if (lines.length < 2) throw new Error('El archivo parece vacío o mal formado.');
+
+      const header = lines[0].split(';').map(h => h.trim().toLowerCase().replace(/['"]/g,''));
+      const idxNro     = header.findIndex(h => h === 'numero' || h.includes('nro') || h.includes('número'));
+      const idxCultivar = header.findIndex(h => h === 'cultivar');
+      const idxEspecie  = header.findIndex(h => h === 'especie');
+
+      if (idxNro < 0 || idxCultivar < 0) {
+        throw new Error('No se encontraron las columnas esperadas (numero, cultivar). Verificá que sea el archivo correcto de INASE.');
+      }
+
+      const parsed = [];
+      for (let i = 1; i < lines.length; i++) {
+        const cols = lines[i].split(';').map(c => c.trim().replace(/^["']|["']$/g,''));
+        const nro = cols[idxNro];
+        const cultivar = cols[idxCultivar];
+        if (!nro || !cultivar) continue;
+        const especie = idxEspecie >= 0 ? (cols[idxEspecie]||'').toUpperCase() : null;
+        parsed.push({ nro_rnc: nro, cultivar, especie });
+      }
+
+      if (parsed.length === 0) throw new Error('No se pudieron leer filas válidas del CSV.');
+
+      CSV_PARSED = parsed;
+      const prev = document.getElementById('csv-preview');
+      const cannabis = parsed.filter(v => (v.especie||'').includes('CANNABIS')).length;
+      const canamo = parsed.filter(v => (v.especie||'').includes('ÑAMO') || (v.especie||'').includes('NAMO')).length;
+      prev.innerHTML = `Archivo leído: <strong>${parsed.length} variedades</strong> (${cannabis} Cannabis, ${canamo} Cáñamo). Se realizará upsert por número de RNC.`;
+      prev.style.display = 'block';
+      document.getElementById('csv-err').style.display = 'none';
+
+      const btn = document.getElementById('btn-confirmar-csv');
+      btn.disabled = false; btn.style.opacity = '1'; btn.style.cursor = 'pointer';
+    } catch (err) {
+      document.getElementById('csv-err').textContent = 'Error al leer el CSV: ' + err.message;
+      document.getElementById('csv-err').style.display = 'block';
+      document.getElementById('csv-preview').style.display = 'none';
+      CSV_PARSED = null;
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+async function confirmarCSV() {
+  if (!CSV_PARSED || CSV_PARSED.length === 0) return;
+  const btn = document.getElementById('btn-confirmar-csv');
+  const errEl = document.getElementById('csv-err');
+  btn.textContent = 'Guardando...'; btn.disabled = true; btn.style.opacity = '0.7';
+
+  try {
+    const rows = CSV_PARSED.map(v => ({ nro_rnc: v.nro_rnc, cultivar: v.cultivar, especie: v.especie, activa: true }));
+
+    const { error: upsertErr } = await sb.from('variedades_rnc').upsert(rows, { onConflict: 'nro_rnc' });
+    if (upsertErr) throw new Error(upsertErr.message);
+
+    // Marcar inactivas las que no vinieron en el CSV
+    const nrosEnCSV = CSV_PARSED.map(v => v.nro_rnc);
+    const listaSQL = nrosEnCSV.map(n => `"${n.replace(/"/g, '\\"')}"`).join(',');
+    const { error: inactivarErr } = await sb
+      .from('variedades_rnc')
+      .update({ activa: false })
+      .not('nro_rnc', 'in', `(${listaSQL})`)
+      .eq('activa', true);
+    if (inactivarErr) throw new Error(inactivarErr.message);
+
+    cerrarModalCSV();
+    await cargarVariedades();
+    alert(`CSV cargado correctamente.\n${rows.length} variedades procesadas.`);
+  } catch (err) {
+    errEl.textContent = 'Error al guardar: ' + err.message;
+    errEl.style.display = 'block';
+  } finally {
+    btn.textContent = 'Confirmar carga';
+    btn.disabled = false; btn.style.opacity = '1'; btn.style.cursor = 'pointer';
+  }
+}
+
+/* ── CERRAR SESIÓN ── */
+async function cerrarSesion() {
+  await sb.auth.signOut();
+  sessionStorage.clear();
+  window.location.href = 'index.html';
+}
+
+window.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
