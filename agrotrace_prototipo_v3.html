@@ -756,13 +756,13 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
           <div class="mc" id="mcd" onclick="sm('d')"><div class="mct">Número directo</div><div class="mcs">Ingreso manual</div></div>
         </div>
         <div id="calcb"><div class="cr">
-          <div class="cf"><label>Bandejas</label><input type="number" id="nb" min="1" placeholder="0" oninput="ct()"/></div>
+          <div class="cf"><label>Bandejas</label><input type="number" id="nb" min="1" step="1" placeholder="0" oninput="ct()"/></div>
           <div class="cop">×</div>
-          <div class="cf"><label>Alvéolos</label><input type="number" id="na" min="1" placeholder="0" oninput="ct()"/></div>
+          <div class="cf"><label>Alvéolos</label><input type="number" id="na" min="1" step="1" placeholder="0" oninput="ct()"/></div>
           <div class="cop">=</div>
           <div class="crs"><div class="crsl" id="lbl-total-nur">Total plántulas</div><div class="crsv" id="ctot">200</div></div>
         </div></div>
-        <div id="calcd" style="display:none;"><input type="number" id="cnd" min="0" placeholder="Nº plántulas o esquejes sembrados" oninput="ct()"/></div>
+        <div id="calcd" style="display:none;"><input type="number" id="cnd" min="0" step="1" placeholder="Nº plántulas o esquejes sembrados" oninput="ct()"/></div>
       </div>
       <div class="field"><label>Notas<span class="opt">opcional</span></label><input type="text" placeholder="Condiciones, sustrato, observaciones..."/></div>
       <div class="wb" id="nw">Al confirmar se descontarán unidades del stock del material de origen.</div>
@@ -900,7 +900,7 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
     <div class="g2">
       <div class="field"><label>Stock inicial<span class="req">*</span></label><input type="number" id="nm-stock" min="0" placeholder="Cantidad"/></div>
       <div class="field"><label>Unidad<span class="req">*</span></label>
-        <select id="nm-unidad">
+        <select id="nm-unidad" onchange="document.getElementById('nm-stock').step=stepForUnit(this.value)">
           <option value="">— Elegí unidad —</option>
           <option value="gramos">Gramos</option>
           <option value="semillas">Nº de semillas</option>
@@ -1578,7 +1578,7 @@ function panelNursery(hist=false){
         <div class="form-col-hdr">Cantidades</div>
         <div class="field"><label>Origen</label><div class="ro-val">${fmtOrigen(d.origen_material)}</div></div>
         <div class="field"><label>${metodo}</label><div class="ro-val">${d.cantidad_ingreso!=null?d.cantidad_ingreso+' '+termNur(d.origen_material):'—'}</div></div>
-        <div class="field"><label>Cantidad egreso<span class="req">*</span></label><input type="number" id="nur-egreso" min="0" value="${d.cantidad_egreso||''}" placeholder="Nº de ${termNur(d.origen_material)}" oninput="bajasNur()"/></div>
+        <div class="field"><label>Cantidad egreso<span class="req">*</span></label><input type="number" id="nur-egreso" min="0" step="1" value="${d.cantidad_egreso||''}" placeholder="Nº de ${termNur(d.origen_material)}" oninput="bajasNur()"/></div>
         <div class="field"><label>Bajas (automático)</label><div class="bajas-auto${typeof bajasIni==='number'&&bajasIni<0?' bajas-neg':''}" id="nur-bajas-auto">${bajasIni}</div></div>
         <div class="field"><label>Notas<span class="opt">opcional</span></label><input type="text" id="nur-notas" value="${d.notas||''}" placeholder="Observaciones..."/></div>
       </div>
@@ -1611,8 +1611,8 @@ function panelVegetativa(hist=false){
       </div>
       <div>
         <div class="form-col-hdr">Cantidades</div>
-        <div class="field"><label>Cantidad ingreso<span class="req">*</span></label><input type="number" id="veg-cant-ini" min="0" value="${d.cantidad_ingreso||autoCant}" placeholder="Nº de plantas" oninput="bajasVeg()"/></div>
-        <div class="field"><label>Cantidad egreso<span class="req">*</span></label><input type="number" id="veg-egreso" min="0" value="${d.cantidad_egreso||''}" placeholder="Nº de plantas" oninput="bajasVeg()"/></div>
+        <div class="field"><label>Cantidad ingreso<span class="req">*</span></label><input type="number" id="veg-cant-ini" min="0" step="1" value="${d.cantidad_ingreso||autoCant}" placeholder="Nº de plantas" oninput="bajasVeg()"/></div>
+        <div class="field"><label>Cantidad egreso<span class="req">*</span></label><input type="number" id="veg-egreso" min="0" step="1" value="${d.cantidad_egreso||''}" placeholder="Nº de plantas" oninput="bajasVeg()"/></div>
         <div class="field"><label>Bajas (automático)</label><div class="bajas-auto${typeof bajasVegIni==='number'&&bajasVegIni<0?' bajas-neg':''}" id="veg-bajas-auto">${bajasVegIni}</div></div>
         <div class="field"><label>Notas<span class="opt">opcional</span></label><input type="text" id="veg-notas" value="${d.notas||''}" placeholder="Observaciones..."/></div>
       </div>
@@ -1645,8 +1645,8 @@ function panelFloracion(hist=false){
       </div>
       <div>
         <div class="form-col-hdr">Cantidades</div>
-        <div class="field"><label>Cantidad ingreso<span class="req">*</span></label><input type="number" id="flo-cant-ini" min="0" value="${d.cantidad_ingreso||autoCant}" placeholder="Nº de plantas" oninput="bajasFlo()"/></div>
-        <div class="field"><label>Cantidad egreso<span class="req">*</span></label><input type="number" id="flo-egreso" min="0" value="${d.cantidad_egreso||''}" placeholder="Nº de plantas" oninput="bajasFlo()"/></div>
+        <div class="field"><label>Cantidad ingreso<span class="req">*</span></label><input type="number" id="flo-cant-ini" min="0" step="1" value="${d.cantidad_ingreso||autoCant}" placeholder="Nº de plantas" oninput="bajasFlo()"/></div>
+        <div class="field"><label>Cantidad egreso<span class="req">*</span></label><input type="number" id="flo-egreso" min="0" step="1" value="${d.cantidad_egreso||''}" placeholder="Nº de plantas" oninput="bajasFlo()"/></div>
         <div class="field"><label>Bajas (automático)</label><div class="bajas-auto${typeof bajasFloIni==='number'&&bajasFloIni<0?' bajas-neg':''}" id="flo-bajas-auto">${bajasFloIni}</div></div>
         <div class="field"><label>Notas<span class="opt">opcional</span></label><input type="text" id="flo-notas" value="${d.notas||''}" placeholder="Observaciones..."/></div>
       </div>
@@ -2595,6 +2595,7 @@ function gw(step){
   }
 }
 function termNur(origen){return(!origen||origen==='semillas')?'plántulas':'esquejes';}
+function stepForUnit(u){return(!u||u==='gramos')?'0.001':'1';}
 function fmtOrigen(o){if(!o)return'—';if(o==='plantas_madre')return'Plantas Madre';return o.charAt(0).toUpperCase()+o.slice(1);}
 function gC(){const m=document.querySelector('input[name="um"]:checked');if(OA==='semillas'&&m){if(m.value==='pred')return parseInt(document.getElementById('cp').value)||0;else return parseInt(document.getElementById('cm').value)||0;}const isBand=document.getElementById('mcb')?.classList.contains('sel');if(isBand){const b=parseInt(document.getElementById('nb').value)||0;const a=parseInt(document.getElementById('na').value)||0;return b*a;}return parseInt(document.getElementById('cnd').value)||0;}
 function selO(t){
@@ -2611,7 +2612,7 @@ function selO(t){
   const ll=document.getElementById('lsl');
   if(ll)ll.innerHTML=(t==='semillas'?'Lote de Semillas a utilizar':t==='esquejes'?'Lote de Esquejes a utilizar':'Lote de Plantas Madre a utilizar')+'<span class="req">*</span>';
 }
-function onLC(v){if(!v||!OA){LA=null;return;}LA=LM[OA].find(l=>l.v===v)||null;if(!LA)return;document.getElementById('sh').textContent='Stock disponible: '+LA.stock+' '+LA.u;document.getElementById('p1v').value=LA.var;if(OA==='semillas')document.getElementById('upl').textContent='('+LA.u+')';document.getElementById('sp').style.display='block';uS(0);}
+function onLC(v){if(!v||!OA){LA=null;return;}LA=LM[OA].find(l=>l.v===v)||null;if(!LA)return;document.getElementById('sh').textContent='Stock disponible: '+LA.stock+' '+LA.u;document.getElementById('p1v').value=LA.var;if(OA==='semillas'){document.getElementById('upl').textContent='('+LA.u+')';const s=stepForUnit(LA.u);['cp','cm'].forEach(id=>{const e=document.getElementById(id);if(e)e.step=s;});}document.getElementById('sp').style.display='block';uS(0);}
 function onUM(v){document.getElementById('mpred').style.display=v==='pred'?'block':'none';document.getElementById('mman').style.display=v==='man'?'block':'none';UI=false;document.getElementById('uiw').style.display='none';}
 function chkUC(){if(!LA)return;const s=document.getElementById('um2').value;const inc=s&&s!==LA.u;UI=inc;document.getElementById('uiw').style.display=inc?'block':'none';}
 function uS(v){if(!LA){document.getElementById('sp').style.display='none';return;}const val=parseInt(v)||0;const r=Math.max(0,LA.stock-val);document.getElementById('spa').textContent=LA.stock+' '+LA.u;const hideDesc=OA!=='semillas';document.getElementById('spu').textContent=hideDesc?'':('− '+val+' '+LA.u);document.getElementById('spf').textContent=hideDesc?'':( r+' '+LA.u);const spRows=document.getElementById('sp').querySelectorAll('.sr:not(:first-child)');spRows.forEach(el=>el.style.display=hideDesc?'none':'flex');document.getElementById('sp').style.display='block';}
@@ -2742,8 +2743,8 @@ function onBL(v){
   if(!v)return;
   const sel=document.getElementById('bl');
   const tipo=sel.options[sel.selectedIndex]?.dataset.tipo;
-  if(tipo==='semillas'){document.getElementById('bs').style.display='block';const l=LM.semillas.find(x=>x.v===v);if(l)document.getElementById('bsu').value=l.u;}
-  else{document.getElementById('bn').style.display='block';const l=[...LM.esquejes,...LM.pm].find(x=>x.v===v);document.getElementById('bu').value=l?l.u:'unidades';}
+  if(tipo==='semillas'){document.getElementById('bs').style.display='block';const l=LM.semillas.find(x=>x.v===v);if(l){document.getElementById('bsu').value=l.u;document.getElementById('b-cant-s').step=stepForUnit(l.u);}}
+  else{document.getElementById('bn').style.display='block';const l=[...LM.esquejes,...LM.pm].find(x=>x.v===v);const u=l?l.u:'unidades';document.getElementById('bu').value=u;document.getElementById('b-cant-n').step=stepForUnit(u);}
 }
 
 async function eliminarTotalidadLote(){
