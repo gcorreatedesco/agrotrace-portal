@@ -102,8 +102,12 @@ ALTER TABLE public.organizaciones
   ADD COLUMN IF NOT EXISTS direccion        TEXT,
   ADD COLUMN IF NOT EXISTS email            TEXT,
   ADD COLUMN IF NOT EXISTS telefono         TEXT,
+  ADD COLUMN IF NOT EXISTS reprocann        TEXT,
   ADD COLUMN IF NOT EXISTS fecha_inscripcion DATE,
   ADD COLUMN IF NOT EXISTS notas            TEXT;
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.organizaciones TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.rt_organizaciones TO authenticated;
 
 -- ── TRIGGER: auto-crear perfil al aceptar invitación ──
 -- Cuando Supabase crea un usuario vía inviteUserByEmail(),

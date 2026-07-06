@@ -155,6 +155,16 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);c
 .btn-sm.reactivar{background:var(--accent);color:white;}
 .btn-sm.reactivar:hover{background:#3d6230;}
 
+/* ── MODAL FORMS ── */
+.form-row{margin-bottom:14px;}
+.form-label{display:block;font-size:0.75rem;font-weight:500;color:var(--bark);margin-bottom:5px;}
+.form-req{color:var(--error);margin-left:2px;}
+.form-input{width:100%;padding:8px 12px;border:1px solid var(--mist);border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:0.82rem;color:var(--bark);background:var(--white);outline:none;transition:border-color var(--trans);}
+.form-input:focus{border-color:var(--accent);}
+.form-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:0 12px;}
+.form-sep{font-size:0.62rem;font-weight:500;text-transform:uppercase;letter-spacing:0.1em;color:var(--sage);padding:12px 0 6px;border-top:1px solid var(--dew);margin:6px 0 0;}
+.invite-note{font-size:0.75rem;color:var(--sage);margin-top:6px;line-height:1.6;}
+
 @media(max-width:700px){
   .rt-metrics{grid-template-columns:1fr 1fr;}
   .rt-grid{grid-template-columns:1fr;}
@@ -273,6 +283,10 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);c
             <span class="sec-title">Responsables Técnicos</span>
             <span class="sec-count" id="rts-count"></span>
           </div>
+          <button class="btn-primary" onclick="abrirModalNuevoRT()">
+            <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+            Nuevo RT
+          </button>
         </div>
         <div class="tab-bar">
           <button class="tab active" id="tab-rts-activos" onclick="switchTabRTs('activos')">Activos <span class="tab-chip" id="tc-rts-activos">0</span></button>
@@ -300,6 +314,10 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);c
             <span class="sec-title">Asociaciones Civiles</span>
             <span class="sec-count" id="ongs-count"></span>
           </div>
+          <button class="btn-primary" onclick="abrirModalNuevaONG()">
+            <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+            Nueva ONG
+          </button>
         </div>
         <div class="table-wrap">
           <table class="data-table">
@@ -400,6 +418,90 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);c
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<!-- ── MODAL: NUEVO RT ── -->
+<div class="modal-overlay" id="modal-nuevo-rt">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title">Nuevo Responsable Técnico</div>
+      <button class="modal-close" onclick="cerrarModalNuevoRT()">×</button>
+    </div>
+    <div class="form-row">
+      <label class="form-label">Nombre completo <span class="form-req">*</span></label>
+      <input id="rt-nombre" class="form-input" type="text" placeholder="Ej: Juan Pérez"/>
+    </div>
+    <div class="form-row">
+      <label class="form-label">Email <span class="form-req">*</span></label>
+      <input id="rt-email" class="form-input" type="email" placeholder="juan@ejemplo.com"/>
+    </div>
+    <p class="invite-note">El sistema enviará un email de invitación. El RT deberá hacer click en el link para crear su contraseña e ingresar al sistema.</p>
+    <div class="err-box" id="rt-err"></div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="cerrarModalNuevoRT()">Cancelar</button>
+      <button class="btn-primary" id="btn-invitar-rt" onclick="invitarRT()">
+        <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4-8 5-8-5V6l8 5 8-5v2z"/></svg>
+        Enviar invitación
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL: NUEVA ONG ── -->
+<div class="modal-overlay" id="modal-nueva-ong">
+  <div class="modal-box" style="max-width:580px;">
+    <div class="modal-header">
+      <div class="modal-title">Nueva Asociación Civil</div>
+      <button class="modal-close" onclick="cerrarModalNuevaONG()">×</button>
+    </div>
+
+    <div class="form-sep" style="border-top:none;padding-top:0;margin-top:0;">Datos de la organización</div>
+    <div class="form-row">
+      <label class="form-label">Nombre de la organización <span class="form-req">*</span></label>
+      <input id="ong-nombre-org" class="form-input" type="text" placeholder="Ej: Asociación Esperanza Verde"/>
+    </div>
+    <div class="form-grid-2">
+      <div class="form-row">
+        <label class="form-label">CUIT</label>
+        <input id="ong-cuit" class="form-input" type="text" placeholder="20-12345678-9"/>
+      </div>
+      <div class="form-row">
+        <label class="form-label">Localidad</label>
+        <input id="ong-localidad" class="form-input" type="text" placeholder="Buenos Aires"/>
+      </div>
+    </div>
+    <div class="form-grid-2">
+      <div class="form-row">
+        <label class="form-label">Nº REPROCANN</label>
+        <input id="ong-reprocann" class="form-input" type="text" placeholder="REP-001"/>
+      </div>
+      <div class="form-row">
+        <label class="form-label">Responsable Técnico asignado</label>
+        <select id="ong-rt" class="form-input">
+          <option value="">Sin asignar por ahora</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-sep">Administrador de la organización</div>
+    <div class="form-row">
+      <label class="form-label">Nombre completo <span class="form-req">*</span></label>
+      <input id="ong-admin-nombre" class="form-input" type="text" placeholder="Ej: María López"/>
+    </div>
+    <div class="form-row">
+      <label class="form-label">Email <span class="form-req">*</span></label>
+      <input id="ong-admin-email" class="form-input" type="email" placeholder="maria@organizacion.org"/>
+    </div>
+    <p class="invite-note">Se creará la organización y se enviará una invitación al admin. Podrá ingresar al sistema una vez que cree su contraseña.</p>
+    <div class="err-box" id="ong-err"></div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="cerrarModalNuevaONG()">Cancelar</button>
+      <button class="btn-primary" id="btn-invitar-ong" onclick="invitarONG()">
+        <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4-8 5-8-5V6l8 5 8-5v2z"/></svg>
+        Crear ONG e invitar
+      </button>
+    </div>
+  </div>
+</div>
+
 <script>
 const SUPABASE_URL  = 'https://jqkyifuyaxxwugrnjfnq.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impxa3lpZnV5YXh4d3Vncm5qZm5xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyMjE1NjgsImV4cCI6MjA5Njc5NzU2OH0.0r2A5wC4hZ6sg0TAC9_pEdvit5PMHj8XB1wsXWdDVww';
@@ -879,6 +981,148 @@ async function confirmarCSV() {
   } finally {
     btn.textContent = 'Confirmar carga';
     btn.disabled = false; btn.style.opacity = '1'; btn.style.cursor = 'pointer';
+  }
+}
+
+/* ── MODAL NUEVO RT ── */
+function abrirModalNuevoRT() {
+  document.getElementById('rt-nombre').value = '';
+  document.getElementById('rt-email').value  = '';
+  const errEl = document.getElementById('rt-err');
+  errEl.style.display = 'none';
+  const btn = document.getElementById('btn-invitar-rt');
+  btn.disabled = false; btn.style.opacity = '1'; btn.textContent = '';
+  btn.innerHTML = '<svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:currentColor;"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4-8 5-8-5V6l8 5 8-5v2z"/></svg> Enviar invitación';
+  document.getElementById('modal-nuevo-rt').classList.add('open');
+}
+
+function cerrarModalNuevoRT() {
+  document.getElementById('modal-nuevo-rt').classList.remove('open');
+}
+
+async function invitarRT() {
+  const nombre = document.getElementById('rt-nombre').value.trim();
+  const email  = document.getElementById('rt-email').value.trim();
+  const errEl  = document.getElementById('rt-err');
+  errEl.style.display = 'none';
+
+  if (!nombre || !email) {
+    errEl.textContent = 'Nombre y email son obligatorios.';
+    errEl.style.display = 'block'; return;
+  }
+
+  const btn = document.getElementById('btn-invitar-rt');
+  btn.textContent = 'Enviando...'; btn.disabled = true; btn.style.opacity = '0.7';
+
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    const token = session?.access_token || SUPABASE_ANON;
+
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/invitar-rt`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        'apikey': SUPABASE_ANON,
+      },
+      body: JSON.stringify({ nombre, email }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al enviar invitación');
+
+    cerrarModalNuevoRT();
+    alert(`✓ Invitación enviada a ${email}.\n\nEl RT recibirá un email con un link para crear su contraseña.`);
+    await cargarRTs();
+    actualizarMetricas();
+  } catch (e) {
+    errEl.textContent = e.message;
+    errEl.style.display = 'block';
+  } finally {
+    btn.innerHTML = '<svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:currentColor;"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4-8 5-8-5V6l8 5 8-5v2z"/></svg> Enviar invitación';
+    btn.disabled = false; btn.style.opacity = '1';
+  }
+}
+
+/* ── MODAL NUEVA ONG ── */
+function abrirModalNuevaONG() {
+  ['ong-nombre-org','ong-cuit','ong-localidad','ong-reprocann','ong-admin-nombre','ong-admin-email']
+    .forEach(id => { document.getElementById(id).value = ''; });
+  document.getElementById('ong-err').style.display = 'none';
+
+  const sel = document.getElementById('ong-rt');
+  sel.innerHTML = '<option value="">Sin asignar por ahora</option>';
+  ALL_RTS.filter(r => r.activo !== false).forEach(rt => {
+    const opt = document.createElement('option');
+    opt.value = rt.id;
+    opt.textContent = rt.nombre_completo || rt.email || rt.id;
+    sel.appendChild(opt);
+  });
+
+  const btn = document.getElementById('btn-invitar-ong');
+  btn.disabled = false; btn.style.opacity = '1';
+  btn.innerHTML = '<svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:currentColor;"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4-8 5-8-5V6l8 5 8-5v2z"/></svg> Crear ONG e invitar';
+  document.getElementById('modal-nueva-ong').classList.add('open');
+}
+
+function cerrarModalNuevaONG() {
+  document.getElementById('modal-nueva-ong').classList.remove('open');
+}
+
+async function invitarONG() {
+  const nombre_org   = document.getElementById('ong-nombre-org').value.trim();
+  const cuit         = document.getElementById('ong-cuit').value.trim();
+  const localidad    = document.getElementById('ong-localidad').value.trim();
+  const reprocann    = document.getElementById('ong-reprocann').value.trim();
+  const rt_id        = document.getElementById('ong-rt').value || null;
+  const nombre_admin = document.getElementById('ong-admin-nombre').value.trim();
+  const email_admin  = document.getElementById('ong-admin-email').value.trim();
+  const errEl        = document.getElementById('ong-err');
+  errEl.style.display = 'none';
+
+  if (!nombre_org || !nombre_admin || !email_admin) {
+    errEl.textContent = 'Nombre de la organización, nombre y email del admin son obligatorios.';
+    errEl.style.display = 'block'; return;
+  }
+
+  const btn = document.getElementById('btn-invitar-ong');
+  btn.textContent = 'Creando...'; btn.disabled = true; btn.style.opacity = '0.7';
+
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    const token = session?.access_token || SUPABASE_ANON;
+
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/invitar-ong`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        'apikey': SUPABASE_ANON,
+      },
+      body: JSON.stringify({
+        nombre_org,
+        cuit:           cuit       || null,
+        localidad:      localidad  || null,
+        reprocann:      reprocann  || null,
+        rt_id:          rt_id      || null,
+        nombre_contacto: nombre_admin,
+        email_contacto:  email_admin,
+      }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al crear ONG');
+
+    cerrarModalNuevaONG();
+    alert(`✓ ONG "${nombre_org}" creada.\n\nInvitación enviada a ${email_admin}.\nPodrá ingresar al sistema una vez que cree su contraseña.`);
+    await cargarONGs();
+    actualizarMetricas();
+  } catch (e) {
+    errEl.textContent = e.message;
+    errEl.style.display = 'block';
+  } finally {
+    btn.innerHTML = '<svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:currentColor;"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4-8 5-8-5V6l8 5 8-5v2z"/></svg> Crear ONG e invitar';
+    btn.disabled = false; btn.style.opacity = '1';
   }
 }
 

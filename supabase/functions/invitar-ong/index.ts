@@ -54,7 +54,8 @@ Deno.serve(async (req) => {
   try {
     const {
       nombre_org, cuit, localidad, direccion, email_org, telefono,
-      nombre_contacto, email_contacto, reprocann, fecha_inscripcion, notas
+      nombre_contacto, email_contacto, reprocann, fecha_inscripcion, notas,
+      rt_id: rt_id_solicitado,   // opcional — superadmin puede pasar el RT a asignar
     } = await req.json()
 
     if (!nombre_org || !email_contacto) {
@@ -77,22 +78,23 @@ Deno.serve(async (req) => {
         reprocann: reprocann || null,
         fecha_inscripcion: fecha_inscripcion || null,
         notas: notas || null,
-        creado_por: user.id,
       })
       .select()
       .single()
 
     if (orgError) throw new Error('Error al crear organización: ' + orgError.message)
 
-    // 2. Vincular RT con la organización
-    const { error: linkError } = await supabaseAdmin
-      .from('rt_organizaciones')
-      .insert({ rt_id: user.id, ong_id: org.id })
-
-    if (linkError) throw new Error('Error al vincular RT: ' + linkError.message)
+    // 2. Vincular RT con la organización (si corresponde)
+    // Si lo llama un RT: usa su propio ID. Si lo llama el superadmin con rt_id_solicitado: usa ese.
+    const rt_efectivo = rt_id_solicitado || (perfil.rol === 'rt' ? user.id : null)
+    if (rt_efectivo) {
+      const { error: linkError } = await supabaseAdmin
+        .from('rt_organizaciones')
+        .insert({ rt_id: rt_efectivo, ong_id: org.id })
+      if (linkError) throw new Error('Error al vincular RT: ' + linkError.message)
+    }
 
     // 3. Invitar al Admin ONG por email
-    // Supabase envía el email de invitación automáticamente.
     // El trigger on_auth_user_created crea la fila en perfiles al aceptar.
     const { error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(
       email_contacto,
