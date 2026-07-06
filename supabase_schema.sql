@@ -89,6 +89,12 @@ CREATE POLICY "rt ve sus asignaciones" ON public.rt_organizaciones
 ALTER TABLE public.perfiles
   ADD COLUMN IF NOT EXISTS ong_id UUID REFERENCES public.organizaciones(id);
 
+-- ── MIGRACIÓN: campo activo en perfiles (para desactivar RTs desde superadmin) ──
+ALTER TABLE public.perfiles
+  ADD COLUMN IF NOT EXISTS activo BOOLEAN DEFAULT TRUE;
+
+GRANT UPDATE(activo) ON public.perfiles TO authenticated;
+
 -- ── MIGRACIÓN: campos extra en organizaciones ────
 ALTER TABLE public.organizaciones
   ADD COLUMN IF NOT EXISTS cuit             TEXT,

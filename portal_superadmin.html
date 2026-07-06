@@ -141,6 +141,20 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);c
 .empty-title{font-family:'DM Serif Display',serif;font-size:1.05rem;color:var(--soil);margin-bottom:6px;}
 .empty-desc{font-size:0.78rem;line-height:1.6;margin-bottom:18px;}
 
+/* ── TABS ── */
+.tab-bar{display:flex;gap:0;border-bottom:2px solid var(--mist);margin-bottom:16px;}
+.tab{padding:8px 20px;font-size:0.82rem;font-weight:500;color:var(--sage);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;background:none;border-left:none;border-right:none;border-top:none;font-family:'DM Sans',sans-serif;transition:color var(--trans),border-color var(--trans);}
+.tab:hover{color:var(--bark);}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.tab-chip{font-size:0.65rem;font-weight:400;background:rgba(0,0,0,0.06);color:var(--sage);border-radius:10px;padding:1px 7px;margin-left:5px;transition:all var(--trans);}
+.tab.active .tab-chip{background:rgba(78,124,63,0.12);color:var(--accent);}
+.rt-card.inactiva{opacity:0.5;}
+.rt-card.inactiva .rt-av{background:rgba(0,0,0,0.06);color:var(--sage);}
+.btn-sm.desactivar{background:none;color:var(--amber);border:1.5px solid var(--amber-light);}
+.btn-sm.desactivar:hover{background:var(--amber-bg);}
+.btn-sm.reactivar{background:var(--accent);color:white;}
+.btn-sm.reactivar:hover{background:#3d6230;}
+
 @media(max-width:700px){
   .rt-metrics{grid-template-columns:1fr 1fr;}
   .rt-grid{grid-template-columns:1fr;}
@@ -260,6 +274,10 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);c
             <span class="sec-count" id="rts-count"></span>
           </div>
         </div>
+        <div class="tab-bar">
+          <button class="tab active" id="tab-rts-activos" onclick="switchTabRTs('activos')">Activos <span class="tab-chip" id="tc-rts-activos">0</span></button>
+          <button class="tab" id="tab-rts-inactivos" onclick="switchTabRTs('inactivos')">Inactivos <span class="tab-chip" id="tc-rts-inactivos">0</span></button>
+        </div>
         <div class="rt-grid" id="rts-grid">
           <div style="color:var(--sage);font-size:0.82rem;padding:20px 0;">Cargando...</div>
         </div>
@@ -267,6 +285,10 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);c
 
       <!-- ── VIEW: ASOCIACIONES CIVILES ── -->
       <div class="view" id="view-ongs">
+        <div class="tab-bar">
+          <button class="tab active" id="tab-ongs-activas" onclick="switchTabONGs('activas')">Activas <span class="tab-chip" id="tc-ongs-activas">0</span></button>
+          <button class="tab" id="tab-ongs-inactivas" onclick="switchTabONGs('inactivas')">Inactivas <span class="tab-chip" id="tc-ongs-inactivas">0</span></button>
+        </div>
         <div class="filter-bar">
           <select id="filtro-rt" onchange="renderONGs()">
             <option value="">Todos los RTs</option>
@@ -288,10 +310,11 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);c
                 <th>Responsable Técnico</th>
                 <th>Nº REPROCANN</th>
                 <th>Estado</th>
+                <th style="width:110px;"></th>
               </tr>
             </thead>
             <tbody id="ongs-tbody">
-              <tr><td colspan="5" style="color:var(--sage);text-align:center;padding:24px;">Cargando...</td></tr>
+              <tr><td colspan="6" style="color:var(--sage);text-align:center;padding:24px;">Cargando...</td></tr>
             </tbody>
           </table>
         </div>
@@ -386,6 +409,8 @@ let ALL_RTS = [];
 let ALL_ONGS = [];
 let ALL_VARIEDADES = [];
 let CSV_PARSED = null;
+let RT_TAB  = 'activos';
+let ONG_TAB = 'activas';
 
 /* ── INIT ── */
 async function init() {
@@ -407,14 +432,16 @@ async function init() {
 
 function cargarDemo() {
   ALL_RTS = [
-    {id:'rt1',nombre_completo:'María García',email:'mgarcia@demo.com',ongs_count:3,lotes_count:8},
-    {id:'rt2',nombre_completo:'Carlos López',email:'clopez@demo.com',ongs_count:1,lotes_count:4},
+    {id:'rt1',nombre_completo:'María García',email:'mgarcia@demo.com',ongs_count:3,lotes_count:8,activo:true},
+    {id:'rt2',nombre_completo:'Carlos López',email:'clopez@demo.com',ongs_count:1,lotes_count:4,activo:true},
+    {id:'rt3',nombre_completo:'Roberto Silva',email:'rsilva@demo.com',ongs_count:1,lotes_count:0,activo:false},
   ];
   ALL_ONGS = [
     {id:'o1',nombre:'Asociación Esperanza Verde',localidad:'Buenos Aires',rt_nombre:'María García',rt_id:'rt1',reprocann:'REP-001',activa:true},
     {id:'o2',nombre:'ONG Cannabis Medicinal Córdoba',localidad:'Córdoba',rt_nombre:'María García',rt_id:'rt1',reprocann:'REP-002',activa:true},
     {id:'o3',nombre:'Asociación Vida Natural',localidad:'Rosario',rt_nombre:'Carlos López',rt_id:'rt2',reprocann:'REP-003',activa:true},
     {id:'o4',nombre:'Fundación Nuevos Horizontes',localidad:'Mendoza',rt_nombre:null,rt_id:null,reprocann:'',activa:true},
+    {id:'o5',nombre:'ONG Raíces Verdes',localidad:'Tucumán',rt_nombre:'Roberto Silva',rt_id:'rt3',reprocann:'REP-005',activa:false},
   ];
   ALL_VARIEDADES = [];
   actualizarMetricas();
@@ -422,7 +449,7 @@ function cargarDemo() {
 
 /* ── CARGAR RTs ── */
 async function cargarRTs() {
-  const { data, error } = await sb.from('perfiles').select('id, nombre_completo, email').eq('rol', 'rt');
+  const { data, error } = await sb.from('perfiles').select('id, nombre_completo, email, activo').eq('rol', 'rt');
   if (error || !data) return;
 
   const rtIds = data.map(r => r.id);
@@ -488,11 +515,13 @@ async function cargarVariedades() {
 
 /* ── MÉTRICAS ── */
 function actualizarMetricas() {
-  document.getElementById('met-rts').textContent = ALL_RTS.length || '0';
-  document.getElementById('met-ongs').textContent = ALL_ONGS.length || '0';
-  const sinRT = ALL_ONGS.filter(o => !o.rt_id).length;
+  const rtsActivos  = ALL_RTS.filter(r => r.activo !== false);
+  const ongsActivas = ALL_ONGS.filter(o => o.activa !== false);
+  document.getElementById('met-rts').textContent  = rtsActivos.length  || '0';
+  document.getElementById('met-ongs').textContent = ongsActivas.length || '0';
+  const sinRT = ongsActivas.filter(o => !o.rt_id).length;
   document.getElementById('met-sin-rt').textContent = sinRT || '0';
-  const totalLotes = ALL_RTS.reduce((s, rt) => s + (rt.lotes_count || 0), 0);
+  const totalLotes = rtsActivos.reduce((s, rt) => s + (rt.lotes_count || 0), 0);
   document.getElementById('met-lotes').textContent = totalLotes || '0';
 
   renderRTs('dash-rt-grid', 'dash-rt-count', 4);
@@ -524,14 +553,38 @@ function showView(viewId, navEl) {
 function renderRTs(gridId, countId, limit) {
   const grid = document.getElementById(gridId);
   const countEl = document.getElementById(countId);
-  const lista = limit ? ALL_RTS.slice(0, limit) : ALL_RTS;
-  if (countEl) countEl.textContent = ALL_RTS.length + (ALL_RTS.length === 1 ? ' RT' : ' RTs');
 
-  if (ALL_RTS.length === 0) {
+  const nActivos   = ALL_RTS.filter(r => r.activo !== false).length;
+  const nInactivos = ALL_RTS.filter(r => r.activo === false).length;
+
+  // Actualizar chips de pestañas (solo en la vista completa)
+  if (gridId === 'rts-grid') {
+    const tc1 = document.getElementById('tc-rts-activos');
+    const tc2 = document.getElementById('tc-rts-inactivos');
+    if (tc1) tc1.textContent = nActivos;
+    if (tc2) tc2.textContent = nInactivos;
+  }
+
+  if (countEl) countEl.textContent = nActivos + (nActivos === 1 ? ' activo' : ' activos') + (nInactivos ? ` · ${nInactivos} inactivos` : '');
+
+  // Dashboard: solo activos, limitados. Vista completa: filtra por pestaña.
+  let lista;
+  if (limit) {
+    lista = ALL_RTS.filter(r => r.activo !== false).slice(0, limit);
+  } else {
+    lista = RT_TAB === 'activos'
+      ? ALL_RTS.filter(r => r.activo !== false)
+      : ALL_RTS.filter(r => r.activo === false);
+  }
+
+  if (lista.length === 0) {
+    const msg = limit
+      ? 'Aún no hay Responsables Técnicos activos.'
+      : (RT_TAB === 'activos' ? 'No hay RTs activos.' : 'No hay RTs inactivos.');
     grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1;">
       <div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg></div>
-      <div class="empty-title">Sin RTs registrados</div>
-      <div class="empty-desc">Aún no hay Responsables Técnicos en el sistema.</div>
+      <div class="empty-title">Sin RTs</div>
+      <div class="empty-desc">${msg}</div>
     </div>`;
     return;
   }
@@ -540,7 +593,10 @@ function renderRTs(gridId, countId, limit) {
     const ini = (rt.nombre_completo || rt.email || 'RT').split(' ').map(p=>p[0]).join('').toUpperCase().slice(0,2);
     const nombre = rt.nombre_completo || rt.email || '—';
     const email  = rt.nombre_completo ? (rt.email||'—') : '—';
-    return `<div class="rt-card">
+    const inactivo = rt.activo === false;
+    const idStr = rt.id;
+    const nomStr = nombre.replace(/'/g,"\\'");
+    return `<div class="rt-card${inactivo ? ' inactiva' : ''}">
       <div class="rt-card-header">
         <div class="rt-av">${ini}</div>
         <div>
@@ -559,8 +615,12 @@ function renderRTs(gridId, countId, limit) {
         </div>
       </div>
       <div class="rt-card-actions">
-        <button class="btn-sm supervisar" onclick="abrirPortalRT('${rt.id}','${(nombre).replace(/'/g,"\\'")}')">Supervisar →</button>
-        <button class="btn-sm gestionar" onclick="verOngsDeRT('${rt.id}','${(nombre).replace(/'/g,"\\'")}')">Ver ONGs</button>
+        ${!inactivo ? `<button class="btn-sm supervisar" onclick="abrirPortalRT('${idStr}','${nomStr}')">Supervisar →</button>` : ''}
+        <button class="btn-sm gestionar" onclick="verOngsDeRT('${idStr}','${nomStr}')">Ver ONGs</button>
+        ${!inactivo
+          ? `<button class="btn-sm desactivar" onclick="toggleRT('${idStr}','${nomStr}',false)">Desactivar</button>`
+          : `<button class="btn-sm reactivar" onclick="toggleRT('${idStr}','${nomStr}',true)">Reactivar</button>`
+        }
       </div>
     </div>`;
   }).join('');
@@ -568,23 +628,39 @@ function renderRTs(gridId, countId, limit) {
 
 /* ── RENDER ONGs ── */
 function renderONGs() {
-  const filtroRTId  = document.getElementById('filtro-rt')?.value || '';
+  const filtroRTId   = document.getElementById('filtro-rt')?.value || '';
   const filtroNombre = (document.getElementById('filtro-ong-nombre')?.value || '').toLowerCase();
-  let lista = ALL_ONGS;
-  if (filtroRTId) lista = lista.filter(o => o.rt_id === filtroRTId);
-  if (filtroNombre) lista = lista.filter(o => o.nombre.toLowerCase().includes(filtroNombre));
+
+  const nActivas   = ALL_ONGS.filter(o => o.activa !== false).length;
+  const nInactivas = ALL_ONGS.filter(o => o.activa === false).length;
+  const tc1 = document.getElementById('tc-ongs-activas');
+  const tc2 = document.getElementById('tc-ongs-inactivas');
+  if (tc1) tc1.textContent = nActivas;
+  if (tc2) tc2.textContent = nInactivas;
+
+  let lista = ONG_TAB === 'activas'
+    ? ALL_ONGS.filter(o => o.activa !== false)
+    : ALL_ONGS.filter(o => o.activa === false);
+
+  if (filtroRTId)    lista = lista.filter(o => o.rt_id === filtroRTId);
+  if (filtroNombre)  lista = lista.filter(o => o.nombre.toLowerCase().includes(filtroNombre));
 
   const countEl = document.getElementById('ongs-count');
-  if (countEl) countEl.textContent = lista.length + (lista.length === 1 ? ' organización' : ' organizaciones');
+  if (countEl) countEl.textContent = nActivas + ' activas' + (nInactivas ? ` · ${nInactivas} inactivas` : '');
 
   const tbody = document.getElementById('ongs-tbody');
   if (!tbody) return;
   if (lista.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--sage);">Sin resultados</td></tr>`;
+    const msg = ONG_TAB === 'activas' ? 'No hay organizaciones activas.' : 'No hay organizaciones inactivas.';
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--sage);">${msg}</td></tr>`;
     return;
   }
-  tbody.innerHTML = lista.map(o => `
-    <tr>
+  tbody.innerHTML = lista.map(o => {
+    const nomStr = o.nombre.replace(/'/g,"\\'");
+    const btnToggle = o.activa !== false
+      ? `<button class="btn-sm desactivar" onclick="toggleONG('${o.id}','${nomStr}',false)">Dar de baja</button>`
+      : `<button class="btn-sm reactivar"  onclick="toggleONG('${o.id}','${nomStr}',true)">Reactivar</button>`;
+    return `<tr>
       <td style="font-weight:500;color:var(--soil);">${o.nombre}</td>
       <td>${o.localidad || '—'}</td>
       <td>${o.rt_nombre
@@ -592,8 +668,10 @@ function renderONGs() {
         : `<span class="badge badge-sin-rt">Sin RT asignado</span>`
       }</td>
       <td style="font-family:monospace;font-size:0.78rem;">${o.reprocann || '—'}</td>
-      <td><span class="badge ${o.activa ? 'badge-activa' : 'badge-inactiva'}">${o.activa ? 'Activa' : 'Inactiva'}</span></td>
-    </tr>`).join('');
+      <td><span class="badge ${o.activa !== false ? 'badge-activa' : 'badge-inactiva'}">${o.activa !== false ? 'Activa' : 'Inactiva'}</span></td>
+      <td style="text-align:right;">${btnToggle}</td>
+    </tr>`;
+  }).join('');
 }
 
 /* ── RENDER VARIEDADES ── */
@@ -640,6 +718,66 @@ function verOngsDeRT(rtId, rtNombre) {
   showView('view-ongs', document.getElementById('nav-ongs'));
   const sel = document.getElementById('filtro-rt');
   if (sel) { sel.value = rtId; renderONGs(); }
+}
+
+/* ── TABS ── */
+function switchTabRTs(tab) {
+  RT_TAB = tab;
+  document.getElementById('tab-rts-activos').classList.toggle('active', tab === 'activos');
+  document.getElementById('tab-rts-inactivos').classList.toggle('active', tab === 'inactivos');
+  renderRTs('rts-grid', 'rts-count');
+}
+
+function switchTabONGs(tab) {
+  ONG_TAB = tab;
+  document.getElementById('tab-ongs-activas').classList.toggle('active', tab === 'activas');
+  document.getElementById('tab-ongs-inactivas').classList.toggle('active', tab === 'inactivas');
+  renderONGs();
+}
+
+/* ── TOGGLE ESTADO ── */
+async function toggleRT(id, nombre, activar) {
+  const accion = activar ? 'reactivar' : 'desactivar';
+  const msg = activar
+    ? `¿Reactivar a ${nombre}?\n\nEl RT volverá a aparecer como activo en el sistema.`
+    : `¿Desactivar a ${nombre}?\n\nEl RT quedará marcado como inactivo. Sus organizaciones asignadas no quedarán afectadas.`;
+  if (!confirm(msg)) return;
+
+  const rt = ALL_RTS.find(r => r.id === id);
+  if (rt) rt.activo = activar;
+  actualizarMetricas();
+
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) {
+    const { error } = await sb.from('perfiles').update({ activo: activar }).eq('id', id);
+    if (error) {
+      alert('Error al guardar: ' + error.message);
+      if (rt) rt.activo = !activar;
+      actualizarMetricas();
+    }
+  }
+}
+
+async function toggleONG(id, nombre, activar) {
+  const msg = activar
+    ? `¿Reactivar "${nombre}"?\n\nLa organización volverá a aparecer como activa.`
+    : `¿Dar de baja "${nombre}"?\n\nLa organización quedará marcada como inactiva.`;
+  if (!confirm(msg)) return;
+
+  const ong = ALL_ONGS.find(o => o.id === id);
+  if (ong) { ong.activa = activar; }
+  actualizarMetricas();
+
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) {
+    const updates = { activa: activar, fecha_baja: activar ? null : new Date().toISOString() };
+    const { error } = await sb.from('organizaciones').update(updates).eq('id', id);
+    if (error) {
+      alert('Error al guardar: ' + error.message);
+      if (ong) ong.activa = !activar;
+      actualizarMetricas();
+    }
+  }
 }
 
 /* ── MODAL CSV ── */

@@ -3,7 +3,7 @@
 ## Lo que construimos
 
 ### 1. Prototipo v3 (agrotrace_prototipo_v3.html)
-Archivo HTML/CSS/JS con toda la interfaz del sistema. Es la versión más avanzada.
+App HTML/CSS/JS principal, conectada a Supabase. Es la versión activa para Admin ONG.
 
 **Funcionalidades implementadas:**
 - Sidebar con navegación completa
@@ -28,6 +28,8 @@ Archivo HTML/CSS/JS con toda la interfaz del sistema. Es la versión más avanza
 - Historial desplegable en detalle de MB: uso en lotes productivos + registro de bajas
 - Lotes con stock = 0 se ocultan automáticamente del listado y dropdowns
 - Banner de supervisión RT (barra verde oscura) cuando viene del portal RT
+- Bloqueo de división en sublotes si la etapa ya registró egreso (ya avanzó)
+- Aviso si hay borrador sin guardar antes de subdividir
 
 **Pestañas históricas — Mis Lotes Productivos:**
 - Pestaña "Lotes Productivos Activos" — lotes en ciclo activo
@@ -61,17 +63,16 @@ Archivo HTML/CSS/JS con toda la interfaz del sistema. Es la versión más avanza
 Pantalla de login con selección de perfil y formulario de solicitud de acceso.
 
 **Perfiles IAM definidos (3 niveles operativos):**
-| Perfil | Rol | Descripción |
-|--------|-----|-------------|
-| Superadmin | `superadmin` | Acceso total al sistema — puede operar datos productivos directamente |
-| Resp. Técnico | `rt` | Supervisión de ONGs bajo su cargo → redirige a `portal_rt.html` |
-| Admin ONG | `ong` | Gestión de producción de su organización |
+| Perfil | Rol | Destino |
+|--------|-----|---------|
+| Superadmin | `superadmin` | `portal_superadmin.html` |
+| Resp. Técnico | `rt` | `portal_rt.html` |
+| Admin ONG | `ong` | `agrotrace_prototipo_v3.html` |
 
-**Comportamiento actual (banco de prueba):**
-- Sin autenticación real — el botón "Ingresar" redirige directo al sistema
-- El rol seleccionado se guarda en `sessionStorage` bajo la clave `agrotrace_role`
-- El nombre de usuario se guarda en `sessionStorage` bajo la clave `agrotrace_user`
-- Aviso visible: "Modo banco de prueba — sin autenticación real"
+**Autenticación (real, vía Supabase Auth):**
+- Botón "Ingresar" llama a `sb.auth.signInWithPassword({ email, password })`
+- Al éxito: lee rol del perfil y redirige al portal correspondiente
+- El rol y nombre se guardan en `sessionStorage` (`agrotrace_role`, `agrotrace_user`)
 
 **Formulario de solicitud de acceso (implementado):**
 - Acceso desde "¿No tiene cuenta? Solicitar acceso" en la pantalla de roles
@@ -81,7 +82,7 @@ Pantalla de login con selección de perfil y formulario de solicitud de acceso.
 
 ---
 
-### 3. Portal RT (portal_rt.html) — nuevo
+### 3. Portal RT (portal_rt.html)
 Panel de supervisión para el Responsable Técnico.
 
 - Cards de ONGs bajo supervisión con métricas: lotes activos, stock de flores, entregas/mes
@@ -89,16 +90,31 @@ Panel de supervisión para el Responsable Técnico.
 - Alertas visibles por card
 - Botón "Supervisar" → guarda ONG en `sessionStorage` y abre v3 con banner de supervisión
 - Botón "← Cambiar organización" en v3 → vuelve al portal RT
-- Datos simulados (hardcodeados) por ahora — se conectará a Supabase al implementar multi-tenancy
+- Formulario "Nueva Asociación Civil" con campos provisorios (pendiente de definir campos definitivos post-demo)
+- Datos simulados (hardcodeados) — se conectará a Supabase al implementar multi-tenancy
 
 ---
 
-### 4. Sistema de notificación de solicitudes — Edge Function
+### 4. Portal Superadmin (portal_superadmin.html)
+Panel de administración global del sistema.
+
+- Dashboard con métricas globales
+- Gestión de Responsables Técnicos
+- Gestión de ONGs (todas, no solo las de un RT)
+- Variedades RNC — tabla con catálogo INASE + carga de CSV
+  - Lectura del CSV con `TextDecoder('iso-8859-1')` (el archivo INASE es Latin-1)
+  - Preview de conteo antes de confirmar
+  - Upsert por `nro_rnc`: actualiza si existe, agrega si es nueva
+  - Variedades ausentes del CSV → `activa = false` (no se borran, para no romper lotes históricos)
+- **Pendiente:** tabla `variedades_rnc` aún no creada en Supabase (SQL listo en memoria)
+
+---
+
+### 5. Sistema de notificación de solicitudes — Edge Function
 
 **Edge Function `solicitar-acceso`** (`supabase/functions/solicitar-acceso/index.ts`):
 - Recibe datos del formulario via POST
 - Envía email HTML al administrador via Resend con todos los datos del solicitante
-- Incluye en el email el próximo paso a seguir (crear usuario en Supabase Dashboard)
 - Desplegada en Supabase Edge Functions ✅
 
 **Secrets configurados en Supabase (Project Settings → Secrets):**
@@ -112,7 +128,7 @@ Panel de supervisión para el Responsable Técnico.
 
 ---
 
-### 5. Base de datos en Supabase (supabase_schema.sql)
+### 6. Base de datos en Supabase (supabase_schema.sql)
 13 tablas PostgreSQL + 1 tabla de correcciones que implementan el ERD completo.
 
 **Tablas:**
@@ -130,9 +146,29 @@ Panel de supervisión para el Responsable Técnico.
 - `analisis_calidad` — análisis de laboratorio
 - `entregas` — entregas a pacientes (nro_reprocann obligatorio)
 - `entregas_correcciones` — historial de correcciones de entregas
-- `material_documentos` — documentos de origen adjuntos a lotes de material básico (rótulo/estampilla + factura)
+- `material_documentos` — documentos adjuntos a lotes de material básico
 
-Todas con **Row Level Security (RLS)** activado.
+**Tabla pendiente de crear:**
+```sql
+CREATE TABLE public.variedades_rnc (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  nro_rnc     TEXT UNIQUE NOT NULL,
+  cultivar    TEXT NOT NULL,
+  especie     TEXT,                   -- 'CANNABIS' | 'CÁÑAMO'
+  activa      BOOLEAN DEFAULT TRUE,
+  fecha_carga TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE public.variedades_rnc ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "autenticados pueden leer variedades"
+  ON public.variedades_rnc FOR SELECT TO authenticated USING (true);
+
+CREATE POLICY "solo superadmin gestiona variedades"
+  ON public.variedades_rnc FOR ALL TO authenticated
+  USING (EXISTS (
+    SELECT 1 FROM perfiles WHERE id = auth.uid() AND rol = 'superadmin'
+  ));
+```
 
 **Migraciones aplicadas (ejecutar en Supabase SQL Editor si se recrea la base):**
 ```sql
@@ -211,15 +247,17 @@ CREATE OR REPLACE TRIGGER on_auth_user_created
 
 ---
 
-### 6. Conexión Supabase ↔ HTML
+### 7. Conexión Supabase ↔ HTML
 El frontend lee y escribe datos reales en Supabase.
 
 **Qué está conectado:**
+- Autenticación → `sb.auth.signInWithPassword` con redirect por rol
 - Dashboard y lista de lotes → carga desde `lotes_produccion` (activos, terminados, cerrados)
 - Stock → carga desde `lotes_semillas`, `lotes_esquejes`, `lotes_plantas_madre` (activo e histórico)
 - Wizard "Nuevo lote" → guarda en `lotes_produccion` + `etapa_nursery` + descuenta stock
 - Avance de etapas → guarda en tabla correspondiente + actualiza `etapa_actual`
 - Cierre de lotes → actualiza `etapa_actual`, `fecha_cierre`, `motivo_cierre`
+- División en sublotes (Modelo B) → crea registro en `lotes_produccion` con `lote_padre_id`; actualiza cantidad del padre
 - Formulario "Nuevo material básico" → guarda en la tabla correspondiente + sube documentos a Storage bucket `material-basico-docs` + registra en `material_documentos`
 - Formulario de baja → guarda en `bajas_material` + actualiza `stock_actual`
 - Eliminar totalidad → registra baja total + pone stock en 0 + oculta lote
@@ -229,12 +267,9 @@ El frontend lee y escribe datos reales en Supabase.
 - Búsqueda → índice reconstruido desde datos reales
 - Formulario solicitud de acceso → llama a Edge Function `solicitar-acceso`
 
-**Autenticación actual (provisorio):**
-Portal de acceso no autentica — redirige directamente al sistema con el rol seleccionado guardado en `sessionStorage`.
-
 ---
 
-### 7. Documentación generada
+### 8. Documentación generada
 
 | Archivo | Descripción | Versión |
 |---------|-------------|---------|
@@ -246,24 +281,28 @@ Portal de acceso no autentica — redirige directamente al sistema con el rol se
 
 ---
 
-### 8. Deploy
+### 9. Deploy
 `https://gcorreatedesco.github.io/agrotrace-portal/agrotrace_prototipo_v3.html`
 
 **Proyecto Supabase:**
 - URL: `https://jqkyifuyaxxwugrnjfnq.supabase.co`
 - Plan: Free (East US - Ohio)
 - Edge Function desplegada: `solicitar-acceso`
+- Usuario superadmin creado: `gcorreatedesco+admin@gmail.com`
 
 ---
 
 ## Pendientes identificados
 
-1. **Verificar Edge Function** — regenerar API Key en resend.com, actualizar secret `RESEND_API_KEY` en Supabase, probar formulario de solicitud end-to-end.
-2. **Ejecutar trigger** `on_auth_user_created` en Supabase SQL Editor (ver sección 5).
-3. **Personalizar template "Invite user"** en Supabase → Authentication → Email Templates (texto en español incluido en `AgroTrace_Sist_Auth_Por_Solicitud.html`).
-4. **Autenticación real** — conectar `index.html` con `sb.auth.signInWithPassword`. Al implementarlo: vincular `registrado_por` en `entregas` y `corregido_por` en `entregas_correcciones` al usuario autenticado.
-5. **Lotes cerrados por división en sublotes** — el lote padre queda cerrado en la etapa donde se dividió.
-6. **Historial de entregas por paciente** — vista que agrupe todas las entregas a un mismo Nro. REPROCANN.
-7. **Política RLS para rol administrador** — ver todos los datos de todos los productores.
-8. **Multi-tenancy** — tabla `organizaciones` + `rt_organizaciones`, actualizar RLS, conectar portal RT con datos reales.
-9. **Módulo Reportes** — timeline, stock, CSV/PDF.
+1. **Crear tabla `variedades_rnc` en Supabase** — SQL listo arriba (sección 6). Ejecutar en Supabase SQL Editor.
+2. **Verificar Edge Function** — regenerar API Key en resend.com, actualizar secret `RESEND_API_KEY` en Supabase, probar formulario de solicitud end-to-end.
+3. **Ejecutar trigger** `on_auth_user_created` en Supabase SQL Editor (ver sección 6).
+4. **Personalizar template "Invite user"** en Supabase → Authentication → Email Templates (texto en español en `AgroTrace_Sist_Auth_Por_Solicitud.html`).
+5. **Alta ONG por RT** — Edge Function `invitar-ong` pendiente de deploy. Ver memory `project_auth_pendiente.md`.
+6. **Definir campos definitivos formulario Nueva ONG** — esperar confirmación del RT post-demo antes de crear tabla `organizaciones` en Supabase.
+7. **Multi-tenancy** — tabla `organizaciones` + `rt_organizaciones`, actualizar RLS, conectar portal RT con datos reales de Supabase.
+8. **Panel de alertas activas** — vista centralizada de inconsistencias por productor. Requerido en portal ONG y portal RT (modo supervisión). Alta prioridad.
+9. **Sistema de Reportes** — 3 tipos: visita RT (imprimible), regulatorio (template REPROCANN con 24 columnas), actividades ONG. Ver diseño detallado en memoria.
+10. **Historial de entregas por paciente** — vista que agrupe todas las entregas a un mismo Nro. REPROCANN.
+11. **Adaptación mobile** — sidebar colapsable, formularios apilados, cards para pantallas de celular.
+12. **Política RLS superadmin** — verificar que esté aplicada para todos los roles.
