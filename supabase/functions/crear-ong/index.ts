@@ -92,17 +92,15 @@ Deno.serve(async (req) => {
 
     // 3. Crear el usuario admin de la ONG con rol 'ong'
     // El trigger on_auth_user_created lo usará para crear el perfil automáticamente
-    const { data, error: createError } = await supabaseAdmin.auth.admin.createUserWithPassword(
-      email_admin,
-      password_admin,
-      {
-        user_metadata: {
-          rol: 'ong',
-          ong_id: org.id,
-          nombre_contacto: nombre_admin,
-        },
-      }
-    )
+    const { data, error: createError } = await supabaseAdmin.auth.admin.createUser({
+      email: email_admin,
+      password: password_admin,
+      user_metadata: {
+        rol: 'ong',
+        ong_id: org.id,
+        nombre_contacto: nombre_admin,
+      },
+    })
 
     if (createError) throw new Error('Error al crear usuario: ' + createError.message)
 
