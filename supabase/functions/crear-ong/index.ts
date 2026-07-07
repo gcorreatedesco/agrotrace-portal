@@ -91,26 +91,40 @@ Deno.serve(async (req) => {
     }
 
     // 3. Crear el usuario admin de la ONG con rol 'ong'
-    // El trigger on_auth_user_created lo usará para crear el perfil automáticamente
-    const { data, error: createError } = await supabaseAdmin.auth.admin.createUser({
-      email: email_admin,
-      password: password_admin,
-      user_metadata: {
-        rol: 'ong',
-        ong_id: org.id,
-        nombre_contacto: nombre_admin,
+    // Usar la API REST directamente para mayor compatibilidad
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+
+    const createUserRes = await fetch(`${supabaseUrl}/auth/v1/admin/users`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${serviceRoleKey}`,
+        'Content-Type': 'application/json',
       },
+      body: JSON.stringify({
+        email: email_admin,
+        password: password_admin,
+        user_metadata: {
+          rol: 'ong',
+          ong_id: org.id,
+          nombre_contacto: nombre_admin,
+        },
+        email_confirm: true,
+      }),
     })
 
-    if (createError) throw new Error('Error al crear usuario: ' + createError.message)
+    const createUserData = await createUserRes.json()
+    if (!createUserRes.ok) {
+      throw new Error('Error al crear usuario: ' + (createUserData.msg || createUserData.error || 'Unknown error'))
+    }
 
     return new Response(
       JSON.stringify({
         ok: true,
         org_id: org.id,
-        user_id: data.user.id,
+        user_id: createUserData.user.id,
         nombre_org: org.nombre,
-        email_admin: data.user.email,
+        email_admin: createUserData.user.email,
         mensaje: `ONG "${nombre_org}" y su usuario admin creados. El admin puede loguearse con ${email_admin}`
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
