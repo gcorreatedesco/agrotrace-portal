@@ -433,13 +433,17 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);c
       <label class="form-label">Email <span class="form-req">*</span></label>
       <input id="rt-email" class="form-input" type="email" placeholder="juan@ejemplo.com"/>
     </div>
-    <p class="invite-note">El sistema enviará un email de invitación. El RT deberá hacer click en el link para crear su contraseña e ingresar al sistema.</p>
+    <div class="form-row">
+      <label class="form-label">Contraseña <span class="form-req">*</span></label>
+      <input id="rt-password" class="form-input" type="password" placeholder="Ej: SecurePass123!"/>
+    </div>
+    <p class="invite-note">El RT podrá loguearse inmediatamente con estas credenciales.</p>
     <div class="err-box" id="rt-err"></div>
     <div class="modal-footer">
       <button class="btn-secondary" onclick="cerrarModalNuevoRT()">Cancelar</button>
-      <button class="btn-primary" id="btn-invitar-rt" onclick="invitarRT()">
-        <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4-8 5-8-5V6l8 5 8-5v2z"/></svg>
-        Enviar invitación
+      <button class="btn-primary" id="btn-invitar-rt" onclick="crearRT()">
+        <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+        Crear RT
       </button>
     </div>
   </div>
@@ -490,13 +494,17 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);c
       <label class="form-label">Email <span class="form-req">*</span></label>
       <input id="ong-admin-email" class="form-input" type="email" placeholder="maria@organizacion.org"/>
     </div>
-    <p class="invite-note">Se creará la organización y se enviará una invitación al admin. Podrá ingresar al sistema una vez que cree su contraseña.</p>
+    <div class="form-row">
+      <label class="form-label">Contraseña <span class="form-req">*</span></label>
+      <input id="ong-admin-password" class="form-input" type="password" placeholder="Ej: SecurePass123!"/>
+    </div>
+    <p class="invite-note">Se creará la organización y el admin podrá loguearse inmediatamente con estas credenciales.</p>
     <div class="err-box" id="ong-err"></div>
     <div class="modal-footer">
       <button class="btn-secondary" onclick="cerrarModalNuevaONG()">Cancelar</button>
-      <button class="btn-primary" id="btn-invitar-ong" onclick="invitarONG()">
-        <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4-8 5-8-5V6l8 5 8-5v2z"/></svg>
-        Crear ONG e invitar
+      <button class="btn-primary" id="btn-invitar-ong" onclick="crearONG()">
+        <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+        Crear ONG
       </button>
     </div>
   </div>
@@ -988,11 +996,12 @@ async function confirmarCSV() {
 function abrirModalNuevoRT() {
   document.getElementById('rt-nombre').value = '';
   document.getElementById('rt-email').value  = '';
+  document.getElementById('rt-password').value = '';
   const errEl = document.getElementById('rt-err');
   errEl.style.display = 'none';
   const btn = document.getElementById('btn-invitar-rt');
   btn.disabled = false; btn.style.opacity = '1'; btn.textContent = '';
-  btn.innerHTML = '<svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:currentColor;"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4-8 5-8-5V6l8 5 8-5v2z"/></svg> Enviar invitación';
+  btn.innerHTML = '<svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:currentColor;"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg> Crear RT';
   document.getElementById('modal-nuevo-rt').classList.add('open');
 }
 
@@ -1000,53 +1009,54 @@ function cerrarModalNuevoRT() {
   document.getElementById('modal-nuevo-rt').classList.remove('open');
 }
 
-async function invitarRT() {
+async function crearRT() {
   const nombre = document.getElementById('rt-nombre').value.trim();
   const email  = document.getElementById('rt-email').value.trim();
+  const password = document.getElementById('rt-password').value.trim();
   const errEl  = document.getElementById('rt-err');
   errEl.style.display = 'none';
 
-  if (!nombre || !email) {
-    errEl.textContent = 'Nombre y email son obligatorios.';
+  if (!nombre || !email || !password) {
+    errEl.textContent = 'Nombre, email y contraseña son obligatorios.';
     errEl.style.display = 'block'; return;
   }
 
   const btn = document.getElementById('btn-invitar-rt');
-  btn.textContent = 'Enviando...'; btn.disabled = true; btn.style.opacity = '0.7';
+  btn.textContent = 'Creando...'; btn.disabled = true; btn.style.opacity = '0.7';
 
   try {
     const { data: { session } } = await sb.auth.getSession();
     const token = session?.access_token || SUPABASE_ANON;
 
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/invitar-rt`, {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/crear-rt`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`,
         'apikey': SUPABASE_ANON,
       },
-      body: JSON.stringify({ nombre, email }),
+      body: JSON.stringify({ nombre, email, password }),
     });
 
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Error al enviar invitación');
+    if (!res.ok) throw new Error(data.error || 'Error al crear RT');
 
     cerrarModalNuevoRT();
-    alert(`✓ Invitación enviada a ${email}.\n\nEl RT recibirá un email con un link para crear su contraseña.`);
+    alert(`✓ RT "${nombre}" creado exitosamente.\n\nEmail: ${email}\nPuede loguearse inmediatamente con estas credenciales.`);
     await cargarRTs();
     actualizarMetricas();
   } catch (e) {
     errEl.textContent = e.message;
     errEl.style.display = 'block';
   } finally {
-    btn.innerHTML = '<svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:currentColor;"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4-8 5-8-5V6l8 5 8-5v2z"/></svg> Enviar invitación';
+    btn.innerHTML = '<svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:currentColor;"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg> Crear RT';
     btn.disabled = false; btn.style.opacity = '1';
   }
 }
 
 /* ── MODAL NUEVA ONG ── */
 function abrirModalNuevaONG() {
-  ['ong-nombre-org','ong-cuit','ong-localidad','ong-reprocann','ong-admin-nombre','ong-admin-email']
+  ['ong-nombre-org','ong-cuit','ong-localidad','ong-reprocann','ong-admin-nombre','ong-admin-email','ong-admin-password']
     .forEach(id => { document.getElementById(id).value = ''; });
   document.getElementById('ong-err').style.display = 'none';
 
@@ -1061,7 +1071,7 @@ function abrirModalNuevaONG() {
 
   const btn = document.getElementById('btn-invitar-ong');
   btn.disabled = false; btn.style.opacity = '1';
-  btn.innerHTML = '<svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:currentColor;"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4-8 5-8-5V6l8 5 8-5v2z"/></svg> Crear ONG e invitar';
+  btn.innerHTML = '<svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:currentColor;"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg> Crear ONG';
   document.getElementById('modal-nueva-ong').classList.add('open');
 }
 
@@ -1069,7 +1079,7 @@ function cerrarModalNuevaONG() {
   document.getElementById('modal-nueva-ong').classList.remove('open');
 }
 
-async function invitarONG() {
+async function crearONG() {
   const nombre_org   = document.getElementById('ong-nombre-org').value.trim();
   const cuit         = document.getElementById('ong-cuit').value.trim();
   const localidad    = document.getElementById('ong-localidad').value.trim();
@@ -1077,11 +1087,12 @@ async function invitarONG() {
   const rt_id        = document.getElementById('ong-rt').value || null;
   const nombre_admin = document.getElementById('ong-admin-nombre').value.trim();
   const email_admin  = document.getElementById('ong-admin-email').value.trim();
+  const password_admin = document.getElementById('ong-admin-password').value.trim();
   const errEl        = document.getElementById('ong-err');
   errEl.style.display = 'none';
 
-  if (!nombre_org || !nombre_admin || !email_admin) {
-    errEl.textContent = 'Nombre de la organización, nombre y email del admin son obligatorios.';
+  if (!nombre_org || !nombre_admin || !email_admin || !password_admin) {
+    errEl.textContent = 'Nombre de la organización, nombre, email y contraseña del admin son obligatorios.';
     errEl.style.display = 'block'; return;
   }
 
@@ -1092,7 +1103,7 @@ async function invitarONG() {
     const { data: { session } } = await sb.auth.getSession();
     const token = session?.access_token || SUPABASE_ANON;
 
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/invitar-ong`, {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/crear-ong`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -1101,12 +1112,13 @@ async function invitarONG() {
       },
       body: JSON.stringify({
         nombre_org,
-        cuit:           cuit       || null,
-        localidad:      localidad  || null,
-        reprocann:      reprocann  || null,
-        rt_id:          rt_id      || null,
-        nombre_contacto: nombre_admin,
-        email_contacto:  email_admin,
+        email_admin,
+        password_admin,
+        nombre_admin,
+        cuit: cuit || null,
+        localidad: localidad || null,
+        reprocann: reprocann || null,
+        rt_id: rt_id || null,
       }),
     });
 
@@ -1114,14 +1126,14 @@ async function invitarONG() {
     if (!res.ok) throw new Error(data.error || 'Error al crear ONG');
 
     cerrarModalNuevaONG();
-    alert(`✓ ONG "${nombre_org}" creada.\n\nInvitación enviada a ${email_admin}.\nPodrá ingresar al sistema una vez que cree su contraseña.`);
+    alert(`✓ ONG "${nombre_org}" creada exitosamente.\n\nEmail: ${email_admin}\nEl admin puede loguearse inmediatamente con estas credenciales.`);
     await cargarONGs();
     actualizarMetricas();
   } catch (e) {
     errEl.textContent = e.message;
     errEl.style.display = 'block';
   } finally {
-    btn.innerHTML = '<svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:currentColor;"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4-8 5-8-5V6l8 5 8-5v2z"/></svg> Crear ONG e invitar';
+    btn.innerHTML = '<svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:currentColor;"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg> Crear ONG';
     btn.disabled = false; btn.style.opacity = '1';
   }
 }
