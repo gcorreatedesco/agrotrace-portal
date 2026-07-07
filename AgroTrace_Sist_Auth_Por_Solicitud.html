@@ -754,59 +754,160 @@ CREATE OR REPLACE TRIGGER on_auth_user_created
     </li>
   </ul>
 
-  <!-- ── CREACIÓN DIRECTA DE USUARIOS (EDGE FUNCTIONS) ── -->
-  <h2>6. Creación directa de usuarios — Edge Functions `crear-rt` y `crear-ong`</h2>
+  <!-- ── FLUJO INTEGRADO: GOOGLE FORMS + CREACIÓN EN PORTAL ── -->
+  <h2>6. Flujo integrado: Solicitud (Google Forms) → Revisión → Creación (Portal)</h2>
 
-  <p>Alternativamente al flujo por solicitud, el Superadmin puede crear usuarios RT y ONG <strong>directamente desde el portal</strong> sin que ellos reciban emails de invitación. El Superadmin proporciona email + contraseña.</p>
+  <p>El proceso completo de onboarding de nuevos usuarios combina dos etapas:</p>
+  <ol style="margin: 12px 0 12px 20px; font-size: 0.88rem;">
+    <li><strong>Etapa 1 — Solicitud (usuario externo):</strong> Usuario externo abre Google Forms desde index.html y completa su solicitud (nombre, email, ONG, rol solicitado)</li>
+    <li><strong>Etapa 2 — Revisión (Superadmin):</strong> Superadmin recibe respuestas en Google Forms, revisa y decide si crear el usuario</li>
+    <li><strong>Etapa 3 — Creación (Superadmin en portal):</strong> Si aprueba, Superadmin entra a portal_superadmin.html y crea el usuario con los datos de la solicitud</li>
+  </ol>
+
+  <h3>Etapa 1: Solicitud vía Google Forms</h3>
+
+  <p>El usuario externo accede a index.html y hace click en <strong>"Solicitar acceso"</strong>:</p>
+  <div class="code-block">
+    <div class="code-label">Flujo del usuario</div>
+    <div class="code-content">index.html → Click "Solicitar acceso"
+    ↓
+    Abre Google Forms en nueva pestaña
+    ↓
+    Completa:
+    - Nombre completo
+    - Email de contacto
+    - Nombre de la ONG / Asociación Civil
+    - Perfil solicitado (Admin ONG / Responsable Técnico)
+    - Nro. REPROCANN (opcional)
+    - Información adicional (opcional)
+    ↓
+    Submit formulario
+    ↓
+    Respuesta guardada en Google Sheets del superadmin</div>
+  </div>
+
+  <p>El enlace del Google Forms está configurado en <code>index.html</code>, función <code>solicitarAcceso()</code>:</p>
+  <div class="code-block">
+    <div class="code-label">Código en index.html</div>
+    <div class="code-content">function solicitarAcceso() {
+  const formUrl = 'https://docs.google.com/forms/d/e/1FAIpQLSeH1P3ECYVuk-GtgZmqnPpqKd9_4Mq7z0qz6lBsHRd-QJAFAg/viewform?usp=publish-editor';
+  window.open(formUrl, '_blank');
+}</div>
+  </div>
+
+  <h3>Etapa 2: Revisión por Superadmin</h3>
+
+  <p>El Superadmin revisa las respuestas en <strong>Google Sheets</strong> (vinculada al formulario). Puede:</p>
+  <ul style="list-style:none;padding:0;margin-left:20px;">
+    <li style="padding:4px 0;">✓ Aprobar la solicitud → procede a Etapa 3</li>
+    <li style="padding:4px 0;">✗ Rechazar la solicitud → descarta o marca como rechazada en el sheet</li>
+  </ul>
+
+  <div class="callout callout-info">
+    <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+    <div class="callout-body">
+      <strong>Validación en la revisión</strong>
+      El Superadmin valida: dominio de email válido, ONG existente, datos coherentes. Solo si todo es correcto, procede a crear el usuario.
+    </div>
+  </div>
+
+  <h3>Etapa 3: Creación en el Portal</h3>
+
+  <p>Una vez aprobada la solicitud, el Superadmin entra a <code>portal_superadmin.html</code> y crea el usuario usando <strong>Edge Functions</strong>:</p>
 
   <h3>Flujo de creación directa:</h3>
 
-  <p><strong>1. Superadmin crea un RT:</strong></p>
+  <p>El Superadmin entra a <strong>portal_superadmin.html</strong> y accede a:</p>
+  <ul style="list-style:none;padding:0;margin-left:20px;">
+    <li style="padding:4px 0;">📌 Botón <strong>"Nuevo RT"</strong> — para crear un Responsable Técnico</li>
+    <li style="padding:4px 0;">📌 Botón <strong>"Nueva ONG"</strong> — para crear una Asociación Civil / ONG</li>
+  </ul>
+
+  <p><strong>Ejemplo: Creación de un RT aprobado</strong></p>
   <div class="code-block">
-    <div class="code-label">Entrada del portal</div>
-    <div class="code-content">Email: juan@example.com
-Contraseña: MiPass123
-Nombre: Juan Pérez
+    <div class="code-label">Datos de la solicitud en Google Forms</div>
+    <div class="code-content">Nombre: Juan Pérez García
+Email: juan.perez@example.com
+Perfil solicitado: Responsable Técnico
+ONG: N/A</div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-label">Portal: Click "Nuevo RT" → Formulario</div>
+    <div class="code-content">Nombre completo: Juan Pérez García  ← (copiado de solicitud)
+Email: juan.perez@example.com         ← (copiado de solicitud)
+Contraseña: [Superadmin genera]       ← (ej: TempPass123!)
 ↓ (Click "Crear RT")
 ↓
 Edge Function crear-rt.ts se ejecuta
 ↓
-Crea usuario en Supabase Auth con metadatos: rol='rt', nombre_contacto
+Crea usuario en Supabase Auth con:
+  - email: juan.perez@example.com
+  - password: TempPass123!
+  - user_metadata: { rol: 'rt', nombre_contacto: 'Juan Pérez García' }
 ↓
 Trigger on_auth_user_created se dispara automáticamente
 ↓
-Crea perfil en tabla perfiles (id, nombre, rol='rt')
+Crea perfil en tabla perfiles:
+  - id: [UUID del usuario]
+  - nombre: 'Juan Pérez García'
+  - rol: 'rt'
+  - ong_id: NULL
 ↓
-✅ RT listo para loguearse con email + contraseña
-</div>
+✅ RT "Juan Pérez García" listo para loguearse
+✅ Email: juan.perez@example.com
+✅ Contraseña: TempPass123!
+    (Superadmin comunica credenciales al RT por canales seguros)</div>
   </div>
 
-  <p><strong>2. Superadmin crea una ONG:</strong></p>
+  <p><strong>Ejemplo: Creación de una ONG aprobada</strong></p>
   <div class="code-block">
-    <div class="code-label">Entrada del portal</div>
-    <div class="code-content">Nombre ONG: Asociación Esperanza Verde
-Email Admin: maria@ong.org
-Contraseña: OngPass456
-Nombre Admin: María López
-CUIT: 20-12345678-9
-Localidad: Buenos Aires
-Nro. REPROCANN: REP-001
-RT asignado: Juan Pérez (opcional)
+    <div class="code-label">Datos de la solicitud en Google Forms</div>
+    <div class="code-content">Nombre: María López Rodríguez
+Email: maria.lopez@ong.org
+Perfil solicitado: Admin ONG
+ONG: Asociación Esperanza Verde
+Nro. REPROCANN: REP-001</div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-label">Portal: Click "Nueva ONG" → Formulario</div>
+    <div class="code-content">Nombre ONG: Asociación Esperanza Verde     ← (de solicitud)
+Email Admin: maria.lopez@ong.org            ← (de solicitud)
+Nombre Admin: María López Rodríguez         ← (de solicitud)
+Contraseña: [Superadmin genera]             ← (ej: OngPass456!)
+Nro. REPROCANN: REP-001                     ← (de solicitud)
+CUIT: [Superadmin busca]                    ← (validación adicional)
+Localidad: Buenos Aires                     ← (si disponible)
+RT asignado: Juan Pérez García (opcional)   ← (decisión del Superadmin)
 ↓ (Click "Crear ONG")
 ↓
 Edge Function crear-ong.ts se ejecuta
 ↓
-1. Crea organización en tabla organizaciones
-2. Si RT fue asignado, vincula en rt_organizaciones
-3. Crea usuario en Auth con metadatos: rol='ong', ong_id
+1. Crea organización en tabla organizaciones:
+   - nombre: 'Asociación Esperanza Verde'
+   - reprocann: 'REP-001'
+   - activa: true
+2. Si RT fue asignado (Juan Pérez):
+   - Vincula en rt_organizaciones (rt_id, ong_id)
+3. Crea usuario en Supabase Auth:
+   - email: maria.lopez@ong.org
+   - password: OngPass456!
+   - user_metadata: { rol: 'ong', ong_id, nombre_contacto: 'María López' }
 ↓
 Trigger on_auth_user_created se dispara
 ↓
-Crea perfil en tabla perfiles (id, nombre, rol='ong', ong_id)
+Crea perfil en tabla perfiles:
+  - id: [UUID del usuario]
+  - nombre: 'María López Rodríguez'
+  - rol: 'ong'
+  - ong_id: [ID de la organización creada]
 ↓
-✅ ONG lista para loguearse
-✅ El RT asignado ahora supervisa esta ONG
-</div>
+✅ ONG "Asociación Esperanza Verde" creada
+✅ Admin de ONG listo para loguearse
+✅ Email: maria.lopez@ong.org
+✅ Contraseña: OngPass456!
+✅ RT "Juan Pérez García" ahora supervisa esta ONG</div>
   </div>
 
   <h3>Edge Functions código:</h3>
@@ -868,8 +969,8 @@ POST https://jqkyifuyaxxwugrnjfnq.supabase.co/functions/v1/crear-ong</div>
   <div class="callout callout-info">
     <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
     <div class="callout-body">
-      <strong>Flujo completo de creación de usuarios</strong>
-      Superadmin completa formulario en portal → Llama Edge Function → Edge Function crea usuario en Supabase Auth → Trigger on_auth_user_created se dispara automáticamente → Perfil se crea en tabla perfiles → Usuario puede loguearse inmediatamente con email + contraseña.
+      <strong>Flujo completo de onboarding</strong>
+      Usuario externo completa Google Forms → Superadmin recibe respuestas en Google Sheets → Superadmin revisa y aprueba → Superadmin entra a portal_superadmin.html → Completa "Nuevo RT" o "Nueva ONG" con datos de la solicitud → Portal llama Edge Function → Edge Function crea usuario en Supabase Auth → Trigger crea perfil automáticamente → Usuario recibe credenciales y puede loguearse.
     </div>
   </div>
 
