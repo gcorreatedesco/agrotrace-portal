@@ -754,17 +754,128 @@ CREATE OR REPLACE TRIGGER on_auth_user_created
     </li>
   </ul>
 
+  <!-- ── CREACIÓN DIRECTA DE USUARIOS (EDGE FUNCTIONS) ── -->
+  <h2>6. Creación directa de usuarios — Edge Functions `crear-rt` y `crear-ong`</h2>
+
+  <p>Alternativamente al flujo por solicitud, el Superadmin puede crear usuarios RT y ONG <strong>directamente desde el portal</strong> sin que ellos reciban emails de invitación. El Superadmin proporciona email + contraseña.</p>
+
+  <h3>Flujo de creación directa:</h3>
+
+  <p><strong>1. Superadmin crea un RT:</strong></p>
+  <div class="code-block">
+    <div class="code-label">Entrada del portal</div>
+    <div class="code-content">Email: juan@example.com
+Contraseña: MiPass123
+Nombre: Juan Pérez
+↓ (Click "Crear RT")
+↓
+Edge Function crear-rt.ts se ejecuta
+↓
+Crea usuario en Supabase Auth con metadatos: rol='rt', nombre_contacto
+↓
+Trigger on_auth_user_created se dispara automáticamente
+↓
+Crea perfil en tabla perfiles (id, nombre, rol='rt')
+↓
+✅ RT listo para loguearse con email + contraseña
+</div>
+  </div>
+
+  <p><strong>2. Superadmin crea una ONG:</strong></p>
+  <div class="code-block">
+    <div class="code-label">Entrada del portal</div>
+    <div class="code-content">Nombre ONG: Asociación Esperanza Verde
+Email Admin: maria@ong.org
+Contraseña: OngPass456
+Nombre Admin: María López
+CUIT: 20-12345678-9
+Localidad: Buenos Aires
+Nro. REPROCANN: REP-001
+RT asignado: Juan Pérez (opcional)
+↓ (Click "Crear ONG")
+↓
+Edge Function crear-ong.ts se ejecuta
+↓
+1. Crea organización en tabla organizaciones
+2. Si RT fue asignado, vincula en rt_organizaciones
+3. Crea usuario en Auth con metadatos: rol='ong', ong_id
+↓
+Trigger on_auth_user_created se dispara
+↓
+Crea perfil en tabla perfiles (id, nombre, rol='ong', ong_id)
+↓
+✅ ONG lista para loguearse
+✅ El RT asignado ahora supervisa esta ONG
+</div>
+  </div>
+
+  <h3>Edge Functions código:</h3>
+
+  <p><strong>crear-rt.ts</strong> — Ubicación: <code>supabase/functions/crear-rt/index.ts</code></p>
+  <div class="code-block">
+    <div class="code-label">Responsabilidades</div>
+    <div class="code-content">1. Verifica que el llamante es superadmin
+2. Recibe: email, password, nombre
+3. Crea usuario en Supabase Auth con user_metadata: { rol: 'rt', nombre_contacto }
+4. Retorna: user_id, email, mensaje de éxito
+5. El trigger automáticamente crea el perfil</div>
+  </div>
+
+  <p><strong>crear-ong.ts</strong> — Ubicación: <code>supabase/functions/crear-ong/index.ts</code></p>
+  <div class="code-block">
+    <div class="code-label">Responsabilidades</div>
+    <div class="code-content">1. Verifica que el llamante es superadmin
+2. Recibe: nombre_org, email_admin, password_admin, nombre_admin, [cuit, localidad, reprocann, rt_id]
+3. Crea organización en tabla organizaciones
+4. Si rt_id: vincula ONG al RT en rt_organizaciones
+5. Crea usuario en Auth con user_metadata: { rol: 'ong', ong_id, nombre_contacto }
+6. Retorna: org_id, user_id, mensaje
+7. El trigger automáticamente crea el perfil vinculado a la ONG</div>
+  </div>
+
+  <h3>Deployment en Supabase:</h3>
+
+  <div class="code-block">
+    <div class="code-label">Comandos a ejecutar en Terminal</div>
+    <div class="code-content">supabase functions deploy crear-rt
+supabase functions deploy crear-ong</div>
+  </div>
+
+  <p>Después del deploy, las Edge Functions están disponibles en:</p>
+  <div class="code-block">
+    <div class="code-label">Endpoints</div>
+    <div class="code-content">POST https://jqkyifuyaxxwugrnjfnq.supabase.co/functions/v1/crear-rt
+POST https://jqkyifuyaxxwugrnjfnq.supabase.co/functions/v1/crear-ong</div>
+  </div>
+
+  <h3>Ventajas del flujo directo:</h3>
+  <ul style="list-style:none;padding:0;">
+    <li style="padding:6px 0;"><strong>✓ Automatizado:</strong> Superadmin no necesita ir a Supabase Dashboard</li>
+    <li style="padding:6px 0;"><strong>✓ Escalable:</strong> Crea 1000 usuarios sin fricción</li>
+    <li style="padding:6px 0;"><strong>✓ Sin emails:</strong> El usuario no recibe link de invitación, solo sus credenciales</li>
+    <li style="padding:6px 0;"><strong>✓ Auditoría:</strong> Logs en Supabase Edge Functions de quién creó qué</li>
+    <li style="padding:6px 0;"><strong>✓ Control de contraseña:</strong> El Superadmin define la contraseña inicial (puede requerir cambio al primer login)</li>
+  </ul>
+
+  <div class="callout callout-purple">
+    <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+    <div class="callout-body">
+      <strong>Recomendación de flujo actual</strong>
+      Usar Edge Functions crear-rt y crear-ong. Estas son operaciones internas (solo Superadmin) y no requieren aprobación externa. El flujo por solicitud + panel de aprobación es innecesario en esta fase.
+    </div>
+  </div>
+
   <div class="callout callout-info">
     <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
     <div class="callout-body">
-      <strong>Flujo completo una vez todo desplegado</strong>
-      Usuario llena formulario → Edge Function envía email al admin → Admin crea usuario en Supabase Dashboard → Trigger crea el perfil automáticamente → Supabase envía link de activación vía Resend → Usuario activa su cuenta y define contraseña → Puede ingresar al sistema.
+      <strong>Flujo completo de creación de usuarios</strong>
+      Superadmin completa formulario en portal → Llama Edge Function → Edge Function crea usuario en Supabase Auth → Trigger on_auth_user_created se dispara automáticamente → Perfil se crea en tabla perfiles → Usuario puede loguearse inmediatamente con email + contraseña.
     </div>
   </div>
 
   <div class="doc-footer">
     <span>AgroTrace — Sistema de Trazabilidad REPROCANN</span>
-    <span>v1.1 · Junio 2026</span>
+    <span>v1.2 · Julio 2026</span>
   </div>
 
 </div>
