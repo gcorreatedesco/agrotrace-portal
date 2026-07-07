@@ -115,7 +115,9 @@ Deno.serve(async (req) => {
 
     const createUserData = await createUserRes.json()
     if (!createUserRes.ok) {
-      throw new Error('Error al crear usuario: ' + (createUserData.msg || createUserData.error || 'Unknown error'))
+      console.error('Auth API error response:', createUserData)
+      const errorMsg = createUserData.msg || createUserData.error || createUserData.message || JSON.stringify(createUserData)
+      throw new Error('Error al crear usuario: ' + errorMsg)
     }
 
     return new Response(
