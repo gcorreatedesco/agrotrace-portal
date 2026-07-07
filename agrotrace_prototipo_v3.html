@@ -66,6 +66,8 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);c
 .btn-secondary:hover{background:var(--cream);}
 .btn-dark{background:var(--soil);color:var(--dew);}
 .btn-dark:hover{background:var(--bark);}
+.btn-cancel{background:transparent;border:1.5px solid var(--error);color:var(--error);}
+.btn-cancel:hover{background:#fdf0ee;}
 .btn-advance{background:#3d6230;color:white;}
 .btn-advance:hover{background:var(--accent);}
 .content{padding:20px 24px;flex:1;}
@@ -267,6 +269,12 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
 .st2{display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--cream);border:1px dashed rgba(0,0,0,0.15);border-radius:var(--radius);cursor:pointer;font-size:0.72rem;color:var(--sage);margin-top:8px;transition:all var(--trans);}
 .st2:hover{border-color:var(--accent);color:var(--accent);}
 .si{width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,0.08);display:flex;align-items:center;justify-content:center;font-size:13px;}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:1000;display:flex;align-items:center;justify-content:center;}
+.modal-box{background:#fff;border-radius:12px;padding:24px;width:min(440px,92vw);max-height:90vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,0.18);}
+.modal-title{font-family:'DM Serif Display',serif;font-size:1.15rem;color:var(--soil);margin-bottom:3px;}
+.modal-sub{font-size:0.72rem;color:var(--sage);margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid rgba(0,0,0,0.07);}
+.restantes-calc{font-size:0.74rem;color:var(--accent);font-weight:500;margin-top:4px;}
+.restantes-err{color:var(--error)!important;}
 
 /* success */
 .ss{text-align:center;padding:36px 20px;display:none;}
@@ -655,8 +663,8 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
       <div class="field"><label>Variedad<span class="opt">se completa automáticamente desde el lote de origen en paso 2</span></label><input type="text" id="p1v" placeholder="Se completará automáticamente" readonly/></div>
       <div class="erb" id="p1-err" style="display:none;"></div>
       <div class="wb" id="p1-warn" style="display:none;white-space:pre-line;"></div>
-      <div class="ab">
-        <button class="btn btn-secondary" onclick="sv('dashboard')">Cancelar</button>
+      <div class="ab" style="justify-content:space-between;">
+        <button class="btn btn-cancel" onclick="cancelarWizard()">Cancelar</button>
         <button class="btn btn-primary" onclick="wizPaso1Siguiente()">Siguiente: Origen →</button>
       </div>
     </div>
@@ -714,9 +722,12 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
         <div class="sr"><span>A utilizar</span><span id="spu">—</span></div>
         <div class="sr fin"><span>Stock final de material básico de origen</span><span id="spf">—</span></div>
       </div>
-      <div class="ab">
-        <button class="btn btn-secondary" onclick="gw(1)">← Anterior</button>
-        <button class="btn btn-primary" onclick="gw(3)">Siguiente: Nursery →</button>
+      <div class="ab" style="justify-content:space-between;">
+        <button class="btn btn-cancel" onclick="cancelarWizard()">Cancelar</button>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-secondary" onclick="gw(1)">← Anterior</button>
+          <button class="btn btn-primary" onclick="wizPaso2Siguiente()">Siguiente: Nursery →</button>
+        </div>
       </div>
     </div>
   </div>
@@ -745,13 +756,13 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
           <div class="mc" id="mcd" onclick="sm('d')"><div class="mct">Número directo</div><div class="mcs">Ingreso manual</div></div>
         </div>
         <div id="calcb"><div class="cr">
-          <div class="cf"><label>Bandejas</label><input type="number" id="nb" min="1" placeholder="0" oninput="ct()"/></div>
+          <div class="cf"><label>Bandejas</label><input type="number" id="nb" min="1" step="1" placeholder="0" oninput="ct()"/></div>
           <div class="cop">×</div>
-          <div class="cf"><label>Alvéolos</label><input type="number" id="na" min="1" placeholder="0" oninput="ct()"/></div>
+          <div class="cf"><label>Alvéolos</label><input type="number" id="na" min="1" step="1" placeholder="0" oninput="ct()"/></div>
           <div class="cop">=</div>
-          <div class="crs"><div class="crsl">Total plántulas</div><div class="crsv" id="ctot">200</div></div>
+          <div class="crs"><div class="crsl" id="lbl-total-nur">Total plántulas</div><div class="crsv" id="ctot">200</div></div>
         </div></div>
-        <div id="calcd" style="display:none;"><input type="number" id="cnd" min="0" placeholder="Nº plántulas o esquejes sembrados" oninput="ct()"/></div>
+        <div id="calcd" style="display:none;"><input type="number" id="cnd" min="0" step="1" placeholder="Nº plántulas o esquejes sembrados" oninput="ct()"/></div>
       </div>
       <div class="field"><label>Notas<span class="opt">opcional</span></label><input type="text" placeholder="Condiciones, sustrato, observaciones..."/></div>
       <div class="wb" id="nw">Al confirmar se descontarán unidades del stock del material de origen.</div>
@@ -777,7 +788,7 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
         <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(0,0,0,0.06);font-size:0.78rem;"><span style="color:var(--sage);">Fecha de inicio</span><span style="font-weight:500;" id="sf">—</span></div>
         <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(0,0,0,0.06);font-size:0.78rem;"><span style="color:var(--sage);">Material de origen</span><span style="font-weight:500;" id="so">—</span></div>
         <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(0,0,0,0.06);font-size:0.78rem;"><span style="color:var(--sage);">Cantidad utilizada</span><span style="font-weight:500;" id="sc2">—</span></div>
-        <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(0,0,0,0.06);font-size:0.78rem;"><span style="color:var(--sage);">Plántulas en Nursery</span><span style="font-weight:500;color:var(--accent);" id="sp2">—</span></div>
+        <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(0,0,0,0.06);font-size:0.78rem;"><span id="lbl-sp2-header" style="color:var(--sage);">Plántulas en Nursery</span><span style="font-weight:500;color:var(--accent);" id="sp2">—</span></div>
         <div style="display:flex;justify-content:space-between;padding:7px 0;font-size:0.78rem;"><span style="color:var(--sage);">Stock final de material básico de origen</span><span style="font-weight:500;color:var(--amber);" id="ss2">—</span></div>
       </div>
       <div class="chi2" id="chk2" onclick="tc('chk2','cb2')"><input type="checkbox" id="cb2"/> Confirmo el descuento de unidades del stock del material de origen.</div>
@@ -793,7 +804,7 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
       <div class="sss" id="smsg">El lote fue creado y está activo en Nursery.</div>
       <div class="ssa">
         <button class="btn btn-primary" onclick="sv('dashboard')">Ver dashboard</button>
-        <button class="btn btn-secondary" onclick="sv('detalle')">Continuar en Nursery</button>
+        <button class="btn btn-secondary" onclick="openLote(NUEVO_LOTE_ID)">Continuar en Nursery</button>
         <button class="btn btn-secondary" onclick="rW()">Crear otro lote</button>
       </div>
     </div>
@@ -889,7 +900,7 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
     <div class="g2">
       <div class="field"><label>Stock inicial<span class="req">*</span></label><input type="number" id="nm-stock" min="0" placeholder="Cantidad"/></div>
       <div class="field"><label>Unidad<span class="req">*</span></label>
-        <select id="nm-unidad">
+        <select id="nm-unidad" onchange="document.getElementById('nm-stock').step=stepForUnit(this.value)">
           <option value="">— Elegí unidad —</option>
           <option value="gramos">Gramos</option>
           <option value="semillas">Nº de semillas</option>
@@ -979,6 +990,7 @@ let ALL_LOTES = [];
 
 let LOTE_ACTIVO=null;
 let HIST_DATA={};
+let NUEVO_LOTE_ID=null;
 let INCONSISTENCIAS={};
 let CORRECCIONES_LOG={};
 
@@ -1304,9 +1316,13 @@ async function cargarHistorialMaterial(){
   } else {
     for(const lote of lotesFiltrados){
       let cant='—';
-      if(tipo==='semillas'||tipo==='esquejes'){
+      if(tipo==='semillas'||tipo==='esquejes'||tipo==='pm'){
         const{data:nur}=await sb.from('etapa_nursery').select('cantidad_ingreso,material_utilizado,fecha_inicio').eq('lote_id',lote.id??'').maybeSingle();
-        if(nur)cant=(tipo==='semillas'?(nur.material_utilizado||nur.cantidad_ingreso):nur.cantidad_ingreso)+' '+( tipo==='semillas'?'unidades':'esquejes');
+        if(nur){
+          if(tipo==='semillas')cant=(nur.material_utilizado||nur.cantidad_ingreso)+' unidades';
+          else if(tipo==='esquejes')cant=nur.cantidad_ingreso+' esquejes';
+          else cant=nur.cantidad_ingreso+' esquejes (informativo — stock no descontado)';
+        }
       }
       const em={nursery:'Nursery',vegetativa:'Vegetativa',floracion:'Floración',cosecha:'Cosecha',curado_secado:'Curado/Secado',flores:'Flores Cosechadas'};
       usoHtml+=`<div class="hist-item"><div class="hist-item-desc"><strong>${esc(lote.nombre_completo)}</strong><br><span style="color:var(--sage);">Etapa actual: ${em[lote.etapa_actual]||lote.etapa_actual} · Usado: ${cant}</span></div><div class="hist-item-meta">${fmtDate(lote.creado_en?.split('T')[0])}</div></div>`;
@@ -1406,9 +1422,14 @@ async function openLote(id){
   const results=await Promise.all(reqs);
   const keys=['nursery','vegetativa','floracion','cosecha','curado_secado','flores'];
   for(let i=0;i<results.length;i++){if(results[i].data)HIST_DATA[keys[i]]=results[i].data;}
-  checkInconsistencias();
-  renderTimeline(lote.etapaRaw);
-  renderPanelActivo();
+  try{
+    checkInconsistencias();
+    renderTimeline(lote.etapaRaw);
+    renderPanelActivo();
+  }catch(e){
+    document.getElementById('det-panel').innerHTML=`<div class="panel"><div style="color:var(--error);padding:24px;font-size:0.82rem;"><strong>Error al cargar el panel:</strong> ${e.message}</div></div>`;
+    console.error('renderPanelActivo error:',e);
+  }
 }
 
 function renderTimeline(etapa){
@@ -1555,9 +1576,9 @@ function panelNursery(hist=false){
       </div>
       <div>
         <div class="form-col-hdr">Cantidades</div>
-        <div class="field"><label>Origen</label><div class="ro-val">${esc(d.origen_material)||'—'}</div></div>
-        <div class="field"><label>${metodo}</label><div class="ro-val">${d.cantidad_ingreso!=null?d.cantidad_ingreso+' plántulas':'—'}</div></div>
-        <div class="field"><label>Cantidad egreso<span class="req">*</span></label><input type="number" id="nur-egreso" min="0" value="${d.cantidad_egreso||''}" placeholder="Nº de plántulas" oninput="bajasNur()"/></div>
+        <div class="field"><label>Origen</label><div class="ro-val">${fmtOrigen(d.origen_material)}</div></div>
+        <div class="field"><label>${metodo}</label><div class="ro-val">${d.cantidad_ingreso!=null?d.cantidad_ingreso+' '+termNur(d.origen_material):'—'}</div></div>
+        <div class="field"><label>Cantidad egreso<span class="req">*</span></label><input type="number" id="nur-egreso" min="0" step="1" value="${d.cantidad_egreso||''}" placeholder="Nº de ${termNur(d.origen_material)}" oninput="bajasNur()"/></div>
         <div class="field"><label>Bajas (automático)</label><div class="bajas-auto${typeof bajasIni==='number'&&bajasIni<0?' bajas-neg':''}" id="nur-bajas-auto">${bajasIni}</div></div>
         <div class="field"><label>Notas<span class="opt">opcional</span></label><input type="text" id="nur-notas" value="${esc(d.notas)}" placeholder="Observaciones..."/></div>
       </div>
@@ -1590,13 +1611,14 @@ function panelVegetativa(hist=false){
       </div>
       <div>
         <div class="form-col-hdr">Cantidades</div>
-        <div class="field"><label>Cantidad ingreso<span class="req">*</span></label><input type="number" id="veg-cant-ini" min="0" value="${d.cantidad_ingreso||autoCant}" placeholder="Nº de plantas" oninput="bajasVeg()"/></div>
-        <div class="field"><label>Cantidad egreso<span class="req">*</span></label><input type="number" id="veg-egreso" min="0" value="${d.cantidad_egreso||''}" placeholder="Nº de plantas" oninput="bajasVeg()"/></div>
+        <div class="field"><label>Cantidad ingreso<span class="req">*</span></label><input type="number" id="veg-cant-ini" min="0" step="1" value="${d.cantidad_ingreso||autoCant}" placeholder="Nº de plantas" oninput="bajasVeg()"/></div>
+        <div class="field"><label>Cantidad egreso<span class="req">*</span></label><input type="number" id="veg-egreso" min="0" step="1" value="${d.cantidad_egreso||''}" placeholder="Nº de plantas" oninput="bajasVeg()"/></div>
         <div class="field"><label>Bajas (automático)</label><div class="bajas-auto${typeof bajasVegIni==='number'&&bajasVegIni<0?' bajas-neg':''}" id="veg-bajas-auto">${bajasVegIni}</div></div>
         <div class="field"><label>Notas<span class="opt">opcional</span></label><input type="text" id="veg-notas" value="${esc(d.notas)}" placeholder="Observaciones..."/></div>
       </div>
     </div>
     <div class="erb" id="det-validacion" style="display:none;"></div>
+    ${!hist?`<div class="st2" onclick="abrirModalSublote()"><div class="si">÷</div>Crear sublote desde Vegetativa</div>`:''}
     <div class="ab">${ab}</div>
   </div>`;
 }
@@ -1624,14 +1646,14 @@ function panelFloracion(hist=false){
       </div>
       <div>
         <div class="form-col-hdr">Cantidades</div>
-        <div class="field"><label>Cantidad ingreso<span class="req">*</span></label><input type="number" id="flo-cant-ini" min="0" value="${d.cantidad_ingreso||autoCant}" placeholder="Nº de plantas" oninput="bajasFlo()"/></div>
-        <div class="field"><label>Cantidad egreso<span class="req">*</span></label><input type="number" id="flo-egreso" min="0" value="${d.cantidad_egreso||''}" placeholder="Nº de plantas" oninput="bajasFlo()"/></div>
+        <div class="field"><label>Cantidad ingreso<span class="req">*</span></label><input type="number" id="flo-cant-ini" min="0" step="1" value="${d.cantidad_ingreso||autoCant}" placeholder="Nº de plantas" oninput="bajasFlo()"/></div>
+        <div class="field"><label>Cantidad egreso<span class="req">*</span></label><input type="number" id="flo-egreso" min="0" step="1" value="${d.cantidad_egreso||''}" placeholder="Nº de plantas" oninput="bajasFlo()"/></div>
         <div class="field"><label>Bajas (automático)</label><div class="bajas-auto${typeof bajasFloIni==='number'&&bajasFloIni<0?' bajas-neg':''}" id="flo-bajas-auto">${bajasFloIni}</div></div>
         <div class="field"><label>Notas<span class="opt">opcional</span></label><input type="text" id="flo-notas" value="${esc(d.notas)}" placeholder="Observaciones..."/></div>
       </div>
     </div>
     <div class="erb" id="det-validacion" style="display:none;"></div>
-    ${!hist?`<div class="st2" onclick="alert('Sublotes: funcionalidad en desarrollo')"><div class="si">÷</div>Dividir este lote en sublotes desde Floración</div>`:''}
+    ${!hist?`<div class="st2" onclick="abrirModalSublote()"><div class="si">÷</div>Crear sublote desde Floración</div>`:''}
     <div class="ab">${ab}</div>
   </div>`;
 }
@@ -1658,13 +1680,32 @@ function panelCosecha(hist=false){
       </div>
     </div>
     <div class="erb" id="det-validacion" style="display:none;"></div>
+    ${!hist?`<div class="st2" onclick="abrirModalSublote()"><div class="si">÷</div>Crear sublote desde Cosecha</div>`:''}
     <div class="ab">${ab}</div>
   </div>`;
 }
 
-function selUnidad(id){return`<select id="${id}" style="width:82px;flex-shrink:0;"><option value="gramos">gramos</option><option value="kg">kg</option></select>`;}
-function pesoField(labelHtml,inputId,unidadId,val){
-  return`<div class="field"><label>${labelHtml}</label><div style="display:flex;gap:6px;"><input type="number" id="${inputId}" min="0" value="${val||''}" step="0.001" placeholder="0" style="flex:1;min-width:0;"/>${selUnidad(unidadId)}</div></div>`;
+function selUnidad(id,cb=''){return`<select id="${id}" style="width:82px;flex-shrink:0;"${cb?` onchange="${cb}"`:''}><option value="gramos">gramos</option><option value="kg">kg</option></select>`;}
+function pesoField(labelHtml,inputId,unidadId,val,cb=''){
+  const ev=cb?` oninput="${cb}"`:'';
+  return`<div class="field"><label>${labelHtml}</label><div style="display:flex;gap:6px;"><input type="number" id="${inputId}" min="0" value="${val||''}" step="0.001" placeholder="0" style="flex:1;min-width:0;"${ev}/>${selUnidad(unidadId,cb)}</div></div>`;
+}
+function toggleEmpaque(){
+  const tiene=document.getElementById('cur-empaque').value==='true';
+  document.getElementById('cur-tara-wrap').style.display=tiene?'block':'none';
+  calcPesoNeto();
+}
+function calcPesoNeto(){
+  const tiene=document.getElementById('cur-empaque').value==='true';
+  const bruto=parseFloat(document.getElementById('cur-peso-seco')?.value)||0;
+  const tara=parseFloat(document.getElementById('cur-tara')?.value)||0;
+  const uS=document.getElementById('cur-unidad-seco')?.value||'gramos';
+  const uT=document.getElementById('cur-unidad-tara')?.value||'gramos';
+  const brutoG=uS==='kg'?Math.round(bruto*1000*100)/100:bruto;
+  const taraG=uT==='kg'?Math.round(tara*1000*100)/100:tara;
+  const neto=tiene?Math.max(0,brutoG-taraG):brutoG;
+  const el=document.getElementById('cur-peso-neto');
+  if(el)el.textContent=neto>0?neto+' g':'—';
 }
 
 function panelCuradoSecado(hist=false){
@@ -1685,9 +1726,10 @@ function panelCuradoSecado(hist=false){
       <div>
         <div class="form-col-hdr">Pesos</div>
         ${pesoField('Peso inicial húmedo<span class="opt">opcional</span>','cur-peso-ini','cur-unidad-ini',d.peso_inicial_humedo)}
-        ${pesoField('Peso seco final<span class="req">*</span>','cur-peso-seco','cur-unidad-seco',d.peso_seco_final)}
-        <div class="field"><label>¿Tiene empaque?</label><select id="cur-empaque"><option value="false" ${!d.tiene_empaque?'selected':''}>No</option><option value="true" ${d.tiene_empaque?'selected':''}>Sí</option></select></div>
-        ${pesoField('Tara empaque<span class="opt">si tiene empaque</span>','cur-tara','cur-unidad-tara',d.tara_empaque)}
+        ${pesoField('Peso seco final<span class="req">*</span>','cur-peso-seco','cur-unidad-seco',d.peso_seco_final,'calcPesoNeto()')}
+        <div class="field"><label>¿El peso incluye empaque?</label><select id="cur-empaque" onchange="toggleEmpaque()"><option value="false" ${!d.tiene_empaque?'selected':''}>No</option><option value="true" ${d.tiene_empaque?'selected':''}>Sí</option></select></div>
+        <div id="cur-tara-wrap" style="display:${d.tiene_empaque?'block':'none'};">${pesoField('Tara del empaque','cur-tara','cur-unidad-tara',d.tara_empaque,'calcPesoNeto()')}</div>
+        <div class="field"><label>Peso neto de flores</label><div class="ro-val" id="cur-peso-neto">${d.peso_seco_final!=null?(d.tiene_empaque&&d.tara_empaque?Math.max(0,d.peso_seco_final-d.tara_empaque):d.peso_seco_final)+' g':'—'}</div></div>
       </div>
     </div>
     <div class="field" style="margin-top:4px;"><label>Notas<span class="opt">opcional</span></label><input type="text" id="cur-notas" value="${esc(d.notas)}" placeholder="Observaciones..."/></div>
@@ -1708,7 +1750,7 @@ function panelFlores(){
     ${warnVariedad}
     <div class="pt">Flores Cosechadas${yaCompletado?' <span style="font-size:0.65rem;color:var(--accent);font-weight:400;text-transform:none;">— lote completado</span>':''}</div>
     <div class="g2">
-      <div class="field"><label>Stock inicial</label><div class="ro-val">${d.stock_inicial!=null?d.stock_inicial+' g':'—'}</div></div>
+      <div class="field"><label>Peso neto de flores<span class="opt">desde Curado/Secado</span></label><div class="ro-val">${d.stock_inicial!=null?d.stock_inicial+' g':'—'}</div></div>
       <div class="field"><label>Stock actual</label><div class="ro-val" id="flores-stock-actual">${d.stock_actual!=null?d.stock_actual+' g':'—'}</div></div>
     </div>
     ${d.fecha_disponible?`<div class="field"><label>Fecha disponible</label><div class="ro-val">${fmtDate(d.fecha_disponible)}</div></div>`:''}
@@ -2138,11 +2180,12 @@ function panelReadOnly(key){
   let campos='';
   if(key==='nursery'){
     const metodo=d.metodo_ingreso==='bandejas'?`${d.bandejas||0} bandejas × ${d.alveolos||0} alveolos`:(d.metodo_ingreso||'—');
-    campos=`<div class="g2"><div class="field"><label>Fecha inicio</label><div class="ro-val">${fmtDate(d.fecha_inicio)||'—'}</div></div><div class="field"><label>Origen material</label><div class="ro-val">${esc(d.origen_material)||'—'}</div></div></div>
-    <div class="g2"><div class="field"><label>Método ingreso</label><div class="ro-val">${metodo}</div></div><div class="field"><label>Cantidad ingreso</label><div class="ro-val">${d.cantidad_ingreso!=null?d.cantidad_ingreso+' plántulas':'—'}</div></div></div>
+    campos=`<div class="g2"><div class="field"><label>Fecha inicio</label><div class="ro-val">${fmtDate(d.fecha_inicio)||'—'}</div></div><div class="field"><label>Origen material</label><div class="ro-val">${fmtOrigen(d.origen_material)}</div></div></div>
+    <div class="g2"><div class="field"><label>Método ingreso</label><div class="ro-val">${metodo}</div></div><div class="field"><label>Cantidad ingreso</label><div class="ro-val">${d.cantidad_ingreso!=null?d.cantidad_ingreso+' '+termNur(d.origen_material):'—'}</div></div></div>
     <hr style="border:none;border-top:1px solid rgba(0,0,0,0.07);margin:10px 0;">
-    <div class="g2"><div class="field"><label>Fecha fin</label><div class="ro-val">${fmtDate(d.fecha_fin)||'—'}</div></div><div class="field"><label>Cantidad egreso</label><div class="ro-val">${d.cantidad_egreso!=null?d.cantidad_egreso+' plántulas':'—'}</div></div></div>
-    <div class="g2"><div class="field"><label>Bajas</label><div class="ro-val">${d.bajas!=null?d.bajas:0}</div></div><div class="field"><label>Notas</label><div class="ro-val">${esc(d.notas)||'—'}</div></div></div>`;
+    <div class="g2"><div class="field"><label>Fecha fin</label><div class="ro-val">${fmtDate(d.fecha_fin)||'—'}</div></div><div class="field"><label>Cantidad egreso</label><div class="ro-val">${d.cantidad_egreso!=null?d.cantidad_egreso+' '+termNur(d.origen_material):'—'}</div></div></div>
+    <div class="g2"><div class="field"><label>Bajas</label><div class="ro-val">${d.bajas!=null?d.bajas:0}</div></div><div class="field"><label>Notas</label><div class="ro-val">${d.notas||'—'}</div></div></div>`;
+
   } else if(key==='vegetativa'){
     campos=`<div class="g2"><div class="field"><label>Fecha inicio (Trasplante)</label><div class="ro-val">${fmtDate(d.fecha_inicio)||'—'}</div></div><div class="field"><label>Cantidad ingreso</label><div class="ro-val">${d.cantidad_ingreso!=null?d.cantidad_ingreso+' plantas':'—'}</div></div></div>
     <hr style="border:none;border-top:1px solid rgba(0,0,0,0.07);margin:10px 0;">
@@ -2269,6 +2312,7 @@ function sv(id){
   if(id==='dashboard')rAll('dash-lotes','todos');
   if(id==='stock')renderStock();
   if(id==='organizaciones')cargarOrganizaciones();
+  if(id==='nuevo-lote')rW();
 }
 function volverDesdePantalla(){sv(PREV_VIEW);}
 
@@ -2348,7 +2392,7 @@ async function guardarAvanzar(){
     if(!document.getElementById('nur-egreso').value)return showErr('La Cantidad egreso es obligatoria para avanzar.');
     const wFin=warnFechaFutura(fechaFin)||warnFechaOrden(HIST_DATA.nursery?.fecha_inicio,fechaFin);
     if(wFin&&!confirm('⚠ '+wFin+'\n\n¿Avanzar igual?'))return;
-    if(egreso===0){if(!confirm('La cantidad de egreso es 0 (todas las plántulas murieron). ¿Querés cerrar el lote anticipadamente en lugar de avanzar?'))return;else{await cerrarLoteAnticipado();return;}}
+    if(egreso===0){const termE=termNur(HIST_DATA.nursery?.origen_material);if(!confirm('La cantidad de egreso es 0 (todas las '+termE+' murieron). ¿Querés cerrar el lote anticipadamente en lugar de avanzar?'))return;else{await cerrarLoteAnticipado();return;}}
     if(bajas<0&&!confirm(`⚠ Las bajas calculadas son negativas (${bajas}): el egreso supera el ingreso. ¿Avanzar igual?`))return;
     const d=HIST_DATA.nursery;
     if(d){({error:dbErr}=await sb.from('etapa_nursery').update({fecha_fin:fechaFin,cantidad_egreso:egreso,bajas,notas}).eq('id',d.id));}
@@ -2440,8 +2484,9 @@ async function guardarAvanzar(){
     if(d){({error:dbErr}=await sb.from('etapa_curado_secado').update({fecha_inicio:fi,fecha_fin:ff,peso_inicial_humedo:pesoIni,tiene_empaque:tieneEmp,tara_empaque:tieneEmp?tara:null,unidad:'gramos',peso_seco_final:pesoG,notas}).eq('id',d.id));}
     else{({error:dbErr}=await sb.from('etapa_curado_secado').insert({lote_id:loteId,fecha_inicio:fi,fecha_fin:ff,peso_inicial_humedo:pesoIni,tiene_empaque:tieneEmp,tara_empaque:tieneEmp?tara:null,unidad:'gramos',peso_seco_final:pesoG,notas}));}
     if(dbErr)return showErr('Error guardando curado/secado: '+dbErr.message);
+    const pesoNeto=tieneEmp&&tara?Math.max(0,pesoG-tara):pesoG;
     const{data:floresExist}=await sb.from('flores_cosechadas').select('id').eq('lote_id',loteId).maybeSingle();
-    if(!floresExist){({error:dbErr}=await sb.from('flores_cosechadas').insert({lote_id:loteId,stock_inicial:pesoG,stock_actual:pesoG}));if(dbErr)return showErr('Error creando stock de flores: '+dbErr.message);}
+    if(!floresExist){({error:dbErr}=await sb.from('flores_cosechadas').insert({lote_id:loteId,stock_inicial:pesoNeto,stock_actual:pesoNeto}));if(dbErr)return showErr('Error creando stock de flores: '+dbErr.message);}
     ({error:dbErr}=await sb.from('lotes_produccion').update({etapa_actual:'flores'}).eq('id',loteId));
     if(dbErr)return showErr('Error actualizando etapa: '+dbErr.message);
     await cargarLotes();rebuildSearchIndex();actualizarMetricasDash();
@@ -2543,20 +2588,38 @@ function wizPaso1Siguiente(){
 function gw(step){
   [1,2,3,4].forEach(n=>{const e=document.getElementById('wp'+n);if(e)e.style.display=n===step?'block':'none';});
   if(step===2){const n=document.getElementById('p1n').value||'Nuevo lote';const f=document.getElementById('p1f').value||'Sin fecha';const e=document.getElementById('cs1');if(e)e.textContent=n+' · '+f;}
-  if(step===3){const n=document.getElementById('p1n').value||'Nuevo lote';const e1=document.getElementById('cs1b');if(e1)e1.textContent=n;const e2=document.getElementById('cs2b');if(e2&&LA)e2.textContent=LA.l+' · '+gC()+' '+LA.u;const nm=document.getElementById('nm');if(nm&&LA)nm.textContent=LA.l+' · '+gC()+' '+LA.u;uNW();}
+  if(step===3){const n=document.getElementById('p1n').value||'Nuevo lote';const e1=document.getElementById('cs1b');if(e1)e1.textContent=n;const e2=document.getElementById('cs2b');if(e2&&LA)e2.textContent=LA.l+' · '+gC()+' '+LA.u;const nm=document.getElementById('nm');if(nm&&LA)nm.textContent=LA.l+' · '+gC()+' '+LA.u;const tn=termNur(OA==='pm'?'plantas_madre':OA);const ltn=document.getElementById('lbl-total-nur');if(ltn)ltn.textContent='Total '+tn;const cnd=document.getElementById('cnd');if(cnd)cnd.placeholder='Nº de '+tn;const p3f=document.getElementById('p3f');if(p3f&&!p3f.value){p3f.value=document.getElementById('p1f').value||'';}uNW();}
   if(step===4){
     document.getElementById('sn').textContent=document.getElementById('p1n').value||'—';
     document.getElementById('sv').textContent=LA?LA.var:'—';
     document.getElementById('sf').textContent=document.getElementById('p1f').value||'—';
     document.getElementById('so').textContent=LA?LA.l:'—';
-    const c=gC();document.getElementById('sc2').textContent=c+' '+(LA?LA.u:'');
+    const c=gC();
+    const sc2Row=document.getElementById('sc2')?.parentElement;
+    if(OA==='pm'){if(sc2Row)sc2Row.style.display='none';}else{document.getElementById('sc2').textContent=c+' '+(LA?LA.u:'');if(sc2Row)sc2Row.style.display='flex';}
     const b=parseInt(document.getElementById('nb').value)||0;const a=parseInt(document.getElementById('na').value)||0;
-    document.getElementById('sp2').textContent=(b*a)+' plántulas ('+b+'×'+a+')';
-    document.getElementById('ss2').textContent=Math.max(0,(LA?LA.stock:0)-c)+' '+(LA?LA.u:'');
+    const tn4=termNur(OA==='pm'?'plantas_madre':OA);
+    const lsp2h=document.getElementById('lbl-sp2-header');if(lsp2h)lsp2h.textContent=tn4.charAt(0).toUpperCase()+tn4.slice(1)+' en Nursery';
+    const isBandConf=document.getElementById('mcb')?.classList.contains('sel');
+    const totNur=isBandConf?b*a:(parseInt(document.getElementById('cnd').value)||0);
+    document.getElementById('sp2').textContent=isBandConf?(totNur+' '+tn4+' ('+b+'×'+a+')'):( totNur+' '+tn4);
+    const ss2Row=document.getElementById('ss2')?.parentElement;
+    const chk2=document.getElementById('chk2');
+    if(OA==='pm'){
+      if(ss2Row)ss2Row.style.display='none';
+      if(chk2)chk2.style.display='none';
+    } else {
+      document.getElementById('ss2').textContent=Math.max(0,(LA?LA.stock:0)-c)+' '+(LA?LA.u:'');
+      if(ss2Row)ss2Row.style.display='flex';
+      if(chk2)chk2.style.display='flex';
+    }
     const ci=document.getElementById('chki');if(ci)ci.style.display=UI?'flex':'none';
   }
 }
-function gC(){const m=document.querySelector('input[name="um"]:checked');if(OA==='semillas'&&m){if(m.value==='pred')return parseInt(document.getElementById('cp').value)||0;else return parseInt(document.getElementById('cm').value)||0;}return parseInt(document.getElementById('cn').value)||0;}
+function termNur(origen){return(!origen||origen==='semillas')?'plántulas':'esquejes';}
+function stepForUnit(u){return(!u||u==='gramos')?'0.001':'1';}
+function fmtOrigen(o){if(!o)return'—';if(o==='plantas_madre')return'Plantas Madre';return o.charAt(0).toUpperCase()+o.slice(1);}
+function gC(){const m=document.querySelector('input[name="um"]:checked');if(OA==='semillas'&&m){if(m.value==='pred')return parseInt(document.getElementById('cp').value)||0;else return parseInt(document.getElementById('cm').value)||0;}const isBand=document.getElementById('mcb')?.classList.contains('sel');if(isBand){const b=parseInt(document.getElementById('nb').value)||0;const a=parseInt(document.getElementById('na').value)||0;return b*a;}return parseInt(document.getElementById('cnd').value)||0;}
 function selO(t){
   ['s','e','p'].forEach(x=>{const map={s:'os',e:'oe',p:'op'};const e=document.getElementById(map[x]);if(e)e.classList.toggle('sel',x===t[0]);});
   OA=t;LA=null;UI=false;
@@ -2565,17 +2628,17 @@ function selO(t){
   LM[t].forEach(l=>{sel.innerHTML+=`<option value="${esc(l.v)}">${esc(l.l)}</option>`;});
   document.getElementById('sp').style.display='none';
   document.getElementById('umw').style.display=t==='semillas'?'block':'none';
-  document.getElementById('cnw').style.display=t!=='semillas'?'block':'none';
+  document.getElementById('cnw').style.display='none';
   document.getElementById('uiw').style.display='none';
   document.getElementById('sh').textContent='';document.getElementById('p1v').value='';
   const ll=document.getElementById('lsl');
   if(ll)ll.innerHTML=(t==='semillas'?'Lote de Semillas a utilizar':t==='esquejes'?'Lote de Esquejes a utilizar':'Lote de Plantas Madre a utilizar')+'<span class="req">*</span>';
 }
-function onLC(v){if(!v||!OA){LA=null;return;}LA=LM[OA].find(l=>l.v===v)||null;if(!LA)return;document.getElementById('sh').textContent='Stock disponible: '+LA.stock+' '+LA.u;document.getElementById('p1v').value=LA.var;if(OA==='semillas')document.getElementById('upl').textContent='('+LA.u+')';document.getElementById('sp').style.display='block';uS(0);}
+function onLC(v){if(!v||!OA){LA=null;return;}LA=LM[OA].find(l=>l.v===v)||null;if(!LA)return;document.getElementById('sh').textContent='Stock disponible: '+LA.stock+' '+LA.u;document.getElementById('p1v').value=LA.var;if(OA==='semillas'){document.getElementById('upl').textContent='('+LA.u+')';const s=stepForUnit(LA.u);['cp','cm'].forEach(id=>{const e=document.getElementById(id);if(e)e.step=s;});}document.getElementById('sp').style.display='block';uS(0);}
 function onUM(v){document.getElementById('mpred').style.display=v==='pred'?'block':'none';document.getElementById('mman').style.display=v==='man'?'block':'none';UI=false;document.getElementById('uiw').style.display='none';}
 function chkUC(){if(!LA)return;const s=document.getElementById('um2').value;const inc=s&&s!==LA.u;UI=inc;document.getElementById('uiw').style.display=inc?'block':'none';}
-function uS(v){if(!LA){document.getElementById('sp').style.display='none';return;}const val=parseInt(v)||0;const r=Math.max(0,LA.stock-val);document.getElementById('spa').textContent=LA.stock+' '+LA.u;document.getElementById('spu').textContent='− '+val+' '+LA.u;document.getElementById('spf').textContent=r+' '+LA.u;document.getElementById('sp').style.display='block';}
-function uNW(){const w=document.getElementById('nw');if(!w)return;const c=gC();if(LA&&!UI){w.className='wb';w.innerHTML='Al confirmar se descontarán <strong>'+c+' '+LA.u+'</strong> del stock de "'+LA.l+'". Stock resultante: <strong>'+Math.max(0,LA.stock-c)+' '+LA.u+'</strong>';}else if(UI){w.className='erb';w.innerHTML='⚠ Unidades no compatibles. El stock <strong>NO será descontado</strong> automáticamente.';}}
+function uS(v){if(!LA){document.getElementById('sp').style.display='none';return;}const val=parseInt(v)||0;const r=Math.max(0,LA.stock-val);document.getElementById('spa').textContent=LA.stock+' '+LA.u;const hideDesc=OA!=='semillas';document.getElementById('spu').textContent=hideDesc?'':('− '+val+' '+LA.u);document.getElementById('spf').textContent=hideDesc?'':( r+' '+LA.u);const spRows=document.getElementById('sp').querySelectorAll('.sr:not(:first-child)');spRows.forEach(el=>el.style.display=hideDesc?'none':'flex');document.getElementById('sp').style.display='block';}
+function uNW(){const w=document.getElementById('nw');if(!w)return;if(OA==='pm'){w.className='wb';w.innerHTML='Plantas Madre: el stock de plantas <strong>no se modifica</strong>. Solo se registra el vínculo con el lote de origen.';return;}const c=gC();if(LA&&!UI){w.className='wb';w.innerHTML='Al confirmar se descontarán <strong>'+c+' '+LA.u+'</strong> del stock de "'+LA.l+'". Stock resultante: <strong>'+Math.max(0,LA.stock-c)+' '+LA.u+'</strong>';}else if(UI){w.className='erb';w.innerHTML='⚠ Unidades no compatibles. El stock <strong>NO será descontado</strong> automáticamente.';}}
 function sm(m){
   document.getElementById('mcb').classList.toggle('sel',m==='b');
   document.getElementById('mcd').classList.toggle('sel',m==='d');
@@ -2593,13 +2656,15 @@ function ct(){
   const b=parseInt(document.getElementById('nb').value)||0;
   const a=parseInt(document.getElementById('na').value)||0;
   document.getElementById('ctot').textContent=b*a;
+  if(OA!=='semillas')uNW();
 }
 function tc(di,ci){const cb=document.getElementById(ci);cb.checked=!cb.checked;document.getElementById(di).classList.toggle('checked',cb.checked);}
 
 /* ── CREAR LOTE ── */
 async function cL(){
   if(UI&&!document.getElementById('cbi').checked){alert('Por favor confirmá el checkbox de unidades incompatibles.');return;}
-  if(!document.getElementById('cb2').checked){alert('Por favor confirmá el descuento de stock.');return;}
+  if(OA!=='pm'&&!document.getElementById('cb2').checked){alert('Por favor confirmá el descuento de stock.');return;}
+  if(!UI&&OA!=='pm'){const c=gC();if(c>LA.stock){alert('La cantidad a utilizar ('+c+' '+LA.u+') supera el stock disponible ('+LA.stock+' '+LA.u+'). No es posible crear el lote.');return;}}
   const nombre=document.getElementById('p1n').value.trim();
   const fecha=document.getElementById('p1f').value;
   const etapa=document.getElementById('p1e').value;
@@ -2631,18 +2696,67 @@ async function cL(){
     if(OA==='semillas')await sb.from('lotes_semillas').update({stock_actual:Math.max(0,LA.stock-c)}).eq('id',LA.v);
     else if(OA==='esquejes')await sb.from('lotes_esquejes').update({stock_actual:Math.max(0,LA.stock-c)}).eq('id',LA.v);
   }
+  NUEVO_LOTE_ID=lote.id;
   document.getElementById('cpanel').style.display='none';
   document.getElementById('sscreen').style.display='block';
   document.getElementById('smsg').innerHTML='<strong>'+nombre+'</strong> fue creado y está activo en Nursery.';
   await cargarLotes();await cargarMaterial();rebuildSearchIndex();actualizarMetricasDash();
 }
 
+function wizPaso2Siguiente(){
+  if(!LA){alert('Seleccioná el lote de material de origen antes de continuar.');return;}
+  if(OA==='semillas'&&!UI){
+    const c=gC();
+    if(!c){alert('Ingresá la cantidad a utilizar.');return;}
+    if(c>LA.stock){alert('La cantidad ingresada ('+c+' '+LA.u+') supera el stock disponible ('+LA.stock+' '+LA.u+').\n\nReducí la cantidad o elegí otro lote.');return;}
+  }
+  gw(3);
+}
+function cancelarWizard(){
+  if(!confirm('⚠ ¿Cancelar la carga del nuevo lote?\n\nLos datos ingresados hasta ahora se perderán y no podrán recuperarse.'))return;
+  rW();
+  sv('lotes');
+}
 function rW(){
-  document.getElementById('cpanel').style.display='block';document.getElementById('sscreen').style.display='none';
-  OA=null;LA=null;UI=false;gw(1);
+  document.getElementById('cpanel').style.display='block';
+  document.getElementById('sscreen').style.display='none';
+  OA=null;LA=null;UI=false;
+
+  // Paso 1
   ['p1n','p1f','p1v'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  const p1e=document.getElementById('p1e');if(p1e)p1e.selectedIndex=0;
+  ['p1-err','p1-warn'].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display='none';});
+
+  // Paso 2 — tipo de origen
   ['os','oe','op'].forEach(id=>{const e=document.getElementById(id);if(e)e.classList.remove('sel');});
-  const sel=document.getElementById('p2l');sel.disabled=true;sel.innerHTML='<option value="">— Primero elegí el tipo de material —</option>';
+  const sel=document.getElementById('p2l');if(sel){sel.disabled=true;sel.innerHTML='<option value="">— Primero elegí el tipo de material —</option>';}
+  const sh=document.getElementById('sh');if(sh)sh.textContent='';
+  document.getElementById('umw').style.display='none';
+  document.getElementById('cnw').style.display='none';
+  document.getElementById('sp').style.display='none';
+  document.getElementById('uiw').style.display='none';
+  // campos semillas
+  ['cp','cm'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  const umPred=document.querySelector('input[name="um"][value="pred"]');if(umPred)umPred.checked=true;
+  document.getElementById('mpred').style.display='block';
+  document.getElementById('mman').style.display='none';
+  const um2=document.getElementById('um2');if(um2)um2.value='';
+
+  // Paso 3 — Nursery
+  const p3f=document.getElementById('p3f');if(p3f)p3f.value='';
+  ['nb','na','cnd'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  const ctot=document.getElementById('ctot');if(ctot)ctot.textContent='0';
+  document.getElementById('mcb').classList.add('sel');
+  document.getElementById('mcd').classList.remove('sel');
+  document.getElementById('calcb').style.display='block';
+  document.getElementById('calcd').style.display='none';
+  const nw=document.getElementById('nw');if(nw){nw.className='wb';nw.textContent='Al confirmar se descontarán unidades del stock del material de origen.';}
+
+  // Paso 4 — checkboxes
+  ['cb2','cbi'].forEach(id=>{const e=document.getElementById(id);if(e)e.checked=false;});
+  ['chk2','chki'].forEach(id=>{const e=document.getElementById(id);if(e)e.classList.remove('checked');});
+
+  gw(1);
 }
 
 /* ── BAJA ── */
@@ -2651,8 +2765,8 @@ function onBL(v){
   if(!v)return;
   const sel=document.getElementById('bl');
   const tipo=sel.options[sel.selectedIndex]?.dataset.tipo;
-  if(tipo==='semillas'){document.getElementById('bs').style.display='block';const l=LM.semillas.find(x=>x.v===v);if(l)document.getElementById('bsu').value=l.u;}
-  else{document.getElementById('bn').style.display='block';const l=[...LM.esquejes,...LM.pm].find(x=>x.v===v);document.getElementById('bu').value=l?l.u:'unidades';}
+  if(tipo==='semillas'){document.getElementById('bs').style.display='block';const l=LM.semillas.find(x=>x.v===v);if(l){document.getElementById('bsu').value=l.u;document.getElementById('b-cant-s').step=stepForUnit(l.u);}}
+  else{document.getElementById('bn').style.display='block';const l=[...LM.esquejes,...LM.pm].find(x=>x.v===v);const u=l?l.u:'unidades';document.getElementById('bu').value=u;document.getElementById('b-cant-n').step=stepForUnit(u);}
 }
 
 async function eliminarTotalidadLote(){
@@ -2939,8 +3053,137 @@ async function guardarMaterial(){
   await cargarMaterial();rebuildSearchIndex();sv('stock');
 }
 
+/* ── SUBLOTES ── */
+function getPlantasDisponibles(){
+  const et=LOTE_ACTIVO?.etapaRaw;
+  if(et==='vegetativa')return parseInt(HIST_DATA.vegetativa?.cantidad_ingreso)||parseInt(document.getElementById('veg-cant-ini')?.value)||0;
+  if(et==='floracion')return parseInt(HIST_DATA.floracion?.cantidad_ingreso)||parseInt(document.getElementById('flo-cant-ini')?.value)||0;
+  if(et==='cosecha')return parseInt(HIST_DATA.floracion?.cantidad_egreso||HIST_DATA.floracion?.cantidad_ingreso)||0;
+  return 0;
+}
+async function abrirModalSublote(){
+  if(!LOTE_ACTIVO)return;
+  const et=LOTE_ACTIVO.etapaRaw;
+  const etLabel={vegetativa:'Vegetativa',floracion:'Floración',cosecha:'Cosecha'}[et]||et;
+  // Bloquear si la etapa ya fue cerrada (tiene egreso registrado)
+  const etapaData=HIST_DATA[et];
+  if(etapaData?.cantidad_egreso!=null){
+    alert('Este lote ya registró el egreso de '+etLabel+' y avanzó a la siguiente etapa.\nNo es posible crear sublotes en etapas que ya finalizaron.');
+    return;
+  }
+  const{data:subs}=await sb.from('lotes_produccion').select('id').eq('lote_padre_id',LOTE_ACTIVO.id);
+  const nextNum=(subs?.length||0)+1;
+  const plantas=getPlantasDisponibles();
+  const sinGuardar=!etapaData?.id;
+  document.getElementById('msub-info').textContent=`${LOTE_ACTIVO.n} · ${etLabel} · ${plantas} plantas disponibles`;
+  document.getElementById('msub-nombre').value=`${LOTE_ACTIVO.n} → Sublote ${nextNum}`;
+  document.getElementById('msub-plantas').value='';
+  document.getElementById('msub-plantas').max=plantas-1;
+  document.getElementById('msub-fecha').value=new Date().toISOString().split('T')[0];
+  document.getElementById('msub-notas').value='';
+  document.getElementById('msub-restantes').style.display='none';
+  const errEl=document.getElementById('msub-err');
+  if(sinGuardar){
+    errEl.textContent='⚠ Los datos de '+etLabel+' aún no fueron guardados. Guardá el borrador antes de crear el sublote para asegurar la consistencia de las cantidades.';
+    errEl.style.display='block';
+  }else{errEl.style.display='none';}
+  document.getElementById('modal-sublote').style.display='flex';
+}
+function cerrarModalSublote(){document.getElementById('modal-sublote').style.display='none';}
+function calcRestantesSublote(){
+  const plantas=getPlantasDisponibles();
+  const val=parseInt(document.getElementById('msub-plantas').value)||0;
+  const el=document.getElementById('msub-restantes');
+  el.style.display='block';
+  if(val<=0){el.textContent='';el.className='restantes-calc';return;}
+  if(val>=plantas){
+    el.textContent=val===plantas?'⚠ No quedaría ninguna planta en el lote origen. Dejá al menos 1.':'⚠ Supera las plantas disponibles ('+plantas+').';
+    el.className='restantes-calc restantes-err';return;
+  }
+  el.textContent='Quedan en lote origen: '+(plantas-val)+' plantas';
+  el.className='restantes-calc';
+}
+async function crearSublote(){
+  const nombreCompleto=document.getElementById('msub-nombre').value.trim();
+  const plantasVal=parseInt(document.getElementById('msub-plantas').value)||0;
+  const fecha=document.getElementById('msub-fecha').value;
+  const notas=document.getElementById('msub-notas').value.trim()||null;
+  const disponibles=getPlantasDisponibles();
+  const errEl=document.getElementById('msub-err');
+  const showMErr=(msg)=>{errEl.textContent=msg;errEl.style.display='block';};
+  errEl.style.display='none';
+  if(HIST_DATA[et]?.cantidad_egreso!=null)return showMErr('Esta etapa ya finalizó. No es posible crear sublotes en etapas que ya avanzaron.');
+  if(!nombreCompleto)return showMErr('El nombre del sublote es obligatorio.');
+  if(!plantasVal||plantasVal<=0)return showMErr('La cantidad de plantas debe ser mayor a 0.');
+  if(plantasVal>=disponibles)return showMErr('Debés dejar al menos 1 planta en el lote origen. Máximo: '+(disponibles-1)+'.');
+  if(!fecha)return showMErr('La fecha de separación es obligatoria.');
+  const nombreBase=LOTE_ACTIVO.n.split(' → ')[0];
+  const prefix=nombreBase+' → ';
+  const nombreFinal=nombreCompleto.startsWith(nombreBase)?nombreCompleto:prefix+nombreCompleto;
+  const nombreAgregado=nombreFinal.startsWith(prefix)?nombreFinal.slice(prefix.length):nombreFinal;
+  const et=LOTE_ACTIVO.etapaRaw;
+  const{error}=await sb.from('lotes_produccion').insert({
+    usuario_id:CURRENT_USER.id,lote_padre_id:LOTE_ACTIVO.id,
+    origen_semilla_id:LOTE_ACTIVO.origen_semilla_id||null,
+    origen_esqueje_id:LOTE_ACTIVO.origen_esqueje_id||null,
+    origen_pm_id:LOTE_ACTIVO.origen_pm_id||null,
+    etapa_origen_division:['vegetativa','floracion','cosecha'].includes(et)?et:null,
+    motivo_division:notas,nombre_base:nombreBase,
+    nombre_agregado:nombreAgregado,nombre_completo:nombreFinal,
+    etapa_actual:et,cantidad_inicial:plantasVal,fecha_inicio:fecha,
+  });
+  if(error)return showMErr('Error al crear el sublote: '+error.message);
+  // Actualizar cantidad del lote padre en la etapa actual
+  const etaTbl={vegetativa:'etapa_vegetativa',floracion:'etapa_floracion'}[et];
+  const inputId={vegetativa:'veg-cant-ini',floracion:'flo-cant-ini'}[et];
+  const nuevaCant=Math.max(1,disponibles-plantasVal);
+  if(etaTbl){
+    const padreEtapa=HIST_DATA[et];
+    if(padreEtapa?.id){
+      await sb.from(etaTbl).update({cantidad_ingreso:nuevaCant}).eq('id',padreEtapa.id);
+      HIST_DATA[et].cantidad_ingreso=nuevaCant;
+    }
+    const inputEl=document.getElementById(inputId);
+    if(inputEl)inputEl.value=nuevaCant;
+  }
+  cerrarModalSublote();
+  await cargarLotes();rebuildSearchIndex();actualizarMetricasDash();
+  alert('Sublote "'+nombreFinal+'" creado correctamente.\nLote origen actualizado a '+nuevaCant+' plantas.');
+}
+
 /* ── INIT ── */
 initApp();
 </script>
+
+<div id="modal-sublote" class="modal-overlay" style="display:none;" onclick="if(event.target===this)cerrarModalSublote()">
+  <div class="modal-box">
+    <div class="modal-title">÷ Crear sublote</div>
+    <div class="modal-sub" id="msub-info"></div>
+    <div class="field">
+      <label>Nombre del sublote<span class="req">*</span></label>
+      <input type="text" id="msub-nombre" placeholder="Ej: Sector Norte, Grupo A..."/>
+    </div>
+    <div class="g2" style="align-items:start;margin-top:4px;">
+      <div class="field">
+        <label>Plantas a separar<span class="req">*</span></label>
+        <input type="number" id="msub-plantas" min="1" step="1" placeholder="0" oninput="calcRestantesSublote()"/>
+        <div id="msub-restantes" class="restantes-calc" style="display:none;"></div>
+      </div>
+      <div class="field">
+        <label>Fecha de separación<span class="req">*</span></label>
+        <input type="date" id="msub-fecha"/>
+      </div>
+    </div>
+    <div class="field">
+      <label>Observaciones<span class="opt">opcional</span></label>
+      <input type="text" id="msub-notas" placeholder="Motivo de la separación..."/>
+    </div>
+    <div class="erb" id="msub-err" style="display:none;margin-top:8px;"></div>
+    <div class="ab" style="margin-top:16px;">
+      <button class="btn btn-secondary" onclick="cerrarModalSublote()">Cancelar</button>
+      <button class="btn btn-primary" onclick="crearSublote()">Crear sublote →</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>

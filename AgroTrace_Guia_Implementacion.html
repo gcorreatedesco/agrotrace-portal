@@ -549,6 +549,80 @@
   </div>
 
 
+  <!-- SECCIÓN 4: REGLAS DE NEGOCIO — MATERIAL BÁSICO -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-num">4</div>
+      <div>
+        <div class="section-title">Reglas de negocio — Material Básico en Nursery</div>
+        <div class="section-subtitle">Qué descuenta stock, qué no, y por qué — crítico para implementar el wizard</div>
+      </div>
+    </div>
+
+    <p style="margin-bottom:14px;">Al confirmar un nuevo lote en Nursery, el sistema debe tratar el stock de origen de manera distinta según el tipo de material. Esta distinción refleja la biología del cultivo y es una regla de negocio no negociable.</p>
+
+    <table class="diff-table">
+      <thead>
+        <tr>
+          <th>Tipo de origen</th>
+          <th>¿Descuenta stock?</th>
+          <th>Campo afectado</th>
+          <th>Razonamiento</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="paso-num" style="color:var(--accent);">Semillas</td>
+          <td><strong>✓ Sí</strong></td>
+          <td><span class="paso-desc">lotes_semillas.<br>stock_actual</span></td>
+          <td class="reason">La semilla se consume físicamente al germinar. Cada semilla usada es una semilla menos en stock.</td>
+        </tr>
+        <tr>
+          <td class="paso-num" style="color:var(--purple);">Esquejes externos</td>
+          <td><strong>✓ Sí</strong></td>
+          <td><span class="paso-desc">lotes_esquejes.<br>stock_actual</span></td>
+          <td class="reason">El esqueje comprado es una unidad consumible. Al plantarlo en Nursery deja de estar disponible como stock.</td>
+        </tr>
+        <tr>
+          <td class="paso-num" style="color:var(--bark);">Plantas Madre</td>
+          <td><strong>✗ No</strong></td>
+          <td><span class="paso-desc">lotes_plantas_madre.<br>esquejes_extraidos</span> <em style="color:var(--sage);font-size:0.8em;">(solo informativo)</em></td>
+          <td class="reason">La planta madre no se consume: sigue existiendo y puede dar más esquejes. El stock refleja cuántas plantas hay, no cuántos esquejes pueden dar. No es posible predecir su capacidad de entrega.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="box amber" style="margin-top:18px;">
+      <div class="box-title">Restricción adicional — Origen de Esquejes</div>
+      Un lote de <strong>Esquejes externos</strong> no puede tener como origen un lote de Semillas propio. Solo puede originarse en compra externa o en Plantas Madre propias. Esta restricción debe validarse al crear un lote de esquejes.
+    </div>
+
+    <div class="box green" style="margin-top:12px;">
+      <div class="box-title">Impacto en el wizard de Nuevo Lote</div>
+      <ul style="padding-left:16px;margin:0;">
+        <li style="margin-bottom:6px;"><strong>Semillas:</strong> el wizard muestra un campo de cantidad separado en el paso Origen (puede ser en gramos, sobres o unidades — distinto a las plántulas de Nursery). El descuento se calcula sobre ese campo.</li>
+        <li style="margin-bottom:6px;"><strong>Esquejes:</strong> no hay campo de cantidad separado en Origen — la cantidad que va a Nursery <em>es</em> la que se descuenta del stock. Se captura una sola vez en el paso Nursery.</li>
+        <li><strong>Plantas Madre:</strong> no hay campo de cantidad en Origen ni descuento. Solo se registra el vínculo (<code>origen_pm_id</code>) y se incrementa <code>esquejes_extraidos</code> como dato informativo.</li>
+      </ul>
+    </div>
+
+    <div class="box soil" style="margin-top:12px;">
+      <div class="box-title">Campos relevantes en la base de datos</div>
+      <table style="width:100%;border-collapse:collapse;font-size:9.5pt;margin-top:8px;">
+        <thead><tr style="background:rgba(74,53,32,0.15);"><th style="padding:7px 10px;text-align:left;">Tabla</th><th style="padding:7px 10px;text-align:left;">Campo</th><th style="padding:7px 10px;text-align:left;">Rol</th></tr></thead>
+        <tbody>
+          <tr><td style="padding:6px 10px;border-bottom:1px solid rgba(0,0,0,0.07);">lotes_semillas</td><td style="padding:6px 10px;border-bottom:1px solid rgba(0,0,0,0.07);font-family:monospace;">stock_actual</td><td style="padding:6px 10px;border-bottom:1px solid rgba(0,0,0,0.07);">Se decrementa al confirmar Nursery</td></tr>
+          <tr><td style="padding:6px 10px;border-bottom:1px solid rgba(0,0,0,0.07);">lotes_esquejes</td><td style="padding:6px 10px;border-bottom:1px solid rgba(0,0,0,0.07);font-family:monospace;">stock_actual</td><td style="padding:6px 10px;border-bottom:1px solid rgba(0,0,0,0.07);">Se decrementa al confirmar Nursery</td></tr>
+          <tr><td style="padding:6px 10px;border-bottom:1px solid rgba(0,0,0,0.07);">lotes_plantas_madre</td><td style="padding:6px 10px;border-bottom:1px solid rgba(0,0,0,0.07);font-family:monospace;">cantidad_actual</td><td style="padding:6px 10px;border-bottom:1px solid rgba(0,0,0,0.07);"><strong>No se modifica.</strong> Representa cuántas plantas existen</td></tr>
+          <tr><td style="padding:6px 10px;border-bottom:1px solid rgba(0,0,0,0.07);">lotes_plantas_madre</td><td style="padding:6px 10px;border-bottom:1px solid rgba(0,0,0,0.07);font-family:monospace;">esquejes_extraidos</td><td style="padding:6px 10px;border-bottom:1px solid rgba(0,0,0,0.07);">Solo informativo. Se incrementa para trazabilidad</td></tr>
+          <tr><td style="padding:6px 10px;">etapa_nursery</td><td style="padding:6px 10px;font-family:monospace;">origen_material</td><td style="padding:6px 10px;">Valores posibles: <code>'semillas'</code> · <code>'esquejes'</code> · <code>'plantas_madre'</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+
   <!-- CONCLUSIÓN -->
   <div class="conclusion">
     <h2>Resumen ejecutivo</h2>

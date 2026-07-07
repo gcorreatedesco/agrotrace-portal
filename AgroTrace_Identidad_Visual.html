@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>AgroTrace — Identidad Visual & Personalización CI</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;700&display=swap');
+
+  :root {
+    --soil:   #2C1F0E;
+    --bark:   #4A3520;
+    --sage:   #6B7F5E;
+    --leaf:   #8EAA7B;
+    --mist:   #C8D9BC;
+    --dew:    #EDF2E8;
+    --cream:  #F7F4EF;
+    --accent: #4E7C3F;
+    --amber:  #854F0B;
+    --purple: #534AB7;
+    --error:  #B94A3A;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 400;
+    background: white;
+    color: #1a1a1a;
+    font-size: 11pt;
+    line-height: 1.7;
+  }
+
+  .page {
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 40px 50px;
+  }
+
+  /* ── PORTADA ── */
+  .cover {
+    background: var(--soil);
+    color: white;
+    padding: 50px 50px 40px;
+    border-radius: 0 0 12px 12px;
+    margin-bottom: 36px;
+    position: relative;
+    overflow: hidden;
+  }
+  .cover::before {
+    content: '';
+    position: absolute;
+    top: -40px; right: -40px;
+    width: 220px; height: 220px;
+    border-radius: 50%;
+    background: rgba(142,170,123,0.12);
+  }
+  .cover::after {
+    content: '';
+    position: absolute;
+    bottom: -60px; left: -20px;
+    width: 180px; height: 180px;
+    border-radius: 50%;
+    background: rgba(78,124,63,0.10);
+  }
+  .cover-tag {
+    display: inline-block;
+    background: var(--accent);
+    color: white;
+    font-size: 8pt;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 4px 12px;
+    border-radius: 20px;
+    margin-bottom: 20px;
+    position: relative;
+    z-index: 1;
+  }
+  .cover h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 26pt;
+    font-weight: 400;
+    line-height: 1.2;
+    margin-bottom: 10px;
+    position: relative;
+    z-index: 1;
+  }
+  .cover h1 span { color: var(--leaf); }
+  .cover .subtitle {
+    font-size: 12pt;
+    font-weight: 300;
+    color: var(--mist);
+    margin-bottom: 28px;
+    position: relative;
+    z-index: 1;
+  }
+  .cover-meta {
+    display: flex;
+    gap: 32px;
+    position: relative;
+    z-index: 1;
+    border-top: 1px solid rgba(255,255,255,0.15);
+    padding-top: 18px;
+    flex-wrap: wrap;
+  }
+  .cover-meta span { font-size: 9pt; color: var(--mist); }
+  .cover-meta strong { color: white; }
+
+  /* ── SECCIONES ── */
+  .section { margin-bottom: 36px; break-inside: avoid; }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--mist);
+  }
+  .section-num {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: white;
+    font-weight: 700;
+    font-size: 13pt;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .section-num.amber { background: var(--amber); }
+  .section-num.purple { background: var(--purple); }
+  .section-num.bark { background: var(--bark); }
+  .section-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 15pt;
+    color: var(--soil);
+    font-weight: 400;
+  }
+
+  p { margin-bottom: 10px; }
+
+  /* ── CAJAS ── */
+  .box {
+    background: var(--dew);
+    border-left: 4px solid var(--accent);
+    border-radius: 0 8px 8px 0;
+    padding: 14px 18px;
+    margin: 14px 0;
+  }
+  .box.amber { background: #FFF8EE; border-left-color: var(--amber); }
+  .box.purple { background: #F4F3FF; border-left-color: var(--purple); }
+  .box.soil { background: #F2EDE8; border-left-color: var(--bark); }
+  .box.error { background: #FDF0EE; border-left-color: var(--error); }
+  .box-title {
+    font-weight: 700;
+    font-size: 8.5pt;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--accent);
+    margin-bottom: 6px;
+  }
+  .box.amber .box-title { color: var(--amber); }
+  .box.purple .box-title { color: var(--purple); }
+  .box.soil .box-title { color: var(--bark); }
+  .box.error .box-title { color: var(--error); }
+
+  /* ── TABLA ── */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14px 0;
+    font-size: 10pt;
+  }
+  thead tr { background: var(--soil); color: white; }
+  thead th {
+    padding: 10px 14px;
+    text-align: left;
+    font-weight: 500;
+    font-size: 9pt;
+    letter-spacing: 0.5px;
+  }
+  tbody tr:nth-child(even) { background: var(--cream); }
+  tbody tr:nth-child(odd)  { background: white; }
+  tbody td {
+    padding: 9px 14px;
+    border-bottom: 1px solid var(--mist);
+    vertical-align: top;
+  }
+
+  /* ── PALETA ── */
+  .palette {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin: 14px 0;
+  }
+  .swatch {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+  .swatch-color {
+    width: 52px;
+    height: 52px;
+    border-radius: 8px;
+    border: 1px solid rgba(0,0,0,0.08);
+  }
+  .swatch-name {
+    font-size: 7.5pt;
+    font-weight: 500;
+    color: var(--bark);
+    text-align: center;
+  }
+  .swatch-hex {
+    font-size: 7pt;
+    color: var(--sage);
+    font-family: monospace;
+  }
+
+  /* ── GRID DIRECCIÓN ── */
+  .dir-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin: 14px 0;
+  }
+  .dir-card {
+    border: 1.5px solid var(--mist);
+    border-radius: 10px;
+    padding: 16px;
+    background: var(--cream);
+  }
+  .dir-card-icon {
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 10px;
+    font-size: 18px;
+  }
+  .dir-card-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 11pt;
+    color: var(--soil);
+    margin-bottom: 6px;
+  }
+  .dir-card-desc {
+    font-size: 9pt;
+    color: var(--sage);
+    line-height: 1.5;
+  }
+  .dir-card-effort {
+    margin-top: 10px;
+    font-size: 8pt;
+    font-weight: 500;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  /* ── PASOS ── */
+  .steps { margin: 14px 0; }
+  .step {
+    display: flex;
+    gap: 14px;
+    margin-bottom: 16px;
+    align-items: flex-start;
+  }
+  .step-num {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    background: var(--soil);
+    color: white;
+    font-size: 9pt;
+    font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .step-body {}
+  .step-title {
+    font-weight: 600;
+    font-size: 10.5pt;
+    color: var(--soil);
+    margin-bottom: 3px;
+  }
+  .step-desc {
+    font-size: 9.5pt;
+    color: #444;
+    line-height: 1.55;
+  }
+  .step-connector {
+    width: 1px;
+    height: 12px;
+    background: var(--mist);
+    margin-left: 13px;
+    margin-bottom: 4px;
+  }
+
+  /* ── CÓDIGO INLINE ── */
+  code {
+    background: #f0ede8;
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    font-size: 9.5pt;
+    color: var(--bark);
+  }
+
+  /* ── FOOTER ── */
+  .doc-footer {
+    margin-top: 48px;
+    padding-top: 18px;
+    border-top: 1px solid var(--mist);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .doc-footer p { font-size: 8.5pt; color: var(--sage); margin: 0; }
+
+  ul { padding-left: 18px; margin-bottom: 10px; }
+  ul li { margin-bottom: 4px; font-size: 10pt; }
+
+  h3 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 12pt;
+    color: var(--soil);
+    font-weight: 400;
+    margin: 16px 0 8px;
+  }
+
+  .tag {
+    display: inline-block;
+    font-size: 8pt;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .tag.green { background: var(--dew); color: var(--accent); }
+  .tag.amber { background: #FFF0D8; color: var(--amber); }
+  .tag.red   { background: #FDEEEB; color: var(--error); }
+
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- PORTADA -->
+  <div class="cover">
+    <div class="cover-tag">Diseño de Interfaz</div>
+    <h1>Identidad Visual &<br/><span>Personalización CI</span></h1>
+    <div class="subtitle">Documentación de la identidad actual · Diagnóstico de convergencia · Procedimiento de exploración</div>
+    <div class="cover-meta">
+      <span><strong>Sistema:</strong> AgroTrace v3</span>
+      <span><strong>Aplica a:</strong> portal_rt.html · agrotrace_prototipo_v3.html · index.html</span>
+      <span><strong>Revisión:</strong> Julio 2026</span>
+    </div>
+  </div>
+
+
+  <!-- 1. EL PROBLEMA: CONVERGENCIA VISUAL -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-num amber">1</div>
+      <div class="section-title">El problema: convergencia visual en el diseño SaaS</div>
+    </div>
+
+    <p>La mayoría de las interfaces web modernas comparten el mismo "stack visual por defecto": cards blancas con sombra suave, tipografía sans-serif de Google Fonts, color primario verde o azul, layout de grilla limpia y bordes redondeados uniformes. El resultado es que sistemas visualmente distintos se perciben como variantes del mismo producto.</p>
+
+    <div class="box amber">
+      <div class="box-title">Por qué ocurre</div>
+      Las mismas herramientas (Tailwind CSS, shadcn/ui, Radix, Figma component libraries) producen las mismas decisiones por defecto. La estandarización que simplifica el desarrollo termina homogeneizando la experiencia visual.
+    </div>
+
+    <p>Este fenómeno afecta especialmente a plataformas de gestión (dashboards, CRMs, ERP), donde la funcionalidad se prioriza sobre la identidad. AgroTrace, por su contexto regulatorio y su universo botánico/medicinal, tiene potencial real de diferenciación.</p>
+
+    <div class="box error">
+      <div class="box-title">Lo que NO hacer</div>
+      Cambiar colores o fuentes sin criterio de marca. La diferenciación debe surgir del universo semántico del producto (trazabilidad, botánica, cuidado, naturaleza), no de preferencias estéticas arbitrarias.
+    </div>
+  </div>
+
+
+  <!-- 2. CI ACTUAL DE AGROTRACE -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-num">2</div>
+      <div class="section-title">CI actual de AgroTrace — Estado documentado</div>
+    </div>
+
+    <h3>Paleta de colores</h3>
+    <div class="palette">
+      <div class="swatch"><div class="swatch-color" style="background:#2C1F0E;"></div><div class="swatch-name">Soil</div><div class="swatch-hex">#2C1F0E</div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#4A3520;"></div><div class="swatch-name">Bark</div><div class="swatch-hex">#4A3520</div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#6B7F5E;"></div><div class="swatch-name">Sage</div><div class="swatch-hex">#6B7F5E</div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#8EAA7B;"></div><div class="swatch-name">Leaf</div><div class="swatch-hex">#8EAA7B</div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#C8D9BC;"></div><div class="swatch-name">Mist</div><div class="swatch-hex">#C8D9BC</div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#EDF2E8;"></div><div class="swatch-name">Dew</div><div class="swatch-hex">#EDF2E8</div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#F7F4EF;"></div><div class="swatch-name">Cream</div><div class="swatch-hex">#F7F4EF</div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#4E7C3F;"></div><div class="swatch-name">Accent</div><div class="swatch-hex">#4E7C3F</div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#854F0B;"></div><div class="swatch-name">Amber</div><div class="swatch-hex">#854F0B</div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#534AB7;"></div><div class="swatch-name">Purple</div><div class="swatch-hex">#534AB7</div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#B94A3A;"></div><div class="swatch-name">Error</div><div class="swatch-hex">#B94A3A</div></div>
+    </div>
+
+    <div class="box soil">
+      <div class="box-title">Nota de diseño</div>
+      La paleta tierra (soil/bark/cream) es un activo diferencial sólido. El problema no es la paleta en sí — es que se usa de forma <em>tímida</em>: solo el sidebar usa soil, el resto de la interfaz es cream/white con acentos pequeños. El potencial está subutilizado.
+    </div>
+
+    <h3>Tipografía</h3>
+    <table>
+      <thead><tr><th>Fuente</th><th>Uso</th><th>Pesos</th></tr></thead>
+      <tbody>
+        <tr><td><strong>DM Serif Display</strong></td><td>Títulos de sección, nombres de lotes, encabezados de vista</td><td>Regular · Italic</td></tr>
+        <tr><td><strong>DM Sans</strong></td><td>Todo el texto de interfaz (labels, valores, botones, mensajes)</td><td>300 · 400 · 500</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Decisiones estructurales fijas</h3>
+    <ul>
+      <li>Navegación SPA (una sola página con vistas intercambiables)</li>
+      <li>Sidebar oscuro (<code>--soil</code>) + área principal clara (<code>--cream</code>)</li>
+      <li>Cards con borde sutil <code>1px solid rgba(0,0,0,0.07)</code> y <code>border-radius: 10px</code></li>
+      <li>Botón primario: <code>--accent</code> sólido · Botón secundario: borde fino sobre fondo transparente</li>
+      <li>Mobile First: diseño primario para celular (campo), expandible a escritorio</li>
+    </ul>
+  </div>
+
+
+  <!-- 3. DIAGNÓSTICO DE CONVERGENCIA -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-num amber">3</div>
+      <div class="section-title">Diagnóstico — Dónde AgroTrace converge con el estándar</div>
+    </div>
+
+    <table>
+      <thead>
+        <tr><th>Elemento</th><th>Situación actual</th><th>Nivel de convergencia</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Paleta de colores</td>
+          <td>Tierra y verde, no azul. Distintiva en el papel, pero usada con poca intensidad</td>
+          <td><span class="tag amber">Medio</span></td>
+        </tr>
+        <tr>
+          <td>Tipografía</td>
+          <td>DM Serif + DM Sans: buena elección, pero DM Sans es muy común en SaaS</td>
+          <td><span class="tag amber">Medio</span></td>
+        </tr>
+        <tr>
+          <td>Cards y layout</td>
+          <td>Grid de cards blancas con sombra suave — patrón universal</td>
+          <td><span class="tag red">Alto</span></td>
+        </tr>
+        <tr>
+          <td>Iconografía</td>
+          <td>Material Icons (Google) — los iconos más usados del mundo</td>
+          <td><span class="tag red">Alto</span></td>
+        </tr>
+        <tr>
+          <td>Elementos decorativos</td>
+          <td>Ausentes. Solo círculos abstractos en portadas de documentación</td>
+          <td><span class="tag red">Alto</span></td>
+        </tr>
+        <tr>
+          <td>Animaciones / micro-interacciones</td>
+          <td>Solo <code>transition: 0.2s ease</code> en hover — estándar mínimo</td>
+          <td><span class="tag red">Alto</span></td>
+        </tr>
+        <tr>
+          <td>Textura / materialidad</td>
+          <td>Completamente plana (flat design puro)</td>
+          <td><span class="tag red">Alto</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+
+  <!-- 4. TRES DIRECCIONES DE DIFERENCIACIÓN -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-num">4</div>
+      <div class="section-title">Tres direcciones de diferenciación recomendadas</div>
+    </div>
+
+    <p>Las tres direcciones no son mutuamente excluyentes — se pueden combinar de menor a mayor impacto. Cada una respeta la CI actual y no requiere rediseño completo.</p>
+
+    <div class="dir-grid">
+      <div class="dir-card">
+        <div class="dir-card-icon" style="background:#F2EDE8;">🌾</div>
+        <div class="dir-card-title">Textura y materialidad</div>
+        <div class="dir-card-desc">Agregar ruido/grano sobre fondos. Evoca papel vegetal, tierra prensada. Rompe el flat design sin cambiar estructura.</div>
+        <div class="dir-card-effort">Esfuerzo bajo · Impacto alto</div>
+      </div>
+      <div class="dir-card">
+        <div class="dir-card-icon" style="background:#EDF2E8;">Aa</div>
+        <div class="dir-card-title">Tipografía protagonista</div>
+        <div class="dir-card-desc">DM Serif Display más grande, italic y contrastante. Jerarquía tipográfica más dramática. La diferencia está en el tamaño y el uso bold.</div>
+        <div class="dir-card-effort">Esfuerzo bajo · Impacto medio</div>
+      </div>
+      <div class="dir-card">
+        <div class="dir-card-icon" style="background:#EDF2E8;">🌿</div>
+        <div class="dir-card-title">Elementos botánicos</div>
+        <div class="dir-card-desc">SVGs de hojas o tallos como decoración de fondo y separadores. Conecta visualmente con el universo agrícola/medicinal.</div>
+        <div class="dir-card-effort">Esfuerzo medio · Impacto alto</div>
+      </div>
+    </div>
+
+    <h3>Dirección A — Textura y materialidad</h3>
+    <p>Aplicar un filtro de ruido SVG sobre las superficies clave (sidebar, fondo general, headers de cards). El resultado es una sensación de papel prensado o tela natural que ningún framework CSS produce por defecto.</p>
+    <div class="box">
+      <div class="box-title">Implementación CSS</div>
+      <code>background-image: url("data:image/svg+xml,...");</code> — se puede generar con herramientas como <strong>grainy-gradient.com</strong> o con un filtro SVG <code>feTurbulence</code> inline. No agrega peso de archivo.
+    </div>
+
+    <h3>Dirección B — Tipografía protagonista</h3>
+    <p>Actualmente DM Serif Display aparece en 15–28pt. Llevarlo a 40–60pt en pantallas de inicio (dashboard, portada de lote) con italic para contraste. El cuerpo sigue en DM Sans, pero la jerarquía visual se vuelve dramáticamente más expresiva.</p>
+    <div class="box">
+      <div class="box-title">Regla de aplicación</div>
+      El serif grande funciona sobre fondo <code>--soil</code> (blanco o leaf). Sobre <code>--cream</code> pierde contraste. Aplicar solo en encabezados de vista principal, no en labels ni formularios.
+    </div>
+
+    <h3>Dirección C — Elementos botánicos decorativos</h3>
+    <p>SVGs abstractos de hojas, tallos y nervaduras como capas decorativas de baja opacidad (5–12%). No son iconos funcionales — son textura visual que ancla la interfaz en el universo botánico. Pueden aparecer en esquinas de cards, separadores de sección o header del sidebar.</p>
+    <div class="box">
+      <div class="box-title">Restricción importante</div>
+      Mantener opacidad baja (8–15%). El riesgo es que compitan con la información funcional. La función manda — la decoración es soporte, nunca protagonista en pantallas de trabajo.
+    </div>
+  </div>
+
+
+  <!-- 5. PROCEDIMIENTO EXPLORATORIO -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-num purple">5</div>
+      <div class="section-title">Procedimiento exploratorio — Cómo personalizar el stack visual</div>
+    </div>
+
+    <p>Este procedimiento define los pasos para explorar y validar cambios visuales sin romper la interfaz funcional existente. Está pensado para iterar de menor a mayor impacto.</p>
+
+    <div class="box purple">
+      <div class="box-title">Principio rector</div>
+      Nunca modificar la paleta base ni la tipografía como primer paso. Agregar capas encima de lo existente (texturas, decoración, jerarquía) antes de cambiar la estructura. Revertir es más fácil que reconstruir.
+    </div>
+
+    <div class="steps">
+
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">Crear un archivo de exploración separado</div>
+          <div class="step-desc">Duplicar <code>agrotrace_prototipo_v3.html</code> como <code>agrotrace_ci_exploración.html</code>. Todos los cambios visuales se prueban ahí primero. Nunca experimentar directamente sobre el archivo en producción.</div>
+        </div>
+      </div>
+      <div class="step-connector"></div>
+
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title">Documentar el estado actual como baseline</div>
+          <div class="step-desc">Tomar capturas de pantalla de las 5 vistas principales (dashboard, lotes, detalle de lote, stock, floracion) antes de cualquier cambio. Son el punto de referencia para comparar antes/después.</div>
+        </div>
+      </div>
+      <div class="step-connector"></div>
+
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-title">Aplicar Dirección A (textura) — impacto mínimo</div>
+          <div class="step-desc">Agregar ruido/grano solo al <code>body</code> y al sidebar. Evaluar en desktop y mobile. Criterio de aprobación: la textura es perceptible pero no distrae de los datos. Si pasa: comprometerse con la dirección. Si no: descartar sin costo.</div>
+        </div>
+      </div>
+      <div class="step-connector"></div>
+
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <div class="step-title">Aplicar Dirección B (tipografía) sobre la exploración</div>
+          <div class="step-desc">Aumentar el serif en los títulos de vista (Dashboard, Mis Lotes, etc.). Probar tamaños: 32pt, 40pt, 48pt. Evaluar si la jerarquía ayuda a orientarse o genera ruido. La tipografía debe hacer el espacio más claro, no más lleno.</div>
+        </div>
+      </div>
+      <div class="step-connector"></div>
+
+      <div class="step">
+        <div class="step-num">5</div>
+        <div class="step-body">
+          <div class="step-title">Seleccionar un elemento botánico (Dirección C)</div>
+          <div class="step-desc">Diseñar o seleccionar un SVG simple (hoja, tallo, nervadura) que funcione como motivo decorativo. Debe ser abstracto — no un ícono literal de cannabis. Aplicarlo primero solo en el sidebar a baja opacidad. Evaluar coherencia con el resto.</div>
+        </div>
+      </div>
+      <div class="step-connector"></div>
+
+      <div class="step">
+        <div class="step-num">6</div>
+        <div class="step-body">
+          <div class="step-title">Test de percepción con un observador externo</div>
+          <div class="step-desc">Mostrar la exploración a alguien que no conoce el sistema y preguntar: ¿Qué tipo de producto creés que es esto? ¿Qué palabras describen su visual? Si las palabras coinciden con el universo deseado (natural, riguroso, medicinal, cuidado) — la dirección es correcta.</div>
+        </div>
+      </div>
+      <div class="step-connector"></div>
+
+      <div class="step">
+        <div class="step-num">7</div>
+        <div class="step-body">
+          <div class="step-title">Integrar los cambios aprobados al archivo principal</div>
+          <div class="step-desc">Solo los cambios validados en los pasos anteriores se migran al código en producción. Hacerlo en un commit separado etiquetado como <code>feat: visual identity update</code> para poder revertir con precisión si es necesario.</div>
+        </div>
+      </div>
+      <div class="step-connector"></div>
+
+      <div class="step">
+        <div class="step-num">8</div>
+        <div class="step-body">
+          <div class="step-title">Actualizar este documento</div>
+          <div class="step-desc">Registrar qué se exploró, qué se aprobó y por qué. Agregar capturas del antes/después. La CI es un documento vivo — debe reflejar el estado real del sistema, no el estado inicial.</div>
+        </div>
+      </div>
+
+    </div>
+
+
+    <h3>Criterios de evaluación para cada iteración</h3>
+    <table>
+      <thead><tr><th>Pregunta</th><th>Respuesta esperada</th></tr></thead>
+      <tbody>
+        <tr><td>¿El cambio agrega identidad o solo ruido visual?</td><td>Agrega identidad: relaciona visualmente con el universo botánico/medicinal</td></tr>
+        <tr><td>¿La información funcional sigue siendo legible?</td><td>Sí, sin esfuerzo adicional de lectura</td></tr>
+        <tr><td>¿Funciona en mobile (campo, pantalla pequeña)?</td><td>La textura/decoración se desactiva o reduce en pantallas < 600px</td></tr>
+        <tr><td>¿El cambio rompe algo existente?</td><td>No: formularios, botones, tablas y estados de error siguen funcionando</td></tr>
+        <tr><td>¿Se puede revertir en un commit?</td><td>Sí: el cambio está aislado en variables CSS o una clase específica</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+
+  <!-- 6. LO QUE NO CAMBIAR -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-num bark">6</div>
+      <div class="section-title">Lo que no modificar — Decisiones consolidadas</div>
+    </div>
+
+    <div class="box soil">
+      <div class="box-title">Elementos con consenso — no modificar sin revisión de todo el equipo</div>
+      <ul style="margin:0; padding-left:16px;">
+        <li><strong>Paleta base</strong> — los 11 tokens de color están referenciados en los 3 portales. Cambiar un token afecta todo el sistema.</li>
+        <li><strong>Tipografía base</strong> — DM Serif Display + DM Sans. Pueden usarse con más intensidad, pero no reemplazarse.</li>
+        <li><strong>Sidebar oscuro</strong> — la combinación sidebar soil + contenido cream es la firma visual más reconocible de AgroTrace.</li>
+        <li><strong>Lógica de navegación SPA</strong> — decisión de arquitectura, no de diseño visual.</li>
+        <li><strong>Semántica de colores</strong> — amber = advertencia, error = rojo, purple = flores/sublotes. No reasignar significados.</li>
+      </ul>
+    </div>
+  </div>
+
+
+  <!-- FOOTER -->
+  <div class="doc-footer">
+    <p>AgroTrace · Documento de Identidad Visual · Julio 2026</p>
+    <p>Uso interno — no publicar</p>
+  </div>
+
+</div>
+</body>
+</html>

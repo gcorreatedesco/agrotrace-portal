@@ -574,6 +574,17 @@
     'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impxa3lpZnV5YXh4d3Vncm5qZm5xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyMjE1NjgsImV4cCI6MjA5Njc5NzU2OH0.0r2A5wC4hZ6sg0TAC9_pEdvit5PMHj8XB1wsXWdDVww'
   );
 
+  function entrarDemo(rol, nombre) {
+    sessionStorage.setItem('agrotrace_role', rol);
+    sessionStorage.setItem('agrotrace_user', nombre);
+    sessionStorage.removeItem('agrotrace_supervisando_ong_id');
+    sessionStorage.removeItem('agrotrace_supervisando_ong_nombre');
+    if (rol === 'rt') window.location.href = 'portal_rt.html';
+    else if (rol === 'superadmin') window.location.href = 'portal_superadmin.html';
+    else window.location.href = 'agrotrace_prototipo_v3.html';
+  }
+
+
   function showView(id) {
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     document.getElementById(id).classList.add('active');
@@ -636,10 +647,10 @@
     sessionStorage.removeItem('agrotrace_supervisando_ong_id');
     sessionStorage.removeItem('agrotrace_supervisando_ong_nombre');
 
-    console.log('[LOGIN] redirigiendo a:', rol === 'rt' ? 'portal_rt.html' : 'agrotrace_prototipo_v3.html');
-
     if (rol === 'rt') {
       window.location.href = 'portal_rt.html';
+    } else if (rol === 'superadmin') {
+      window.location.href = 'portal_superadmin.html';
     } else {
       window.location.href = 'agrotrace_prototipo_v3.html';
     }
