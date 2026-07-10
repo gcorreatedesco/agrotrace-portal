@@ -542,9 +542,9 @@ async function init() {
 
 function cargarDemo() {
   ALL_RTS = [
-    {id:'rt1',nombre_completo:'María García',email:'mgarcia@demo.com',ongs_count:3,lotes_count:8,activo:true},
-    {id:'rt2',nombre_completo:'Carlos López',email:'clopez@demo.com',ongs_count:1,lotes_count:4,activo:true},
-    {id:'rt3',nombre_completo:'Roberto Silva',email:'rsilva@demo.com',ongs_count:1,lotes_count:0,activo:false},
+    {id:'rt1',nombre:'María García',email:'mgarcia@demo.com',ongs_count:3,lotes_count:8,activo:true},
+    {id:'rt2',nombre:'Carlos López',email:'clopez@demo.com',ongs_count:1,lotes_count:4,activo:true},
+    {id:'rt3',nombre:'Roberto Silva',email:'rsilva@demo.com',ongs_count:1,lotes_count:0,activo:false},
   ];
   ALL_ONGS = [
     {id:'o1',nombre:'Asociación Esperanza Verde',localidad:'Buenos Aires',rt_nombre:'María García',rt_id:'rt1',reprocann:'REP-001',activa:true},
@@ -559,23 +559,32 @@ function cargarDemo() {
 
 /* ── CARGAR RTs ── */
 async function cargarRTs() {
-  const { data, error } = await sb.from('perfiles').select('id, nombre_completo, email, activo').eq('rol', 'rt');
+  const { data, error } = await sb.from('perfiles').select('id, nombre, email, activo').eq('rol', 'rt');
   if (error || !data) return;
 
   const rtIds = data.map(r => r.id);
-  const [{ data: relaciones }, { data: lotesActivos }] = await Promise.all([
-    sb.from('rt_organizaciones').select('rt_id, org_id').in('rt_id', rtIds),
-    sb.from('lotes_produccion').select('usuario_id').not('etapa_actual', 'in', '("completado","cerrado")'),
-  ]);
+  const { data: relaciones } = await sb.from('rt_organizaciones').select('rt_id, ong_id').in('rt_id', rtIds);
 
-  const { data: orgs } = await sb.from('organizaciones').select('id, usuario_id');
-  const orgUserMap = {};
-  (orgs || []).forEach(o => { orgUserMap[o.id] = o.usuario_id; });
+  // Contar lotes activos por RT: rt → ong_id → perfiles.ong_id → usuario_id → lotes
+  const allOngIds = [...new Set((relaciones || []).map(r => r.ong_id).filter(Boolean))];
+  let ongUserMap = {};
+  if (allOngIds.length > 0) {
+    const { data: ongPerfiles } = await sb.from('perfiles').select('id, ong_id').in('ong_id', allOngIds).eq('rol', 'ong');
+    (ongPerfiles || []).forEach(p => { if (p.ong_id) ongUserMap[p.ong_id] = p.id; });
+  }
+  const allUserIds = Object.values(ongUserMap);
+  let lotesActivos = [];
+  if (allUserIds.length > 0) {
+    const { data: lotes } = await sb.from('lotes_produccion').select('usuario_id')
+      .in('usuario_id', allUserIds)
+      .not('etapa_actual', 'in', '("completado","cerrado")');
+    lotesActivos = lotes || [];
+  }
 
   ALL_RTS = data.map(rt => {
-    const misOngIds = (relaciones || []).filter(r => r.rt_id === rt.id).map(r => r.org_id);
-    const misUserIds = misOngIds.map(id => orgUserMap[id]).filter(Boolean);
-    const misLotes = (lotesActivos || []).filter(l => misUserIds.includes(l.usuario_id)).length;
+    const misOngIds = (relaciones || []).filter(r => r.rt_id === rt.id).map(r => r.ong_id);
+    const misUserIds = misOngIds.map(id => ongUserMap[id]).filter(Boolean);
+    const misLotes = lotesActivos.filter(l => misUserIds.includes(l.usuario_id)).length;
     return { ...rt, ongs_count: misOngIds.length, lotes_count: misLotes };
   });
 }
@@ -584,15 +593,24 @@ async function cargarRTs() {
 async function cargarONGs() {
   const { data, error } = await sb
     .from('organizaciones')
-    .select('id, nombre, localidad, reprocann, activa, rt_organizaciones(rt_id, perfiles(nombre_completo))');
+    .select('id, nombre, localidad, reprocann, activa, rt_organizaciones(rt_id)');
   if (error || !data) return;
+
+  // Segunda query para obtener nombres de RTs (FK rt_id → auth.users, no perfiles, el join embebido no funciona)
+  const rtIds = [...new Set(data.flatMap(o => (o.rt_organizaciones || []).map(r => r.rt_id)).filter(Boolean))];
+  let rtMap = {};
+  if (rtIds.length > 0) {
+    const { data: rtPerfiles } = await sb.from('perfiles').select('id, nombre').in('id', rtIds);
+    (rtPerfiles || []).forEach(p => { rtMap[p.id] = p.nombre; });
+  }
 
   ALL_ONGS = data.map(o => {
     const rel = (o.rt_organizaciones || [])[0];
     return {
       id: o.id, nombre: o.nombre, localidad: o.localidad,
       reprocann: o.reprocann || '', activa: o.activa !== false,
-      rt_id: rel?.rt_id || null, rt_nombre: rel?.perfiles?.nombre_completo || null,
+      rt_id: rel?.rt_id || null,
+      rt_nombre: rel?.rt_id ? (rtMap[rel.rt_id] || null) : null,
     };
   });
 
@@ -700,9 +718,9 @@ function renderRTs(gridId, countId, limit) {
   }
 
   grid.innerHTML = lista.map(rt => {
-    const ini = (rt.nombre_completo || rt.email || 'RT').split(' ').map(p=>p[0]).join('').toUpperCase().slice(0,2);
-    const nombre = rt.nombre_completo || rt.email || '—';
-    const email  = rt.nombre_completo ? (rt.email||'—') : '—';
+    const ini = (rt.nombre || rt.email || 'RT').split(' ').map(p=>p[0]).join('').toUpperCase().slice(0,2);
+    const nombre = rt.nombre || rt.email || '—';
+    const email  = rt.nombre ? (rt.email||'—') : '—';
     const inactivo = rt.activo === false;
     const idStr = rt.id;
     const nomStr = nombre.replace(/'/g,"\\'");
@@ -1065,7 +1083,7 @@ function abrirModalNuevaONG() {
   ALL_RTS.filter(r => r.activo !== false).forEach(rt => {
     const opt = document.createElement('option');
     opt.value = rt.id;
-    opt.textContent = rt.nombre_completo || rt.email || rt.id;
+    opt.textContent = rt.nombre || rt.email || rt.id;
     sel.appendChild(opt);
   });
 

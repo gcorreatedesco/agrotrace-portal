@@ -590,3 +590,32 @@ CREATE POLICY "via entregas correcciones" ON public.entregas_correcciones
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.entregas_correcciones TO anon;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.entregas_correcciones TO authenticated;
+
+
+-- ── MIGRACIÓN: email en perfiles (requerido por portal_superadmin para listar RTs) ──
+ALTER TABLE public.perfiles
+  ADD COLUMN IF NOT EXISTS email TEXT;
+
+-- Actualizar trigger para guardar email al crear usuario
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.raw_user_meta_data->>'rol' IS NOT NULL THEN
+    INSERT INTO public.perfiles (id, nombre, rol, ong_id, email)
+    VALUES (
+      NEW.id,
+      COALESCE(NEW.raw_user_meta_data->>'nombre_contacto', split_part(NEW.email, '@', 1)),
+      NEW.raw_user_meta_data->>'rol',
+      NULLIF(NEW.raw_user_meta_data->>'ong_id', '')::UUID,
+      NEW.email
+    )
+    ON CONFLICT (id) DO UPDATE SET
+      rol    = EXCLUDED.rol,
+      ong_id = EXCLUDED.ong_id,
+      email  = EXCLUDED.email;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+GRANT SELECT ON public.perfiles TO authenticated;
