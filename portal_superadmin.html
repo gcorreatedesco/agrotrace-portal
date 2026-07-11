@@ -1038,6 +1038,12 @@ async function crearRT() {
     errEl.style.display = 'block'; return;
   }
 
+  const { data: dupRT } = await sb.from('perfiles').select('id').eq('nombre', nombre).eq('rol', 'rt').maybeSingle();
+  if (dupRT) {
+    errEl.textContent = `Ya existe un Responsable Técnico con el nombre "${nombre}". Usá un nombre diferente.`;
+    errEl.style.display = 'block'; return;
+  }
+
   const btn = document.getElementById('btn-invitar-rt');
   btn.textContent = 'Creando...'; btn.disabled = true; btn.style.opacity = '0.7';
 
@@ -1110,6 +1116,12 @@ async function crearONG() {
 
   if (!nombre_org || !nombre_admin || !email_admin || !password_admin) {
     errEl.textContent = 'Nombre de la organización, nombre, email y contraseña del admin son obligatorios.';
+    errEl.style.display = 'block'; return;
+  }
+
+  const { data: dupONG } = await sb.from('organizaciones').select('id').eq('nombre', nombre_org).maybeSingle();
+  if (dupONG) {
+    errEl.textContent = `Ya existe una organización con el nombre "${nombre_org}". Usá un nombre diferente.`;
     errEl.style.display = 'block'; return;
   }
 
