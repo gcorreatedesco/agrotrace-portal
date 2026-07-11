@@ -89,8 +89,8 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         ok: true,
-        user_id: createUserData.user.id,
-        email: createUserData.user.email,
+        user_id: createUserData.id,
+        email: createUserData.email,
         mensaje: `RT ${nombre} creado exitosamente. Puede loguearse con ${email}`
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

@@ -124,9 +124,9 @@ Deno.serve(async (req) => {
       JSON.stringify({
         ok: true,
         org_id: org.id,
-        user_id: createUserData.user.id,
+        user_id: createUserData.id,
         nombre_org: org.nombre,
-        email_admin: createUserData.user.email,
+        email_admin: createUserData.email,
         mensaje: `ONG "${nombre_org}" y su usuario admin creados. El admin puede loguearse con ${email_admin}`
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
