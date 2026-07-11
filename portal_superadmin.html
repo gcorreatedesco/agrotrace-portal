@@ -154,6 +154,8 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);c
 .btn-sm.desactivar:hover{background:var(--amber-bg);}
 .btn-sm.reactivar{background:var(--accent);color:white;}
 .btn-sm.reactivar:hover{background:#3d6230;}
+.btn-sm.ver{background:none;color:var(--purple);border:1.5px solid rgba(83,74,183,0.3);}
+.btn-sm.ver:hover{background:var(--purple-bg);border-color:var(--purple);}
 
 /* ── MODAL FORMS ── */
 .form-row{margin-bottom:14px;}
@@ -328,7 +330,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);c
                 <th>Responsable Técnico</th>
                 <th>Nº REPROCANN</th>
                 <th>Estado</th>
-                <th style="width:110px;"></th>
+                <th style="width:180px;"></th>
               </tr>
             </thead>
             <tbody id="ongs-tbody">
@@ -418,6 +420,69 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);c
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
+<!-- ── MODAL: VER DATOS ONG ── -->
+<div class="modal-overlay" id="modal-ver-ong">
+  <div class="modal-box" style="max-width:520px;">
+    <div class="modal-header">
+      <div class="modal-title">Datos de la organización</div>
+      <button class="modal-close" onclick="cerrarModalVerONG()">×</button>
+    </div>
+
+    <div class="form-sep" style="border-top:none;padding-top:0;margin-top:0;">Organización</div>
+    <div class="form-row">
+      <div class="form-label">Nombre</div>
+      <div id="ver-ong-nombre" style="font-size:0.9rem;font-weight:500;color:var(--soil);padding:4px 0;"></div>
+    </div>
+    <div class="form-grid-2">
+      <div class="form-row">
+        <div class="form-label">CUIT</div>
+        <div id="ver-ong-cuit" style="font-size:0.82rem;color:var(--bark);padding:4px 0;"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-label">Localidad</div>
+        <div id="ver-ong-localidad" style="font-size:0.82rem;color:var(--bark);padding:4px 0;"></div>
+      </div>
+    </div>
+    <div class="form-grid-2">
+      <div class="form-row">
+        <div class="form-label">Nº REPROCANN</div>
+        <div id="ver-ong-reprocann" style="font-size:0.82rem;color:var(--bark);padding:4px 0;font-family:monospace;"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-label">RT asignado</div>
+        <div id="ver-ong-rt" style="font-size:0.82rem;color:var(--bark);padding:4px 0;"></div>
+      </div>
+    </div>
+    <div class="form-grid-2">
+      <div class="form-row">
+        <div class="form-label">Estado</div>
+        <div id="ver-ong-estado" style="font-size:0.82rem;color:var(--bark);padding:4px 0;"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-label">Alta en el sistema</div>
+        <div id="ver-ong-creado" style="font-size:0.78rem;color:var(--sage);padding:4px 0;"></div>
+      </div>
+    </div>
+
+    <div class="form-sep">Administrador</div>
+    <div class="form-grid-2">
+      <div class="form-row">
+        <div class="form-label">Nombre</div>
+        <div id="ver-ong-admin-nombre" style="font-size:0.82rem;color:var(--bark);padding:4px 0;"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-label">Email</div>
+        <div id="ver-ong-admin-email" style="font-size:0.78rem;color:var(--bark);padding:4px 0;font-family:monospace;word-break:break-all;"></div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="cerrarModalVerONG()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
 <!-- ── MODAL: NUEVO RT ── -->
 <div class="modal-overlay" id="modal-nuevo-rt">
   <div class="modal-box">
@@ -593,10 +658,10 @@ async function cargarRTs() {
 async function cargarONGs() {
   const { data, error } = await sb
     .from('organizaciones')
-    .select('id, nombre, localidad, reprocann, activa, rt_organizaciones(rt_id)');
+    .select('id, nombre, localidad, reprocann, cuit, activa, creado_en, rt_organizaciones(rt_id)');
   if (error || !data) return;
 
-  // Segunda query para obtener nombres de RTs (FK rt_id → auth.users, no perfiles, el join embebido no funciona)
+  // Nombres de RTs
   const rtIds = [...new Set(data.flatMap(o => (o.rt_organizaciones || []).map(r => r.rt_id)).filter(Boolean))];
   let rtMap = {};
   if (rtIds.length > 0) {
@@ -604,13 +669,29 @@ async function cargarONGs() {
     (rtPerfiles || []).forEach(p => { rtMap[p.id] = p.nombre; });
   }
 
+  // Datos del admin de cada ONG (perfil con rol 'ong')
+  const ongIds = data.map(o => o.id);
+  let adminMap = {};
+  if (ongIds.length > 0) {
+    const { data: admins } = await sb.from('perfiles')
+      .select('ong_id, nombre, email')
+      .in('ong_id', ongIds)
+      .eq('rol', 'ong');
+    (admins || []).forEach(p => { if (p.ong_id) adminMap[p.ong_id] = p; });
+  }
+
   ALL_ONGS = data.map(o => {
     const rel = (o.rt_organizaciones || [])[0];
+    const admin = adminMap[o.id];
     return {
       id: o.id, nombre: o.nombre, localidad: o.localidad,
       reprocann: o.reprocann || '', activa: o.activa !== false,
+      cuit: o.cuit || null,
+      creado_en: o.creado_en || null,
       rt_id: rel?.rt_id || null,
       rt_nombre: rel?.rt_id ? (rtMap[rel.rt_id] || null) : null,
+      nombre_admin: admin?.nombre || null,
+      email_admin: admin?.email || null,
     };
   });
 
@@ -797,7 +878,12 @@ function renderONGs() {
       }</td>
       <td style="font-family:monospace;font-size:0.78rem;">${o.reprocann || '—'}</td>
       <td><span class="badge ${o.activa !== false ? 'badge-activa' : 'badge-inactiva'}">${o.activa !== false ? 'Activa' : 'Inactiva'}</span></td>
-      <td style="text-align:right;">${btnToggle}</td>
+      <td style="text-align:right;">
+        <div style="display:flex;gap:6px;justify-content:flex-end;">
+          <button class="btn-sm ver" onclick="verONG('${o.id}')">Ver datos</button>
+          ${btnToggle}
+        </div>
+      </td>
     </tr>`;
   }).join('');
 }
@@ -1165,6 +1251,28 @@ async function crearONG() {
     btn.innerHTML = '<svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:currentColor;"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg> Crear ONG';
     btn.disabled = false; btn.style.opacity = '1';
   }
+}
+
+/* ── VER DATOS ONG ── */
+function verONG(id) {
+  const o = ALL_ONGS.find(ong => ong.id === id);
+  if (!o) return;
+  document.getElementById('ver-ong-nombre').textContent    = o.nombre || '—';
+  document.getElementById('ver-ong-cuit').textContent      = o.cuit || '—';
+  document.getElementById('ver-ong-localidad').textContent = o.localidad || '—';
+  document.getElementById('ver-ong-reprocann').textContent = o.reprocann || '—';
+  document.getElementById('ver-ong-rt').textContent        = o.rt_nombre || 'Sin asignar';
+  document.getElementById('ver-ong-estado').textContent    = o.activa !== false ? 'Activa' : 'Inactiva';
+  document.getElementById('ver-ong-creado').textContent    = o.creado_en
+    ? new Date(o.creado_en).toLocaleDateString('es-AR', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})
+    : '—';
+  document.getElementById('ver-ong-admin-nombre').textContent = o.nombre_admin || '—';
+  document.getElementById('ver-ong-admin-email').textContent  = o.email_admin  || '—';
+  document.getElementById('modal-ver-ong').classList.add('open');
+}
+
+function cerrarModalVerONG() {
+  document.getElementById('modal-ver-ong').classList.remove('open');
 }
 
 /* ── CERRAR SESIÓN ── */

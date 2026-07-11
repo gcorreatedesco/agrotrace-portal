@@ -1,6 +1,7 @@
 // Edge Function: crear-ong
 // El Superadmin llama a esta función para crear una nueva ONG y su usuario admin.
 // Requiere JWT válido del superadmin en el header Authorization.
+// Si la creación del usuario falla, hace rollback de la org ya creada.
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -46,6 +47,13 @@ Deno.serve(async (req) => {
     )
   }
 
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+
+  // Guardamos referencias para rollback
+  let org: { id: string; nombre: string } | null = null
+  let newUserId: string | null = null
+
   try {
     const {
       nombre_org,
@@ -68,7 +76,7 @@ Deno.serve(async (req) => {
     }
 
     // 1. Crear la organización
-    const { data: org, error: orgError } = await supabaseAdmin
+    const { data: orgData, error: orgError } = await supabaseAdmin
       .from('organizaciones')
       .insert({
         nombre: nombre_org,
@@ -81,20 +89,9 @@ Deno.serve(async (req) => {
       .single()
 
     if (orgError) throw new Error('Error al crear organización: ' + orgError.message)
+    org = orgData
 
-    // 2. Si se proporciona un RT, asignar la ONG a ese RT
-    if (rt_id) {
-      const { error: linkError } = await supabaseAdmin
-        .from('rt_organizaciones')
-        .insert({ rt_id, ong_id: org.id })
-      if (linkError) throw new Error('Error al asignar RT: ' + linkError.message)
-    }
-
-    // 3. Crear el usuario admin de la ONG con rol 'ong'
-    // Usar la API REST directamente para mayor compatibilidad
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-
+    // 2. Crear el usuario admin de la ONG con rol 'ong'
     const createUserRes = await fetch(`${supabaseUrl}/auth/v1/admin/users`, {
       method: 'POST',
       headers: {
@@ -120,12 +117,21 @@ Deno.serve(async (req) => {
       const errorMsg = createUserData.msg || createUserData.error || createUserData.message || JSON.stringify(createUserData)
       throw new Error('Error al crear usuario: ' + errorMsg)
     }
+    newUserId = createUserData.id
+
+    // 3. Si se proporciona un RT, asignar la ONG a ese RT
+    if (rt_id) {
+      const { error: linkError } = await supabaseAdmin
+        .from('rt_organizaciones')
+        .insert({ rt_id, ong_id: org.id })
+      if (linkError) throw new Error('Error al asignar RT: ' + linkError.message)
+    }
 
     return new Response(
       JSON.stringify({
         ok: true,
         org_id: org.id,
-        user_id: createUserData.id,
+        user_id: newUserId,
         nombre_org: org.nombre,
         email_admin: createUserData.email,
         mensaje: `ONG "${nombre_org}" y su usuario admin creados. El admin puede loguearse con ${email_admin}`
@@ -135,6 +141,34 @@ Deno.serve(async (req) => {
 
   } catch (e) {
     console.error('Error en crear-ong:', e)
+
+    // Rollback: si se creó el usuario auth, eliminarlo
+    if (newUserId) {
+      try {
+        await fetch(`${supabaseUrl}/auth/v1/admin/users/${newUserId}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${serviceRoleKey}`,
+            'apikey': serviceRoleKey,
+          },
+        })
+        console.log('Rollback: usuario auth eliminado', newUserId)
+      } catch (re) {
+        console.error('Error en rollback de usuario:', re)
+      }
+    }
+
+    // Rollback: si se creó la org, eliminar link RT y la org
+    if (org) {
+      try {
+        await supabaseAdmin.from('rt_organizaciones').delete().eq('ong_id', org.id)
+        await supabaseAdmin.from('organizaciones').delete().eq('id', org.id)
+        console.log('Rollback: org eliminada', org.id)
+      } catch (re) {
+        console.error('Error en rollback de org:', re)
+      }
+    }
+
     return new Response(
       JSON.stringify({ error: e.message || 'Error interno' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
