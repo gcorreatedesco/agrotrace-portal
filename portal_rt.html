@@ -234,10 +234,6 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);c
         <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
         Detalles de ONG
       </div>
-      <div class="nav-it" id="nav-nueva-ong" onclick="showView('view-nueva-ong',this)">
-        <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
-        Nueva Asociación Civil
-      </div>
     </div>
 
     <div class="sb-footer">
@@ -289,10 +285,6 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);c
             <span class="sec-title">Organizaciones supervisadas</span>
             <span class="sec-count" id="ong-count"></span>
           </div>
-          <button class="btn-primary" onclick="showView('view-nueva-ong', document.getElementById('nav-nueva-ong'))">
-            <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
-            Nueva Asociación Civil
-          </button>
         </div>
 
         <div class="ong-grid" id="ong-grid">
@@ -314,8 +306,8 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);c
         <div id="det-list-inactivas" style="display:none;"></div>
       </div>
 
-      <!-- ── VIEW: NUEVA ONG ── -->
-      <div class="view" id="view-nueva-ong">
+      <!-- VIEW: NUEVA ONG — deshabilitado: solo el superadmin puede crear ONGs -->
+      <div class="view" id="view-nueva-ong" style="display:none!important">
         <div class="sec-header" style="margin-bottom:20px;">
           <div class="sec-title">Nueva Asociación Civil</div>
         </div>
@@ -471,7 +463,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);c
       Accediste como <strong>Responsable Técnico</strong>. Desde este panel supervisás la producción de las Asociaciones Civiles a tu cargo.
     </div>
     <div class="popup-tip">
-      <strong>Primer paso:</strong> Debés dar de alta al menos una Asociación Civil en el sistema. Hacé click en <strong>"Nueva Asociación Civil"</strong> en el menú lateral izquierdo para comenzar.
+      <strong>Recordá:</strong> Las Asociaciones Civiles son dadas de alta por el Superadmin, quien también te las asigna. Una vez asignadas aparecen aquí para que puedas supervisarlas.
     </div>
     <button class="popup-btn" onclick="cerrarBienvenida()">Entendido, comenzar</button>
   </div>
@@ -551,12 +543,8 @@ function renderONGs() {
         <div class="empty-icon">
           <svg viewBox="0 0 24 24"><path d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z"/></svg>
         </div>
-        <div class="empty-title">Sin organizaciones todavía</div>
-        <div class="empty-desc">Todavía no hay Asociaciones Civiles registradas.<br/>Usá el botón para dar de alta la primera.</div>
-        <button class="btn-primary" onclick="showView('view-nueva-ong', document.getElementById('nav-nueva-ong'))">
-          <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
-          Nueva Asociación Civil
-        </button>
+        <div class="empty-title">Sin organizaciones asignadas</div>
+        <div class="empty-desc">Todavía no tenés Asociaciones Civiles asignadas.<br/>El Superadmin debe darlas de alta y asignártelas desde su panel.</div>
       </div>`;
     return;
   }

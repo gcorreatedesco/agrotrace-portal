@@ -98,13 +98,20 @@ Los dos `AgroTrace_*.html` son documentación renderizada, no código de la app.
 
 ## Pendientes de implementación (integración Supabase)
 
-Ver `Proximospasos.md` para el orden recomendado. Resumen:
+Ver `Proximospasos.md` para el orden recomendado.
 
-1. **Autenticación real** — conectar `index.html` con `sb.auth.signInWithPassword` / `signUp` / `signOut`; al hacer login redirigir a `agrotrace_prototipo_v3.html`
-2. **Cargar lotes desde Supabase** — reemplazar array `LD` hardcodeado por consulta real a `lotes_produccion`
-3. **Guardar nuevo lote** — wizard "Nuevo lote" debe insertar en `lotes_produccion` + `etapa_nursery` + descuento de stock
-4. **Guardar material básico** — formularios de alta/baja conectados a `lotes_semillas`, `lotes_esquejes`, `lotes_plantas_madre`, `bajas_material`
-5. **Formulario Cosecha y Curado** — insertar en `etapa_cosecha_curado`
-6. **Formulario Flores Cosechadas** — insertar en `flores_cosechadas` + `entregas` (campo `nro_reprocann` obligatorio)
-7. **División en sublotes** — crear registro en `lotes_produccion` con `lote_padre_id`
-8. **Política RLS para admin** — política que permita al rol `administrador` ver datos de todos los productores
+## Decisiones de arquitectura
+
+**Alta de ONGs: solo el Superadmin (desde 2026-07-11)**
+El RT no puede crear ONGs. Solo el Superadmin crea ONGs (vía `crear-ong` Edge Function) y las asigna a un RT en el momento del alta. El RT solo supervisa las ONGs que el Superadmin le asignó.
+- La Edge Function `invitar-ong` existe en el código local pero **no está deployada en Supabase** y no se usa.
+- El portal RT no muestra "Nueva Asociación Civil" — el empty state explica que el Superadmin gestiona el alta.
+
+## Estado de Edge Functions (al 2026-07-11)
+
+| Función | En Supabase | JWT desactivado | Funciona |
+|---------|-------------|-----------------|----------|
+| `crear-ong` | ✅ | ❌ pendiente | ⚠️ |
+| `crear-rt` | ⚠️ nombre incorrecto | ❌ pendiente | ❌ |
+| `invitar-ong` | ❌ no deployada | — | — |
+| `solicitar-acceso` | ✅ | ? | ? |
