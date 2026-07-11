@@ -188,9 +188,28 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);c
   .rt-metrics{grid-template-columns:1fr 1fr;}
   .form-grid{grid-template-columns:1fr;}
 }
+
+/* ── BANNER SUPERADMIN ── */
+.sa-bar{background:#1a1040;border-bottom:1px solid rgba(83,74,183,0.35);padding:7px 24px;display:none;align-items:center;justify-content:space-between;gap:12px;flex-shrink:0;}
+.sa-bar.visible{display:flex;}
+.sa-bar-left{display:flex;align-items:center;gap:8px;font-size:0.75rem;color:#c8c5f0;}
+.sa-bar-left svg{width:14px;height:14px;fill:#b0a9f5;flex-shrink:0;}
+.sa-bar-left strong{color:#b0a9f5;}
+.sa-bar-btn{padding:5px 14px;background:rgba(83,74,183,0.2);border:1px solid rgba(83,74,183,0.4);color:#b0a9f5;border-radius:4px;font-family:'DM Sans',sans-serif;font-size:0.72rem;cursor:pointer;transition:all .2s;}
+.sa-bar-btn:hover{background:rgba(83,74,183,0.35);}
 </style>
 </head>
 <body>
+
+<!-- ── BANNER SUPERADMIN SUPERVISANDO RT ── -->
+<div class="sa-bar" id="sa-bar">
+  <div class="sa-bar-left">
+    <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 4l5 2.18V11c0 3.5-2.33 6.79-5 7.93-2.67-1.14-5-4.43-5-7.93V7.18L12 5z"/></svg>
+    Supervisando como <strong>Superadmin</strong>: panel del RT <strong id="sa-bar-rt-nombre">—</strong>
+  </div>
+  <button class="sa-bar-btn" onclick="volverSuperadmin()">← Volver al Superadmin</button>
+</div>
+
 <div class="app">
 
   <!-- ── SIDEBAR ── -->
@@ -481,16 +500,32 @@ let CURRENT_USER_ID = null;
 /* ── INIT ── */
 async function init() {
   const { data: { session } } = await sb.auth.getSession();
+  const params = new URLSearchParams(window.location.search);
+  const saRtId = params.get('rt_id');
+  const saRtNombre = params.get('rt_nombre');
+  const fromSuperadmin = params.get('from') === 'superadmin';
 
   if (session) {
-    CURRENT_USER_ID = session.user.id;
-    const { data: perfil } = await sb.from('perfiles').select('nombre').eq('id', session.user.id).single();
-    const nombre = perfil?.nombre || session.user.email || 'Responsable Técnico';
-    const iniciales = nombre.split(' ').map(p => p[0]).join('').toUpperCase().slice(0,2);
-    document.getElementById('sb-av').textContent = iniciales;
-    document.getElementById('sb-nombre').textContent = nombre;
-    if (!sessionStorage.getItem('rt_bienvenida_vista')) {
-      document.getElementById('overlay-bienvenida').classList.remove('hidden');
+    if (fromSuperadmin && saRtId) {
+      // Superadmin supervisando el portal de un RT específico
+      CURRENT_USER_ID = saRtId;
+      document.getElementById('sa-bar').classList.add('visible');
+      document.getElementById('sa-bar-rt-nombre').textContent = saRtNombre || 'RT';
+      const { data: perfil } = await sb.from('perfiles').select('nombre').eq('id', saRtId).single();
+      const nombre = perfil?.nombre || saRtNombre || 'Responsable Técnico';
+      const iniciales = nombre.split(' ').map(p => p[0]).join('').toUpperCase().slice(0,2);
+      document.getElementById('sb-av').textContent = iniciales;
+      document.getElementById('sb-nombre').textContent = nombre;
+    } else {
+      CURRENT_USER_ID = session.user.id;
+      const { data: perfil } = await sb.from('perfiles').select('nombre').eq('id', session.user.id).single();
+      const nombre = perfil?.nombre || session.user.email || 'Responsable Técnico';
+      const iniciales = nombre.split(' ').map(p => p[0]).join('').toUpperCase().slice(0,2);
+      document.getElementById('sb-av').textContent = iniciales;
+      document.getElementById('sb-nombre').textContent = nombre;
+      if (!sessionStorage.getItem('rt_bienvenida_vista')) {
+        document.getElementById('overlay-bienvenida').classList.remove('hidden');
+      }
     }
     await cargarONGsSupabase();
   } else {
@@ -998,6 +1033,9 @@ async function eliminarDocumento(docId, storagePath) {
   DOCS_ONG = DOCS_ONG.filter(d => d.id !== docId);
   renderDocumentos();
 }
+
+/* ── VOLVER AL SUPERADMIN ── */
+function volverSuperadmin() { window.close(); }
 
 /* ── CERRAR SESIÓN ── */
 async function cerrarSesion() {

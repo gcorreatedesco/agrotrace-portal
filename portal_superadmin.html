@@ -837,9 +837,8 @@ function renderVariedades() {
 
 /* ── ACCIONES RT ── */
 function abrirPortalRT(rtId, rtNombre) {
-  sessionStorage.setItem('superadmin_supervisando_rt', rtId);
-  sessionStorage.setItem('superadmin_supervisando_nombre', rtNombre);
-  window.open('portal_rt.html', '_blank');
+  const params = new URLSearchParams({ from: 'superadmin', rt_id: rtId, rt_nombre: rtNombre });
+  window.open(`portal_rt.html?${params.toString()}`, '_blank');
 }
 
 function verOngsDeRT(rtId, rtNombre) {
