@@ -1073,6 +1073,7 @@ async function initApp(){
 function volverPortalRT(){
   sessionStorage.removeItem('agrotrace_supervisando_ong_id');
   sessionStorage.removeItem('agrotrace_supervisando_ong_nombre');
+  sessionStorage.removeItem('agrotrace_supervisando_ong_usuario_id');
   window.location.href='portal_rt.html';
 }
 
@@ -1143,7 +1144,10 @@ function supervisarDesdeOrgs(ongId,ongNombre){
 
 /* ── CARGA LOTES ── */
 async function cargarLotes(){
-  const{data,error}=await sb.from('lotes_produccion').select('*').is('lote_padre_id',null).order('creado_en',{ascending:false});
+  const ongUid=sessionStorage.getItem('agrotrace_supervisando_ong_usuario_id');
+  let q=sb.from('lotes_produccion').select('*').is('lote_padre_id',null).order('creado_en',{ascending:false});
+  if(ongUid)q=q.eq('usuario_id',ongUid);
+  const{data,error}=await q;
   if(error){console.error('Error cargando lotes:',error);return;}
   const todos=(data||[]).map(mapLote);
   LD=todos.filter(l=>l.etapaRaw!=='completado'&&l.etapaRaw!=='cerrado');
@@ -1173,10 +1177,12 @@ function fmtDate(iso){if(!iso)return'—';const[y,m,d]=iso.split('-');return d+'
 
 /* ── CARGA MATERIAL ── */
 async function cargarMaterial(){
+  const ongUid=sessionStorage.getItem('agrotrace_supervisando_ong_usuario_id');
+  const filt=q=>ongUid?q.eq('usuario_id',ongUid):q;
   const[semR,esqR,pmR]=await Promise.all([
-    sb.from('lotes_semillas').select('*').order('creado_en'),
-    sb.from('lotes_esquejes').select('*').order('creado_en'),
-    sb.from('lotes_plantas_madre').select('*').order('creado_en'),
+    filt(sb.from('lotes_semillas').select('*').order('creado_en')),
+    filt(sb.from('lotes_esquejes').select('*').order('creado_en')),
+    filt(sb.from('lotes_plantas_madre').select('*').order('creado_en')),
   ]);
   LM.semillas=(semR.data||[]).filter(r=>r.stock_actual>0).map(r=>({v:r.id,l:r.nombre_lote+' — '+r.variedad,stock:r.stock_actual,stockI:r.stock_inicial,u:r.unidad,var:r.variedad}));
   LM.esquejes=(esqR.data||[]).filter(r=>r.stock_actual>0).map(r=>({v:r.id,l:r.nombre_lote+' — '+r.variedad,stock:r.stock_actual,stockI:r.stock_inicial,u:'esquejes',var:r.variedad}));

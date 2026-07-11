@@ -484,25 +484,30 @@ const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
 let ONGS = [];
+let CURRENT_USER_ID = null;
 
 /* ── INIT ── */
 async function init() {
-  const usuario = sessionStorage.getItem('agrotrace_user') || 'Responsable Técnico';
-  const iniciales = usuario.split(' ').map(p => p[0]).join('').toUpperCase().slice(0,2);
-  document.getElementById('sb-av').textContent = iniciales;
-  document.getElementById('sb-nombre').textContent = usuario;
-
-  // Mostrar popup de bienvenida si es el primer ingreso
-  if (!sessionStorage.getItem('rt_bienvenida_vista')) {
-    document.getElementById('overlay-bienvenida').classList.remove('hidden');
-  }
-
-  // Intentar cargar ONGs desde Supabase si hay sesión real
   const { data: { session } } = await sb.auth.getSession();
+
   if (session) {
+    CURRENT_USER_ID = session.user.id;
+    const { data: perfil } = await sb.from('perfiles').select('nombre').eq('id', session.user.id).single();
+    const nombre = perfil?.nombre || session.user.email || 'Responsable Técnico';
+    const iniciales = nombre.split(' ').map(p => p[0]).join('').toUpperCase().slice(0,2);
+    document.getElementById('sb-av').textContent = iniciales;
+    document.getElementById('sb-nombre').textContent = nombre;
+    if (!sessionStorage.getItem('rt_bienvenida_vista')) {
+      document.getElementById('overlay-bienvenida').classList.remove('hidden');
+    }
     await cargarONGsSupabase();
   } else {
-    renderONGs(); // modo demo: usa array local
+    document.getElementById('sb-av').textContent = 'RT';
+    document.getElementById('sb-nombre').textContent = 'Modo demo';
+    if (!sessionStorage.getItem('rt_bienvenida_vista')) {
+      document.getElementById('overlay-bienvenida').classList.remove('hidden');
+    }
+    renderONGs();
   }
 }
 
@@ -585,17 +590,18 @@ function renderONGs() {
 
 /* ── CARGAR ONGs DESDE SUPABASE ── */
 async function cargarONGsSupabase() {
+  if (!CURRENT_USER_ID) { renderONGs(); return; }
+
   const { data, error } = await sb
-    .from('organizaciones')
-    .select('*')
-    .eq('activa', true)
-    .order('creado_en', { ascending: false });
+    .from('rt_organizaciones')
+    .select('organizaciones(*)')
+    .eq('rt_id', CURRENT_USER_ID);
 
   if (!error && data) {
-    ONGS = data.map(o => ({
-      id: o.id, nombre: o.nombre, cuit: o.cuit,
-      localidad: o.localidad, resp_nombre: '—',
-    }));
+    ONGS = data
+      .map(row => row.organizaciones)
+      .filter(o => o && o.activa !== false)
+      .sort((a, b) => new Date(b.creado_en) - new Date(a.creado_en));
   }
   renderONGs();
 }
@@ -741,11 +747,17 @@ function renderNuevaONGDocs() {
 }
 
 /* ── SUPERVISAR ONG ── */
-function supervisar(ongId, ongNombre) {
+async function supervisar(ongId, ongNombre) {
   sessionStorage.setItem('agrotrace_supervisando_ong_id', ongId);
   sessionStorage.setItem('agrotrace_supervisando_ong_nombre', ongNombre);
   sessionStorage.setItem('agrotrace_role', 'rt');
   sessionStorage.setItem('agrotrace_user', sessionStorage.getItem('agrotrace_user') || 'Responsable Técnico');
+
+  // Buscar el usuario admin de la ONG para filtrar sus datos en modo supervisión
+  const { data } = await sb.from('perfiles').select('id').eq('ong_id', ongId).maybeSingle();
+  if (data?.id) sessionStorage.setItem('agrotrace_supervisando_ong_usuario_id', data.id);
+  else sessionStorage.removeItem('agrotrace_supervisando_ong_usuario_id');
+
   window.location.href = 'agrotrace_prototipo_v3.html';
 }
 
@@ -758,11 +770,13 @@ async function cargarDetallesONGs() {
   const listA = document.getElementById('det-list-activas');
   if (listA) listA.innerHTML = '<div class="det-empty">Cargando…</div>';
 
-  const { data: { session } } = await sb.auth.getSession();
-  if (session) {
-    const { data, error } = await sb.from('organizaciones').select('*').order('creado_en', { ascending: false });
+  if (CURRENT_USER_ID) {
+    const { data, error } = await sb
+      .from('rt_organizaciones')
+      .select('organizaciones(*)')
+      .eq('rt_id', CURRENT_USER_ID);
     if (error) { console.error('[detallesONG]', error); ONGS_DET = []; }
-    else ONGS_DET = data || [];
+    else ONGS_DET = (data || []).map(row => row.organizaciones).filter(Boolean);
   } else {
     ONGS_DET = ONGS.map(o => ({ ...o, activa: o.activa !== false }));
     if (!ONGS_DET.length) {
@@ -998,7 +1012,8 @@ async function eliminarDocumento(docId, storagePath) {
 }
 
 /* ── CERRAR SESIÓN ── */
-function cerrarSesion() {
+async function cerrarSesion() {
+  await sb.auth.signOut();
   sessionStorage.clear();
   window.location.href = 'index.html';
 }
