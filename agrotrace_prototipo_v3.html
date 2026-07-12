@@ -184,6 +184,20 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);c
 .ait:last-child{border-bottom:none;}
 .ad{font-weight:500;color:var(--soil);display:block;margin-bottom:1px;}
 
+/* ── ALERTAS DINÁMICAS ── */
+.al-body{flex:1;min-width:0;}
+.al-nombre{font-weight:500;font-size:0.72rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.al-desc{font-size:0.67rem;opacity:0.85;margin:2px 0 6px;}
+.al-actions{display:flex;align-items:center;gap:5px;justify-content:flex-end;}
+.al-btn-ver,.al-btn-pos{font-size:0.62rem;padding:2px 7px;border:1px solid currentColor;background:transparent;border-radius:4px;cursor:pointer;color:inherit;font-family:'DM Sans',sans-serif;white-space:nowrap;}
+.al-btn-ver:hover,.al-btn-pos:hover{opacity:0.7;}
+.snooze-wrap{position:relative;}
+.snooze-dd{display:none;position:absolute;right:0;top:calc(100% + 4px);background:var(--white);border:1px solid rgba(0,0,0,0.12);border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,0.1);z-index:200;min-width:100px;}
+.snooze-dd.open{display:block;}
+.snooze-dd div{padding:7px 12px;font-size:0.72rem;color:var(--soil);cursor:pointer;border-radius:6px;}
+.snooze-dd div:hover{background:var(--dew);}
+.alertas-ok{font-size:0.72rem;color:var(--sage);text-align:center;padding:10px 0;}
+
 /* ── DETALLE LOTE ── */
 .lhero{background:var(--soil);border-radius:var(--radius-lg);padding:18px 20px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:flex-end;}
 .lhn{font-family:'DM Serif Display',serif;font-size:1.4rem;color:var(--dew);margin-bottom:3px;}
@@ -585,9 +599,8 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
     </div>
     <div style="display:flex;flex-direction:column;gap:12px;">
       <div class="panel">
-        <div class="pt">Alertas</div>
-        <div class="al warn"><div class="ald dw"></div>Otoño 2025 lleva 8 días sin registros en Vegetativa</div>
-        <div class="al info"><div class="ald di"></div>Verano 2024 — curado completado, avanzar a Flores</div>
+        <div class="pt">Alertas <span id="alertas-count-pt" style="font-size:0.65rem;font-weight:600;background:var(--amber-bg);color:var(--amber);padding:1px 6px;border-radius:10px;display:none;"></span></div>
+        <div id="panel-alertas"><div class="alertas-ok">Cargando…</div></div>
       </div>
       <div class="panel">
         <div class="pt">Actividad reciente</div>
