@@ -1081,6 +1081,7 @@ async function initApp(){
   rebuildSearchIndex();
   rAll('dash-lotes','todos');
   actualizarMetricasDash();
+  calcularAlertas();
 }
 
 function volverPortalRT(){
@@ -1183,7 +1184,7 @@ function mapLote(row){
   if(row.origen_semilla_id)o='Semillas';
   else if(row.origen_esqueje_id)o='Esquejes externos';
   else if(row.origen_pm_id)o='Plantas Madre';
-  return{id:row.id,n:row.nombre_completo,o,et:row.etapa_actual,etapaRaw:row.etapa_actual,b:info.b,bt:info.bt,hs:false,s:steps,sc:row.etapa_actual==='completado'?'6/6':row.etapa_actual==='cerrado'?'—':info.idx+'/6',m:[{l:'Inicio',v:fmtDate(row.fecha_inicio)}],fecha_cierre:row.fecha_cierre||null,motivo_cierre:row.motivo_cierre||null,origen_semilla_id:row.origen_semilla_id||null,origen_esqueje_id:row.origen_esqueje_id||null,origen_pm_id:row.origen_pm_id||null};
+  return{id:row.id,n:row.nombre_completo,o,et:row.etapa_actual,etapaRaw:row.etapa_actual,b:info.b,bt:info.bt,hs:false,s:steps,sc:row.etapa_actual==='completado'?'6/6':row.etapa_actual==='cerrado'?'—':info.idx+'/6',m:[{l:'Inicio',v:fmtDate(row.fecha_inicio)}],fechaInicioRaw:row.fecha_inicio||null,fecha_cierre:row.fecha_cierre||null,motivo_cierre:row.motivo_cierre||null,origen_semilla_id:row.origen_semilla_id||null,origen_esqueje_id:row.origen_esqueje_id||null,origen_pm_id:row.origen_pm_id||null};
 }
 
 function fmtDate(iso){if(!iso)return'—';const[y,m,d]=iso.split('-');return d+'/'+m+'/'+y;}
@@ -1221,7 +1222,6 @@ function actualizarMetricasDash(){
   document.getElementById('m-lotes').textContent=LD.length;
   document.getElementById('m-flor').textContent=LD.filter(l=>l.et==='floracion').length;
   document.getElementById('m-flores').textContent='—';
-  document.getElementById('m-alertas').textContent='0';
 }
 function actualizarMetricasStock(){
   const s=document.getElementById('m-sem'),e=document.getElementById('m-esq'),p=document.getElementById('m-pm');
@@ -3176,8 +3176,119 @@ async function crearSublote(){
     if(inputEl)inputEl.value=nuevaCant;
   }
   cerrarModalSublote();
-  await cargarLotes();rebuildSearchIndex();actualizarMetricasDash();
+  await cargarLotes();rebuildSearchIndex();actualizarMetricasDash();calcularAlertas();
   alert('Sublote "'+nombreFinal+'" creado correctamente.\nLote origen actualizado a '+nuevaCant+' plantas.');
+}
+
+/* ── ALERTAS ── */
+const SNOOZE_KEY='agrotrace_alertas_snooze';
+
+function getSnoozed(){
+  try{return JSON.parse(localStorage.getItem(SNOOZE_KEY)||'[]');}catch{return[];}
+}
+function esSnoozed(id){
+  const hoy=new Date().toISOString().split('T')[0];
+  return getSnoozed().some(s=>s.id===id&&s.hasta>=hoy);
+}
+function snoozeAlerta(id,dias){
+  const arr=getSnoozed().filter(s=>s.id!==id);
+  const hasta=new Date(Date.now()+dias*86400000).toISOString().split('T')[0];
+  arr.push({id,hasta});
+  localStorage.setItem(SNOOZE_KEY,JSON.stringify(arr));
+  document.querySelectorAll('.snooze-dd.open').forEach(d=>d.classList.remove('open'));
+  calcularAlertas();
+}
+function toggleSnooze(btn){
+  const dd=btn.nextElementSibling;
+  const wasOpen=dd.classList.contains('open');
+  document.querySelectorAll('.snooze-dd.open').forEach(d=>d.classList.remove('open'));
+  if(!wasOpen)dd.classList.add('open');
+}
+document.addEventListener('click',e=>{
+  if(!e.target.closest('.snooze-wrap'))
+    document.querySelectorAll('.snooze-dd.open').forEach(d=>d.classList.remove('open'));
+});
+
+function calcularAlertas(){
+  const alertas=[];
+  const hoy=new Date();
+
+  // Lotes en Nursery sin avanzar hace 25+ días
+  LD.filter(l=>l.et==='nursery'&&l.fechaInicioRaw).forEach(l=>{
+    const dias=Math.floor((hoy-new Date(l.fechaInicioRaw))/86400000);
+    if(dias>=25&&!esSnoozed('nursery_'+l.id)){
+      alertas.push({
+        id:'nursery_'+l.id,
+        tipo:'warn',
+        nombre:l.n,
+        desc:'Sin avanzar hace '+dias+' días en Nursery',
+        accion:'lote',
+        loteId:l.id
+      });
+    }
+  });
+
+  // Material básico con stock < 10% del inicial
+  const matItems=[
+    ...LM.semillas.map(r=>({...r,tipoLabel:'Semillas',tipoMat:'semillas'})),
+    ...LM.esquejes.map(r=>({...r,tipoLabel:'Esquejes',tipoMat:'esquejes'})),
+    ...LM.pm.map(r=>({...r,tipoLabel:'Plantas Madre',tipoMat:'pm'})),
+  ];
+  matItems.forEach(r=>{
+    if(!r.stockI||r.stockI<=0)return;
+    const pct=r.stock/r.stockI;
+    if(pct<0.1&&!esSnoozed('stock_'+r.v)){
+      alertas.push({
+        id:'stock_'+r.v,
+        tipo:'warn',
+        nombre:r.tipoLabel+' — '+r.l.split(' — ')[0],
+        desc:'Stock bajo: '+r.stock+' '+r.u+' ('+Math.round(pct*100)+'% del inicial)',
+        accion:'stock',
+        matId:r.v,
+        matTipo:r.tipoMat
+      });
+    }
+  });
+
+  renderAlertas(alertas);
+}
+
+function renderAlertas(alertas){
+  const contador=document.getElementById('m-alertas');
+  const badge=document.getElementById('alertas-count-pt');
+  const panel=document.getElementById('panel-alertas');
+  if(contador)contador.textContent=alertas.length||'0';
+  if(badge){badge.textContent=alertas.length;badge.style.display=alertas.length?'inline':'none';}
+  if(!panel)return;
+  if(!alertas.length){panel.innerHTML='<div class="alertas-ok">Sin alertas activas ✓</div>';return;}
+  panel.innerHTML=alertas.map(a=>`
+    <div class="al warn">
+      <div class="ald dw"></div>
+      <div class="al-body">
+        <div class="al-nombre">${a.nombre}</div>
+        <div class="al-desc">${a.desc}</div>
+        <div class="al-actions">
+          ${a.accion==='lote'
+            ?`<button class="al-btn-ver" onclick="openLote('${a.loteId}')">Ver lote ↗</button>`
+            :`<button class="al-btn-ver" onclick="irAStock('${a.matId}','${a.matTipo}')">Ver stock ↗</button>`
+          }
+          <div class="snooze-wrap">
+            <button class="al-btn-pos" onclick="toggleSnooze(this)">··· Posponer</button>
+            <div class="snooze-dd">
+              <div onclick="snoozeAlerta('${a.id}',7)">7 días</div>
+              <div onclick="snoozeAlerta('${a.id}',15)">15 días</div>
+              <div onclick="snoozeAlerta('${a.id}',30)">30 días</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function irAStock(matId,matTipo){
+  sv('stock');
+  setTimeout(()=>openMaterial(matId,matTipo),80);
 }
 
 /* ── INIT ── */
