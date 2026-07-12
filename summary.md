@@ -1,3 +1,63 @@
+# AgroTrace — Resumen de sesión (2026-07-11)
+
+## Lo que se hizo en esta sesión
+
+### 1. Bug fix: ONG huérfana en `crear-ong` Edge Function
+
+**Problema:** cuando la creación del usuario auth fallaba (email duplicado, etc.), el registro en `organizaciones` ya estaba insertado y quedaba huérfano (sin usuario admin asociado).
+
+**Fix:** declarar `org` y `newUserId` fuera del bloque `try` para que el `catch` pueda acceder a ellos y hacer rollback:
+- Si `newUserId` tiene valor → `DELETE /auth/v1/admin/users/:id`
+- Si `org` tiene valor → `DELETE FROM rt_organizaciones WHERE ong_id` + `DELETE FROM organizaciones WHERE id`
+
+Se encontraron 2 ONGs huérfanas de sesiones anteriores:
+- `203a1d51-...` — "Asociacion segunda de RT1"
+- `af161578-...` — "Asociacion Civil Ojitos Rojos RT1"
+
+SQL para limpiarlas:
+```sql
+DELETE FROM public.rt_organizaciones WHERE ong_id IN (
+  '203a1d51-b6ef-4c8a-ba0a-ef961a649123',
+  'af161578-1b62-4f8a-9bf6-d1e93531b0f2'
+);
+DELETE FROM public.organizaciones WHERE id IN (
+  '203a1d51-b6ef-4c8a-ba0a-ef961a649123',
+  'af161578-1b62-4f8a-9bf6-d1e93531b0f2'
+);
+```
+
+### 2. Modal "Ver datos" de ONG en `portal_superadmin.html`
+
+**Nueva funcionalidad:** botón "Ver datos" en cada fila de la tabla de ONGs abre un modal con todos los datos del alta:
+
+| Campo | Fuente |
+|-------|--------|
+| Nombre | `organizaciones.nombre` |
+| CUIT | `organizaciones.cuit` |
+| Localidad | `organizaciones.localidad` |
+| Nº REPROCANN | `organizaciones.reprocann` |
+| RT asignado | `perfiles.nombre` del RT vía `rt_organizaciones` |
+| Estado | `organizaciones.activa` |
+| Alta en el sistema | `organizaciones.creado_en` |
+| Nombre admin | `perfiles.nombre WHERE rol='ong' AND ong_id=...` |
+| Email admin | `perfiles.email WHERE rol='ong' AND ong_id=...` |
+
+`cargarONGs()` fue extendida para traer también `cuit`, `creado_en`, y la info del admin ONG desde `perfiles` en una segunda consulta. Todo se almacena en `ALL_ONGS` para que `verONG(id)` solo lea del array en memoria.
+
+---
+
+## Acciones pendientes en Supabase Dashboard
+
+| Acción | Estado |
+|--------|--------|
+| Ejecutar SQL para borrar 2 ONGs huérfanas | ❌ pendiente |
+| Deploy `crear-ong` actualizado (con rollback) | ❌ pendiente |
+| Desactivar JWT en `crear-ong` | ❌ pendiente |
+| Recrear `crear-rt` con nombre correcto | ❌ pendiente |
+| Desactivar JWT en `crear-rt` | ❌ pendiente |
+
+---
+
 # AgroTrace — Resumen de sesión (2026-07-10, continuación)
 
 ## Lo que se hizo en esta sesión

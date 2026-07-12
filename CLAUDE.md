@@ -11,8 +11,9 @@ Repositorio GitHub: `github.com/gcorreatedesco/agrotrace-portal`
 ## Stack actual
 
 - **Frontend:** HTML + CSS + JS vanilla. Cada pantalla es **un único `.html` autocontenido** con `<style>` y `<script>` inline — no hay archivos `.css`/`.js` separados, ni imports entre archivos. Migración futura planificada a React + Vite.
-- **Backend:** Supabase planificado (PostgreSQL + Auth + RLS). El SDK está cargado en v3 desde CDN y el cliente `sb` está inicializado, pero **ningún dato real fluye aún** — todo el frontend usa arrays JS hardcodeados. La `anon key` es pública por diseño — la seguridad la provee RLS, no esconder la clave.
-- **Base de datos:** 13 tablas PostgreSQL definidas en `supabase_schema.sql` (ERD v5), creadas en Supabase con RLS activado. La conexión entre el HTML y esas tablas aún no está implementada. URL del proyecto: `https://jqkyifuyaxxwugrnjfnq.supabase.co`.
+- **Backend:** Supabase (PostgreSQL + Auth + RLS + Edge Functions). El SDK v2 se carga desde CDN. Los portales `portal_superadmin.html` y `portal_rt.html` **ya usan datos reales de Supabase**. `agrotrace_prototipo_v3.html` aún usa arrays hardcodeados. La `anon key` es pública por diseño — la seguridad la provee RLS.
+- **Base de datos:** 13+ tablas PostgreSQL definidas en `supabase_schema.sql` (ERD v5), creadas en Supabase con RLS activado. URL del proyecto: `https://jqkyifuyaxxwugrnjfnq.supabase.co`.
+- **Edge Functions:** Deno/TypeScript, deployadas en Supabase. Manejan operaciones privilegiadas que requieren `service_role_key` (crear usuarios, etc.). Ver sección específica más abajo.
 - No hay build, bundler, linter ni test runner. No hay `package.json`.
 
 ## Cómo ejecutar y desplegar
@@ -27,14 +28,19 @@ GitHub Pages (repo público, gratis, HTTPS) es el hosting elegido para la etapa 
 
 | Archivo | Descripción |
 |---------|-------------|
-| `index.html` | Portal de acceso (login). Auth es demo: `doLogin()` solo valida campos, aún no usa Supabase Auth. |
-| `agrotrace_prototipo_v3.html` | **Versión activa.** App completa con sidebar, dashboard, lotes, sublotes, stock, wizards. El SDK de Supabase está cargado y `sb = supabase.createClient(...)` está inicializado, pero **`sb` no se usa en ninguna parte** — todos los datos son hardcodeados. La integración real aún no está implementada. |
+| `index.html` | Landing / login. `doLogin()` usa `sb.auth.signInWithPassword()` real. Redirige según rol: superadmin → `portal_superadmin.html`, rt → `portal_rt.html`, ong → `agrotrace_prototipo_v3.html`. |
+| `portal_superadmin.html` | **Portal Superadmin.** Gestión de ONGs (crear, activar/desactivar, ver datos completos) y RTs. Conectado a Supabase real. Llama a Edge Functions `crear-ong` y `crear-rt`. |
+| `portal_rt.html` | **Portal RT (Responsable Técnico).** Lista ONGs asignadas, modo supervisión (navega a v3 en contexto de esa ONG). Conectado a Supabase real con multi-tenancy por RT. |
+| `agrotrace_prototipo_v3.html` | **Portal ONG.** App completa con sidebar, dashboard, lotes, sublotes, stock, wizards. SDK cargado e inicializado; aún usa datos hardcodeados en su mayoría. |
 | `agrotrace_prototipo_v2.html` | Versión anterior, referencia histórica. |
-| `supabase_schema.sql` | Schema SQL completo (13 tablas, RLS). Ejecutar en Supabase > SQL Editor para recrear la base. |
+| `supabase_schema.sql` | Schema SQL completo (13+ tablas, RLS). Ejecutar en Supabase > SQL Editor para recrear la base. |
+| `supabase/functions/crear-ong/index.ts` | Edge Function: crea org + usuario auth con rol `ong`. Incluye rollback si falla la creación del usuario. |
+| `supabase/functions/crear-rt/index.ts` | Edge Function: crea usuario auth con rol `rt`. |
+| `supabase/functions/solicitar-acceso/index.ts` | Edge Function: flujo de solicitud de acceso (estado sin verificar). |
 | `AgroTrace_Arquitectura_Backend.html` | Documento de diseño: justificación de Supabase y arquitectura de datos. |
 | `AgroTrace_Guia_Implementacion.html` | Documento de diseño: guía paso a paso del prototipo al sistema real. |
-| `Proximospasos.md` | Hoja de ruta detallada para la próxima sesión (pasos 1–7 ordenados). Leer antes de implementar integración con Supabase. |
-| `summary.md` | Resumen de lo construido en la última sesión. |
+| `Proximospasos.md` | Hoja de ruta detallada. Leer antes de implementar integración con Supabase. |
+| `summary.md` | Resumen de lo construido en las últimas sesiones. |
 
 Los dos `AgroTrace_*.html` son documentación renderizada, no código de la app.
 
@@ -68,7 +74,23 @@ Los dos `AgroTrace_*.html` son documentación renderizada, no código de la app.
 
 ## Arquitectura del sistema — módulos
 
-1. **Autenticación** — roles: `productor`, `inspector`, `operador`, `administrador`. El `index.html` implementa el flujo UI completo pero aún sin Supabase Auth real. La tabla `perfiles` extiende `auth.users` de Supabase.
+1. **Autenticación y roles** — tres roles activos en producción:
+   - `superadmin` → `portal_superadmin.html`
+   - `rt` → `portal_rt.html`
+   - `ong` → `agrotrace_prototipo_v3.html`
+
+   **Flujo de login:** `index.html` llama a `sb.auth.signInWithPassword()`. Si el login es exitoso, consulta `perfiles` para obtener el `rol` y redirige al portal correspondiente. El JWT de la sesión queda en `localStorage` (manejo automático de Supabase).
+
+   **Alta de usuarios:**
+   - RTs: el Superadmin completa el formulario en `portal_superadmin.html` → llama a Edge Function `crear-rt` con su JWT → la función crea el usuario en `auth.users` y el trigger `handle_new_user` inserta en `perfiles`.
+   - ONGs: ídem con Edge Function `crear-ong`. También crea el registro en `organizaciones` y lo vincula al RT vía `rt_organizaciones`.
+
+   **Tabla `perfiles`:** extiende `auth.users`. Campos: `id` (FK a auth.users), `nombre`, `rol`, `email`, `ong_id` (solo para rol `ong`). Se populan vía trigger `handle_new_user()` que lee `user_metadata` del JWT.
+
+   **Usuarios en Supabase Auth (producción):**
+   - Guillermo Correa — superadmin — `c6bafecb-5df5-4573-ad6d-3d0f328a8010`
+   - Responsable Tecnico — rt — `0edfae60-9b1e-4c76-880e-d1851c4148b5`
+   - Administrador — superadmin — `2a23866e-4704-49c8-bb35-23a7f483b7fc`
 
 2. **Material Básico** — stock independiente con tres tipos: Semillas, Esquejes, Plantas Madre. Cada tipo tiene su propia tabla con `stock_actual`. Las bajas se registran en `bajas_material`.
 
@@ -107,11 +129,50 @@ El RT no puede crear ONGs. Solo el Superadmin crea ONGs (vía `crear-ong` Edge F
 - La Edge Function `invitar-ong` existe en el código local pero **no está deployada en Supabase** y no se usa.
 - El portal RT no muestra "Nueva Asociación Civil" — el empty state explica que el Superadmin gestiona el alta.
 
-## Estado de Edge Functions (al 2026-07-11)
+## Edge Functions — arquitectura y estado
 
-| Función | En Supabase | JWT desactivado | Funciona |
-|---------|-------------|-----------------|----------|
-| `crear-ong` | ✅ | ❌ pendiente | ⚠️ |
-| `crear-rt` | ⚠️ nombre incorrecto | ❌ pendiente | ❌ |
-| `invitar-ong` | ❌ no deployada | — | — |
-| `solicitar-acceso` | ✅ | ? | ? |
+### Patrón de implementación
+
+Todas las Edge Functions siguen este patrón:
+1. Verificar header `Authorization: Bearer <jwt>`
+2. Resolver el usuario con `supabaseAdmin.auth.getUser(token)`
+3. Consultar `perfiles` para validar que `rol = 'superadmin'`
+4. Ejecutar operación
+5. En caso de error: **rollback explícito** (ver abajo)
+
+### Por qué desactivar JWT verification en Supabase Dashboard
+
+El preflight `OPTIONS` del browser NO lleva JWT. Con `verify_jwt=true` (default), Supabase rechaza el `OPTIONS` con 401 sin headers CORS → el browser reporta "Failed to fetch". **La verificación de rol se hace internamente en cada función**, por eso es seguro desactivar el verify del gateway.
+
+### Patrón de rollback en `crear-ong`
+
+La creación de una ONG es un proceso de 2 pasos: 1) insertar en `organizaciones`, 2) crear usuario en `auth.users`. Si el paso 2 falla (email duplicado, etc.), el paso 1 ya se ejecutó → ONG huérfana. El fix es declarar `org` y `newUserId` **fuera del bloque `try`** para que el `catch` pueda acceder a ellos y hacer DELETE si corresponde.
+
+### Cómo llama el frontend a las Edge Functions
+
+```js
+const { data: { session } } = await sb.auth.getSession()
+const res = await fetch('https://jqkyifuyaxxwugrnjfnq.supabase.co/functions/v1/crear-ong', {
+  method: 'POST',
+  headers: {
+    'Authorization': `Bearer ${session.access_token}`,
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({ nombre_org, email_admin, password_admin, nombre_admin, cuit, localidad, reprocann, rt_id })
+})
+```
+
+La API REST de Auth (`/auth/v1/admin/users`) requiere tanto `Authorization: Bearer <key>` como `apikey: <key>` y devuelve un objeto plano `{ id, email }` (no `{ user: { id, email } }`).
+
+### Estado de Edge Functions (al 2026-07-11)
+
+| Función | En Supabase | JWT desactivado | Estado |
+|---------|-------------|-----------------|--------|
+| `crear-ong` | ✅ URL correcta | ❌ pendiente | ⚠️ falla preflight hasta desactivar JWT |
+| `crear-rt` | ⚠️ nombre interno incorrecto (`clever-endpoint`) | ❌ pendiente | ❌ 404 |
+| `invitar-ong` | ❌ no deployada | — | No se usa — el RT no crea ONGs |
+| `solicitar-acceso` | ✅ | ? | Sin verificar |
+
+**Fix pendiente `crear-rt`:** eliminar la función `crear-rt` en Dashboard (que internamente se llama `clever-endpoint`) y crearla de nuevo con el nombre exacto `crear-rt`, luego desactivar JWT.
+
+**Fix pendiente `crear-ong`:** solo desactivar JWT en Dashboard → Edge Functions → `crear-ong` → Settings.
