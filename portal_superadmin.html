@@ -308,6 +308,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);c
         <div class="filter-bar">
           <select id="filtro-rt" onchange="renderONGs()">
             <option value="">Todos los RTs</option>
+            <option value="__sin_rt__">Sin RT asignado</option>
           </select>
           <input type="text" id="filtro-ong-nombre" placeholder="Buscar organización..." oninput="renderONGs()" style="flex:1;max-width:280px;"/>
         </div>
@@ -484,6 +485,70 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);c
   </div>
 </div>
 
+<!-- ── MODAL: DATOS RT ── -->
+<div class="modal-overlay" id="modal-datos-rt">
+  <div class="modal-box" style="max-width:560px;">
+    <div class="modal-header">
+      <div class="modal-title">Datos del Responsable Técnico</div>
+      <button class="modal-close" onclick="cerrarModalDatosRT()">×</button>
+    </div>
+
+    <div class="form-sep" style="border-top:none;padding-top:0;margin-top:0;">Identificación</div>
+    <div class="form-row">
+      <div class="form-label">Email (login)</div>
+      <div id="drt-email" style="font-size:0.82rem;color:var(--bark);padding:4px 0;font-family:monospace;"></div>
+    </div>
+    <div class="form-grid-2">
+      <div class="form-row">
+        <label class="form-label">Nombre <span class="form-req">*</span></label>
+        <input id="drt-nombre" class="form-input" type="text" placeholder="Ej: María"/>
+      </div>
+      <div class="form-row">
+        <label class="form-label">Apellido <span class="form-req">*</span></label>
+        <input id="drt-apellido" class="form-input" type="text" placeholder="Ej: García"/>
+      </div>
+    </div>
+    <div class="form-row">
+      <label class="form-label">CUIT</label>
+      <input id="drt-cuit" class="form-input" type="text" placeholder="xx-xxxxxxxxx-x" maxlength="13"/>
+    </div>
+
+    <div class="form-sep">Datos profesionales</div>
+    <div class="form-grid-2">
+      <div class="form-row">
+        <label class="form-label">Colegio de profesionales</label>
+        <input id="drt-colegio" class="form-input" type="text" placeholder="Ej: CONICET, CABA"/>
+      </div>
+      <div class="form-row">
+        <label class="form-label">Nro de Matrícula</label>
+        <input id="drt-matricula" class="form-input" type="text" placeholder="Ej: 12345"/>
+      </div>
+    </div>
+
+    <div class="form-sep">Domicilio profesional</div>
+    <div class="form-grid-2">
+      <div class="form-row">
+        <label class="form-label">Provincia</label>
+        <input id="drt-provincia" class="form-input" type="text" placeholder="Ej: Buenos Aires"/>
+      </div>
+      <div class="form-row">
+        <label class="form-label">Ciudad</label>
+        <input id="drt-ciudad" class="form-input" type="text" placeholder="Ej: La Plata"/>
+      </div>
+    </div>
+    <div class="form-row">
+      <label class="form-label">Dirección y número</label>
+      <input id="drt-direccion" class="form-input" type="text" placeholder="Ej: Av. 7 Nro 1234"/>
+    </div>
+
+    <div class="err-box" id="drt-err"></div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="cerrarModalDatosRT()">Cancelar</button>
+      <button class="btn-primary" id="btn-guardar-drt" onclick="guardarDatosRT()">Guardar datos</button>
+    </div>
+  </div>
+</div>
+
 <!-- ── MODAL: NUEVO RT ── -->
 <div class="modal-overlay" id="modal-nuevo-rt">
   <div class="modal-box">
@@ -588,6 +653,7 @@ let CSV_PARSED = null;
 let RT_TAB  = 'activos';
 let ONG_TAB = 'activas';
 let VER_ONG_ID = null;
+let DATOS_RT_ID = null;
 
 /* ── INIT ── */
 async function init() {
@@ -626,7 +692,7 @@ function cargarDemo() {
 
 /* ── CARGAR RTs ── */
 async function cargarRTs() {
-  const { data, error } = await sb.from('perfiles').select('id, nombre, email, activo').eq('rol', 'rt');
+  const { data, error } = await sb.from('perfiles').select('id, nombre, email, activo, apellido, cuit, colegio_profesional, nro_matricula, provincia, ciudad, direccion').eq('rol', 'rt');
   if (error || !data) return;
 
   const rtIds = data.map(r => r.id);
@@ -828,6 +894,7 @@ function renderRTs(gridId, countId, limit) {
       <div class="rt-card-actions">
         ${!inactivo ? `<button class="btn-sm supervisar" onclick="abrirPortalRT('${idStr}','${nomStr}')">Supervisar →</button>` : ''}
         <button class="btn-sm gestionar" onclick="verOngsDeRT('${idStr}','${nomStr}')">Ver ONGs</button>
+        <button class="btn-sm gestionar" onclick="abrirDatosRT('${idStr}')">Datos</button>
         ${!inactivo
           ? `<button class="btn-sm desactivar" onclick="toggleRT('${idStr}','${nomStr}',false)">Desactivar</button>`
           : `<button class="btn-sm reactivar" onclick="toggleRT('${idStr}','${nomStr}',true)">Reactivar</button>`
@@ -853,7 +920,8 @@ function renderONGs() {
     ? ALL_ONGS.filter(o => o.activa !== false)
     : ALL_ONGS.filter(o => o.activa === false);
 
-  if (filtroRTId)    lista = lista.filter(o => o.rt_id === filtroRTId);
+  if (filtroRTId === '__sin_rt__') lista = lista.filter(o => !o.rt_id);
+  else if (filtroRTId)             lista = lista.filter(o => o.rt_id === filtroRTId);
   if (filtroNombre)  lista = lista.filter(o => o.nombre.toLowerCase().includes(filtroNombre));
 
   const countEl = document.getElementById('ongs-count');
@@ -1344,6 +1412,78 @@ async function guardarAsignacionRT() {
   } catch (err) {
     alert('Error al guardar: ' + (err.message || JSON.stringify(err)));
     btn.textContent = 'Guardar asignación RT'; btn.disabled = false;
+  }
+}
+
+/* ── DATOS RT ── */
+function abrirDatosRT(rtId) {
+  DATOS_RT_ID = rtId;
+  const rt = ALL_RTS.find(r => r.id === rtId);
+  if (!rt) return;
+  document.getElementById('drt-email').textContent   = rt.email || '—';
+  document.getElementById('drt-nombre').value        = rt.nombre || '';
+  document.getElementById('drt-apellido').value      = rt.apellido || '';
+  document.getElementById('drt-cuit').value          = rt.cuit || '';
+  document.getElementById('drt-colegio').value       = rt.colegio_profesional || '';
+  document.getElementById('drt-matricula').value     = rt.nro_matricula || '';
+  document.getElementById('drt-provincia').value     = rt.provincia || '';
+  document.getElementById('drt-ciudad').value        = rt.ciudad || '';
+  document.getElementById('drt-direccion').value     = rt.direccion || '';
+  document.getElementById('drt-err').style.display  = 'none';
+  const btn = document.getElementById('btn-guardar-drt');
+  if (btn) { btn.textContent = 'Guardar datos'; btn.disabled = false; }
+  document.getElementById('modal-datos-rt').classList.add('open');
+}
+
+function cerrarModalDatosRT() {
+  document.getElementById('modal-datos-rt').classList.remove('open');
+  DATOS_RT_ID = null;
+}
+
+function validarCUIT(cuit) {
+  return !cuit || /^\d{2}-\d{8,9}-\d$/.test(cuit.trim());
+}
+
+async function guardarDatosRT() {
+  const nombre   = document.getElementById('drt-nombre').value.trim();
+  const apellido = document.getElementById('drt-apellido').value.trim();
+  const cuit     = document.getElementById('drt-cuit').value.trim();
+  const errEl    = document.getElementById('drt-err');
+
+  if (!nombre) { errEl.textContent = 'El nombre es obligatorio.'; errEl.style.display = 'block'; return; }
+  if (!apellido) { errEl.textContent = 'El apellido es obligatorio.'; errEl.style.display = 'block'; return; }
+  if (!validarCUIT(cuit)) { errEl.textContent = 'El formato de CUIT debe ser xx-xxxxxxxxx-x (ej: 20-12345678-9).'; errEl.style.display = 'block'; return; }
+  errEl.style.display = 'none';
+
+  const btn = document.getElementById('btn-guardar-drt');
+  btn.textContent = 'Guardando…'; btn.disabled = true;
+
+  try {
+    const updates = {
+      nombre:              nombre,
+      apellido:            apellido || null,
+      cuit:                cuit || null,
+      colegio_profesional: document.getElementById('drt-colegio').value.trim() || null,
+      nro_matricula:       document.getElementById('drt-matricula').value.trim() || null,
+      provincia:           document.getElementById('drt-provincia').value.trim() || null,
+      ciudad:              document.getElementById('drt-ciudad').value.trim() || null,
+      direccion:           document.getElementById('drt-direccion').value.trim() || null,
+    };
+
+    const { error } = await sb.from('perfiles').update(updates).eq('id', DATOS_RT_ID);
+    if (error) throw error;
+
+    // Actualizar en memoria
+    const rt = ALL_RTS.find(r => r.id === DATOS_RT_ID);
+    if (rt) Object.assign(rt, updates);
+
+    cerrarModalDatosRT();
+    renderRTs('dash-rt-grid', 'dash-rt-count', 4);
+    renderRTs('rts-grid', 'rts-count');
+  } catch (err) {
+    errEl.textContent = 'Error al guardar: ' + (err.message || JSON.stringify(err));
+    errEl.style.display = 'block';
+    btn.textContent = 'Guardar datos'; btn.disabled = false;
   }
 }
 
