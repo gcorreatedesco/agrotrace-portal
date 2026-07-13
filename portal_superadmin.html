@@ -490,7 +490,10 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);c
   <div class="modal-box" style="max-width:560px;">
     <div class="modal-header">
       <div class="modal-title">Datos del Responsable Técnico</div>
-      <button class="modal-close" onclick="cerrarModalDatosRT()">×</button>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <button id="btn-habilitar-drt" onclick="habilitarEdicionDRT()" style="display:none;font-size:0.72rem;padding:4px 10px;border:1px solid var(--accent);background:transparent;color:var(--accent);border-radius:5px;cursor:pointer;font-family:'DM Sans',sans-serif;">🔓 Habilitar cambio</button>
+        <button class="modal-close" onclick="cerrarModalDatosRT()">×</button>
+      </div>
     </div>
 
     <div class="form-sep" style="border-top:none;padding-top:0;margin-top:0;">Identificación</div>
@@ -541,10 +544,21 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);c
       <input id="drt-direccion" class="form-input" type="text" placeholder="Ej: Av. 7 Nro 1234"/>
     </div>
 
+    <div class="form-sep">Acceso al sistema</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+      <div style="font-size:0.78rem;color:var(--sage);line-height:1.5;">
+        El RT recibirá un email con un link para elegir su nueva contraseña.<br>
+        <span style="font-size:0.72rem;opacity:0.8;">Su sesión activa no se verá afectada.</span>
+      </div>
+      <button class="btn-secondary" id="btn-reset-pwd" onclick="enviarResetPasswordRT()" style="white-space:nowrap;flex-shrink:0;">
+        Enviar reset de contraseña
+      </button>
+    </div>
+    <div id="drt-reset-msg" style="display:none;font-size:0.75rem;margin-top:8px;padding:7px 10px;border-radius:6px;"></div>
+
     <div class="err-box" id="drt-err"></div>
-    <div class="modal-footer">
-      <button class="btn-secondary" onclick="cerrarModalDatosRT()">Cancelar</button>
-      <button class="btn-primary" id="btn-guardar-drt" onclick="guardarDatosRT()">Guardar datos</button>
+    <div class="modal-footer" id="drt-footer">
+      <button class="btn-secondary" onclick="cerrarModalDatosRT()">Cerrar</button>
     </div>
   </div>
 </div>
@@ -1416,6 +1430,22 @@ async function guardarAsignacionRT() {
 }
 
 /* ── DATOS RT ── */
+const DRT_CAMPOS = ['drt-nombre','drt-apellido','drt-cuit','drt-colegio','drt-matricula','drt-provincia','drt-ciudad','drt-direccion'];
+let DRT_VALORES_ORIG = {};
+
+function drtSetBlocked(blocked) {
+  DRT_CAMPOS.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.disabled = blocked;
+  });
+  document.getElementById('btn-reset-pwd').disabled = blocked;
+  document.getElementById('btn-habilitar-drt').style.display = blocked ? 'inline-block' : 'none';
+  document.getElementById('drt-footer').innerHTML = blocked
+    ? `<button class="btn-secondary" onclick="cerrarModalDatosRT()">Cerrar</button>`
+    : `<button class="btn-secondary" onclick="cancelarEdicionDRT()">Cancelar</button>
+       <button class="btn-primary" id="btn-guardar-drt" onclick="guardarDatosRT()">Guardar datos</button>`;
+}
+
 function abrirDatosRT(rtId) {
   DATOS_RT_ID = rtId;
   const rt = ALL_RTS.find(r => r.id === rtId);
@@ -1429,15 +1459,72 @@ function abrirDatosRT(rtId) {
   document.getElementById('drt-provincia').value     = rt.provincia || '';
   document.getElementById('drt-ciudad').value        = rt.ciudad || '';
   document.getElementById('drt-direccion').value     = rt.direccion || '';
-  document.getElementById('drt-err').style.display  = 'none';
-  const btn = document.getElementById('btn-guardar-drt');
-  if (btn) { btn.textContent = 'Guardar datos'; btn.disabled = false; }
+  document.getElementById('drt-err').style.display       = 'none';
+  document.getElementById('drt-reset-msg').style.display = 'none';
+  document.getElementById('btn-reset-pwd').textContent   = 'Enviar reset de contraseña';
+
+  // Guardar copia de los valores originales para poder cancelar
+  DRT_VALORES_ORIG = {
+    nombre: rt.nombre||'', apellido: rt.apellido||'', cuit: rt.cuit||'',
+    colegio_profesional: rt.colegio_profesional||'', nro_matricula: rt.nro_matricula||'',
+    provincia: rt.provincia||'', ciudad: rt.ciudad||'', direccion: rt.direccion||'',
+  };
+
+  // Si ya tiene datos cargados → bloquear; si es nuevo RT sin datos → edición directa
+  const tieneDatos = !!(rt.apellido || rt.cuit || rt.colegio_profesional);
+  drtSetBlocked(tieneDatos);
+
   document.getElementById('modal-datos-rt').classList.add('open');
+}
+
+function habilitarEdicionDRT() {
+  drtSetBlocked(false);
+  document.getElementById('drt-nombre').focus();
+}
+
+function cancelarEdicionDRT() {
+  // Restaurar valores originales
+  document.getElementById('drt-nombre').value    = DRT_VALORES_ORIG.nombre;
+  document.getElementById('drt-apellido').value  = DRT_VALORES_ORIG.apellido;
+  document.getElementById('drt-cuit').value      = DRT_VALORES_ORIG.cuit;
+  document.getElementById('drt-colegio').value   = DRT_VALORES_ORIG.colegio_profesional;
+  document.getElementById('drt-matricula').value = DRT_VALORES_ORIG.nro_matricula;
+  document.getElementById('drt-provincia').value = DRT_VALORES_ORIG.provincia;
+  document.getElementById('drt-ciudad').value    = DRT_VALORES_ORIG.ciudad;
+  document.getElementById('drt-direccion').value = DRT_VALORES_ORIG.direccion;
+  document.getElementById('drt-err').style.display = 'none';
+  drtSetBlocked(true);
 }
 
 function cerrarModalDatosRT() {
   document.getElementById('modal-datos-rt').classList.remove('open');
   DATOS_RT_ID = null;
+}
+
+async function enviarResetPasswordRT() {
+  const rt = ALL_RTS.find(r => r.id === DATOS_RT_ID);
+  if (!rt?.email) return;
+
+  const msgEl = document.getElementById('drt-reset-msg');
+  const btn   = document.getElementById('btn-reset-pwd');
+
+  if (!confirm(`¿Enviar email de reset de contraseña a ${rt.email}?\n\nEl RT recibirá un link para elegir su nueva contraseña.`)) return;
+
+  btn.textContent = 'Enviando…'; btn.disabled = true;
+
+  const { error } = await sb.auth.resetPasswordForEmail(rt.email, {
+    redirectTo: 'https://gcorreatedesco.github.io/agrotrace-portal/index.html',
+  });
+
+  if (error) {
+    msgEl.textContent = 'Error al enviar: ' + error.message;
+    msgEl.style.cssText = 'display:block;background:#faece7;color:#b94a3a;font-size:0.75rem;margin-top:8px;padding:7px 10px;border-radius:6px;';
+  } else {
+    msgEl.textContent = `✓ Email enviado a ${rt.email}. El RT tiene 24 hs para completar el cambio.`;
+    msgEl.style.cssText = 'display:block;background:#edf2e8;color:#4e7c3f;font-size:0.75rem;margin-top:8px;padding:7px 10px;border-radius:6px;';
+  }
+
+  btn.textContent = 'Enviar reset de contraseña'; btn.disabled = false;
 }
 
 function validarCUIT(cuit) {
@@ -1473,17 +1560,19 @@ async function guardarDatosRT() {
     const { error } = await sb.from('perfiles').update(updates).eq('id', DATOS_RT_ID);
     if (error) throw error;
 
-    // Actualizar en memoria
+    // Actualizar en memoria y valores originales
     const rt = ALL_RTS.find(r => r.id === DATOS_RT_ID);
     if (rt) Object.assign(rt, updates);
+    DRT_VALORES_ORIG = { ...updates, colegio_profesional: updates.colegio_profesional||'', nro_matricula: updates.nro_matricula||'' };
 
-    cerrarModalDatosRT();
     renderRTs('dash-rt-grid', 'dash-rt-count', 4);
     renderRTs('rts-grid', 'rts-count');
+    drtSetBlocked(true);  // volver a modo solo lectura
   } catch (err) {
     errEl.textContent = 'Error al guardar: ' + (err.message || JSON.stringify(err));
     errEl.style.display = 'block';
-    btn.textContent = 'Guardar datos'; btn.disabled = false;
+    const btn2 = document.getElementById('btn-guardar-drt');
+    if (btn2) { btn2.textContent = 'Guardar datos'; btn2.disabled = false; }
   }
 }
 
