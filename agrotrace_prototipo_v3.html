@@ -1077,24 +1077,29 @@ async function initApp(){
     CURRENT_USER={id:demoIds[rolActivo]||demoIds.ong, email:'demo@agrotrace.com'};
   }
 
-  // Mostrar info de organización en sidebar
+  // Mostrar info de usuario real en sidebar (no la ONG supervisada)
   const sbOrg=document.getElementById('sb-org');
   const sbMail=document.getElementById('sb-email');
+  const sbAv=document.querySelector('.user-av');
   if(session){
-    const {data:perf}=await sb.from('perfiles').select('ong_id,email').eq('id',CURRENT_USER.id).single();
+    const {data:perf}=await sb.from('perfiles').select('nombre,rol,ong_id').eq('id',CURRENT_USER.id).single();
     if(perf?.ong_id){
+      // Usuario ONG normal: mostrar nombre de la organización
       const {data:org}=await sb.from('organizaciones').select('nombre').eq('id',perf.ong_id).single();
       const orgNombre=org?.nombre||'Mi Organización';
       if(sbOrg){sbOrg.textContent=orgNombre;sbOrg.title=orgNombre;}
     } else {
-      const sup=sessionStorage.getItem('agrotrace_supervisando_ong_nombre');
-      const fallback=sup||sessionStorage.getItem('agrotrace_user')||'Organización';
-      if(sbOrg){sbOrg.textContent=fallback;sbOrg.title=fallback;}
+      // RT o superadmin supervisando: mostrar su propia identidad
+      const propio=perf?.nombre||session.user.email||'Usuario';
+      if(sbOrg){sbOrg.textContent=propio;sbOrg.title=propio;}
+      if(sbAv){
+        if(perf?.rol==='superadmin') sbAv.textContent='SA';
+        else if(perf?.rol==='rt') sbAv.textContent='RT';
+      }
     }
     if(sbMail)sbMail.textContent=session.user.email||'—';
   } else {
-    const sup=sessionStorage.getItem('agrotrace_supervisando_ong_nombre');
-    const fallback=sup||sessionStorage.getItem('agrotrace_user')||'Modo demo';
+    const fallback=sessionStorage.getItem('agrotrace_user')||'Modo demo';
     if(sbOrg){sbOrg.textContent=fallback;sbOrg.title=fallback;}
     if(sbMail)sbMail.textContent='demo@agrotrace.com';
   }

@@ -545,10 +545,11 @@ async function init() {
       CURRENT_USER_ID = saRtId;
       document.getElementById('sa-bar').classList.add('visible');
       document.getElementById('sa-bar-rt-nombre').textContent = saRtNombre || 'RT';
-      const { data: perfil } = await sb.from('perfiles').select('nombre, email').eq('id', saRtId).single();
-      const nombre = perfil?.nombre || saRtNombre || 'Responsable Técnico';
-      document.getElementById('sb-nombre').textContent = nombre;
-      document.getElementById('sb-email').textContent = perfil?.email || session.user.email || '—';
+      // Sidebar: identidad del superadmin (quien está logueado), no del RT supervisado
+      const { data: perfilAdmin } = await sb.from('perfiles').select('nombre').eq('id', session.user.id).single();
+      document.getElementById('sb-av').textContent = 'SA';
+      document.getElementById('sb-nombre').textContent = perfilAdmin?.nombre || 'Superadmin';
+      document.getElementById('sb-email').textContent = session.user.email || '—';
     } else {
       CURRENT_USER_ID = session.user.id;
       const { data: perfil } = await sb.from('perfiles').select('nombre').eq('id', session.user.id).single();
