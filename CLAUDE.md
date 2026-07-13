@@ -144,6 +144,10 @@ Ver `Proximospasos.md` para el orden recomendado.
 |--------|--------|
 | Panel de alertas — Portal ONG | ✅ Implementado (2026-07-12) |
 | Panel de alertas — Portal RT | ✅ Implementado (2026-07-12) |
+| Sidebar usuario ONG (org name + email + ícono "O") | ✅ Implementado (2026-07-13) |
+| Sidebar usuario RT (nombre + email + ícono "RT" fijo) | ✅ Implementado (2026-07-13) |
+| Fix sidebar: supervisor ve su propia identidad (no la supervisada) | ✅ Implementado (2026-07-13) |
+| Fix RLS INSERT tablas etapas (WITH CHECK explícito) | ❌ SQL listo en `summary.md` — ejecutar en Supabase |
 | SQL Políticas RLS para modo supervisión RT | ❌ SQL listo en `summary.md` — ejecutar en Supabase |
 | SQL Tabla `variedades_rnc` | ❌ SQL listo en `summary.md` — ejecutar en Supabase |
 | Fix Edge Function `crear-rt` (nombre incorrecto en Dashboard) | ❌ Acción manual en Dashboard |
@@ -152,6 +156,36 @@ Ver `Proximospasos.md` para el orden recomendado.
 | Adaptación mobile | ❌ Pendiente |
 
 ## Decisiones de arquitectura
+
+**Patrón RLS correcto para tablas con subquery `EXISTS` (desde 2026-07-13)**
+
+Las políticas que usan `EXISTS (SELECT 1 FROM otra_tabla ...)` en la condición **no deben usar `FOR ALL USING`**. En Supabase/PostgREST, ese patrón no aplica correctamente el USING como WITH CHECK para INSERT. El patrón correcto es declarar políticas separadas por operación:
+
+```sql
+-- CORRECTO
+CREATE POLICY "tabla_select" ON public.mi_tabla
+  FOR SELECT USING (EXISTS (...));
+CREATE POLICY "tabla_insert" ON public.mi_tabla
+  FOR INSERT WITH CHECK (EXISTS (...));
+CREATE POLICY "tabla_update" ON public.mi_tabla
+  FOR UPDATE USING (EXISTS (...));
+CREATE POLICY "tabla_delete" ON public.mi_tabla
+  FOR DELETE USING (EXISTS (...));
+
+-- INCORRECTO (falla INSERT silenciosamente en Supabase)
+CREATE POLICY "tabla_all" ON public.mi_tabla
+  FOR ALL USING (EXISTS (...));
+```
+
+Las políticas directas sin subquery (`auth.uid() = usuario_id`) sí pueden usar `FOR ALL USING` sin problemas.
+
+**Sidebar usuario: el sidebar siempre muestra la identidad del usuario logueado (desde 2026-07-13)**
+
+El sidebar nunca muestra la identidad de la entidad supervisada — eso se muestra en los banners de supervisión (`sa-bar`, `rt-bar`). Estructura por rol:
+- **ONG**: ícono `O`, nombre de la organización (de `organizaciones.nombre` via `ong_id`), email.
+- **RT**: ícono `RT` fijo, nombre personal del RT (de `perfiles.nombre`), email.
+- **Superadmin supervisando desde portal RT**: ícono `SA`, nombre del superadmin, email.
+- **RT o superadmin supervisando desde portal ONG**: ícono `RT`/`SA`, nombre propio, email.
 
 **Alta de ONGs: solo el Superadmin (desde 2026-07-11)**
 El RT no puede crear ONGs. Solo el Superadmin crea ONGs (vía `crear-ong` Edge Function) y las asigna a un RT en el momento del alta. El RT solo supervisa las ONGs que el Superadmin le asignó.

@@ -1,3 +1,85 @@
+# AgroTrace — Resumen de sesión (2026-07-13)
+
+## Lo que se hizo en esta sesión
+
+### 1. Sidebar usuario — Portal ONG (`agrotrace_prototipo_v3.html`)
+
+Nuevo diseño del bloque de usuario en el sidebar lateral: reemplazó el nombre personal por la **identidad de la organización**.
+
+**Estructura visual:**
+```
+[O]  Asoc. Civil Los Tilos        ← nombre de la org (trunca con … si es largo)
+     admin@lostilos.com           ← email de login
+```
+
+**Cambios técnicos:**
+- Ícono: `O` fijo en HTML (eliminó el cálculo dinámico de iniciales).
+- CSS: nuevas clases `.user-info` (`min-width:0; overflow:hidden` para que el ellipsis funcione en flex), `.user-org` (texto principal, `text-overflow:ellipsis`), `.user-email` (segunda línea, color más tenue). Se eliminó `.user-nm`.
+- JS en `initApp()`: reemplazó la lectura de `sessionStorage('agrotrace_user')` por una query real a `perfiles` para obtener `ong_id`, luego query a `organizaciones` para obtener el nombre.
+- `title="..."` en el elemento `.user-org` → tooltip con el nombre completo al hacer hover.
+- **Modo supervisión** (RT o superadmin accediendo al portal ONG): muestra la identidad propia del supervisor (`RT`/`SA` + nombre + email), no el nombre de la ONG que se está supervisando. La ONG supervisada ya aparece en el banner `rt-bar`.
+
+### 2. Sidebar usuario — Portal RT (`portal_rt.html`)
+
+**Estructura visual:**
+```
+[RT] Juan García                  ← nombre del RT
+     rt@ejemplo.com               ← email de login
+```
+
+**Cambios técnicos:**
+- Ícono: `RT` fijo en HTML. Se eliminó el cálculo de iniciales (`split/map/join`) que lo sobreescribía en JS.
+- CSS: `.user-info`, `.user-email` (reemplaza `.user-role` que mostraba "Responsable Técnico" hardcodeado).
+- JS en `init()`:
+  - Rama normal: `sb-email` se puebla con `session.user.email`.
+  - Rama superadmin supervisando un RT: en lugar de mostrar el nombre del RT supervisado, ahora muestra el nombre del superadmin logueado (`perfiles` del `session.user.id`) con ícono `SA`. El RT supervisado solo aparece en el banner `sa-bar`.
+
+### 3. Fix crítico RLS — flujo completo de lotes
+
+**Síntoma:** `Error guardando cosecha: new row violates row-level security policy for table "etapa_cosecha"`
+
+**Causa raíz:** Todas las tablas de etapas usaban `FOR ALL USING (EXISTS(...))` sin `WITH CHECK` explícito. PostgreSQL especifica que USING debería usarse como WITH CHECK si no se define uno, pero **en la implementación de Supabase/PostgREST las políticas con subquery `EXISTS` en USING no se evalúan correctamente para INSERT** — el INSERT queda sin check válido y la RLS lo bloquea.
+
+**Por qué fallaba en cosecha y no antes:** Las etapas previas (nursery, vegetativa, floración) tenían registros existentes de sesiones anteriores → el código tomaba el camino UPDATE. La cosecha era la primera etapa sin registro previo → tomaba el camino INSERT → RLS bloqueaba.
+
+**Fix:** Reemplazar `FOR ALL USING` por políticas explícitas separadas por operación con `WITH CHECK` en INSERT:
+
+```sql
+-- Ejemplo (aplicado a las 8 tablas afectadas):
+DROP POLICY IF EXISTS "via lote cosecha" ON public.etapa_cosecha;
+CREATE POLICY "cosecha_select" ON public.etapa_cosecha
+  FOR SELECT USING (EXISTS (SELECT 1 FROM public.lotes_produccion WHERE id = lote_id AND usuario_id = auth.uid()));
+CREATE POLICY "cosecha_insert" ON public.etapa_cosecha
+  FOR INSERT WITH CHECK (EXISTS (SELECT 1 FROM public.lotes_produccion WHERE id = lote_id AND usuario_id = auth.uid()));
+CREATE POLICY "cosecha_update" ON public.etapa_cosecha
+  FOR UPDATE USING (EXISTS (SELECT 1 FROM public.lotes_produccion WHERE id = lote_id AND usuario_id = auth.uid()));
+CREATE POLICY "cosecha_delete" ON public.etapa_cosecha
+  FOR DELETE USING (EXISTS (SELECT 1 FROM public.lotes_produccion WHERE id = lote_id AND usuario_id = auth.uid()));
+```
+
+**Tablas corregidas (misma operación para cada una):**
+`etapa_nursery`, `etapa_vegetativa`, `etapa_floracion`, `etapa_cosecha`, `etapa_curado_secado`, `flores_cosechadas`, `entregas`, `analisis_calidad`
+
+`supabase_schema.sql` fue actualizado con el patrón correcto. El SQL completo para ejecutar en Supabase Dashboard está en el chat de la sesión del 2026-07-13.
+
+---
+
+## Estado actual de pendientes
+
+| Pendiente | Estado |
+|-----------|--------|
+| Sidebar usuario ONG/RT (org name + email + ícono correcto) | ✅ Implementado (2026-07-13) |
+| Fix sidebar: supervisor ve su propia identidad (no la supervisada) | ✅ Implementado (2026-07-13) |
+| Fix RLS INSERT en etapas de lote (WITH CHECK explícito) | ❌ SQL listo — ejecutar en Supabase |
+| SQL Políticas RLS para modo supervisión RT | ❌ SQL listo en summary anterior — ejecutar en Supabase |
+| SQL Tabla `variedades_rnc` | ❌ SQL listo en summary anterior — ejecutar en Supabase |
+| Fix Edge Function `crear-rt` | ❌ Acción en Dashboard |
+| Fix JWT `crear-ong` | ❌ Acción en Dashboard |
+| Sistema de Reportes | ❌ Pendiente |
+| Adaptación mobile | ❌ Pendiente |
+
+---
+
 # AgroTrace — Resumen de sesión (2026-07-12)
 
 ## Lo que se hizo en esta sesión
