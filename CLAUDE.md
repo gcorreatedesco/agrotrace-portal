@@ -30,8 +30,8 @@ GitHub Pages (repo público, gratis, HTTPS) es el hosting elegido para la etapa 
 |---------|-------------|
 | `index.html` | Landing / login. `doLogin()` usa `sb.auth.signInWithPassword()` real. Redirige según rol: superadmin → `portal_superadmin.html`, rt → `portal_rt.html`, ong → `agrotrace_prototipo_v3.html`. |
 | `portal_superadmin.html` | **Portal Superadmin.** Gestión de ONGs (crear, activar/desactivar, ver datos completos) y RTs. Conectado a Supabase real. Llama a Edge Functions `crear-ong` y `crear-rt`. |
-| `portal_rt.html` | **Portal RT (Responsable Técnico).** Lista ONGs asignadas, modo supervisión (navega a v3 en contexto de esa ONG). Conectado a Supabase real con multi-tenancy por RT. |
-| `agrotrace_prototipo_v3.html` | **Portal ONG.** App completa con sidebar, dashboard, lotes, sublotes, stock, wizards. SDK cargado e inicializado; aún usa datos hardcodeados en su mayoría. |
+| `portal_rt.html` | **Portal RT (Responsable Técnico).** Lista ONGs asignadas, modo supervisión (navega a v3 en contexto de esa ONG). Conectado a Supabase real con multi-tenancy por RT. Panel de alertas activas con 5 tipos de alerta y snooze por localStorage. |
+| `agrotrace_prototipo_v3.html` | **Portal ONG.** App completa con sidebar, dashboard, lotes, sublotes, stock, wizards. Panel de alertas dinámico en el dashboard (Nursery > 25 días, stock < 10%). Conectado a Supabase real. |
 | `agrotrace_prototipo_v2.html` | Versión anterior, referencia histórica. |
 | `supabase_schema.sql` | Schema SQL completo (13+ tablas, RLS). Ejecutar en Supabase > SQL Editor para recrear la base. |
 | `supabase/functions/crear-ong/index.ts` | Edge Function: crea org + usuario auth con rol `ong`. Incluye rollback si falla la creación del usuario. |
@@ -96,7 +96,25 @@ Los dos `AgroTrace_*.html` son documentación renderizada, no código de la app.
 
 3. **Lotes de Producción** — ciclo de 5 etapas secuenciales: Nursery → Vegetativa → Floración → Cosecha/Curado → Flores Cosechadas. Los lotes pueden dividirse en **sublotes** desde cualquier etapa. Sublotes y lotes principales comparten la tabla `lotes_produccion` (campo `lote_padre_id`).
 
-4. **Reportes** — pendiente de desarrollo.
+4. **Alertas** — sistema de monitoreo activo en dos portales:
+
+   **Portal ONG (`agrotrace_prototipo_v3.html`):**
+   - Panel en el dashboard (columna derecha). Función `calcularAlertas()` corre al init y en cada operación que modifica datos (15 puntos del código).
+   - Alerta 🟡 Nursery > 25 días sin avanzar: usa `l.fechaInicioRaw` (campo agregado a `mapLote`).
+   - Alerta 🟡 Stock material básico < 10% del inicial: compara `stock / stockI` en `LM.semillas`, `LM.esquejes`, `LM.pm`.
+   - Acciones: **Ver lote/stock ↗** (deep link) + **Posponer** (dropdown 7/15/30d, `localStorage` clave `agrotrace_alertas_snooze`).
+
+   **Portal RT (`portal_rt.html`):**
+   - Panel full-width entre métricas y grid de ONGs. Función `calcularAlertasRT()` corre al init.
+   - Alerta 🟢 ONG inicia lote (últimos 7 días).
+   - Alerta 🟢 ONG cosecha finalizada (últimos 7 días).
+   - Alerta 🟡 Lote en Cosecha sin completar (días desde `etapa_cosecha.fecha_inicio`).
+   - Alerta 🟡 ONG sin actividad > 60 días (por max `creado_en` de lotes).
+   - Alerta 🟡 Flores disponibles sin entrega > 90 días (`flores_cosechadas.stock_actual > 0` + última `entregas.fecha_entrega`).
+   - Acción: **Supervisar ↗** (navega al portal ONG en modo supervisión) + **Posponer** (clave `agrotrace_rt_alertas_snooze`).
+   - `#met-alertas` muestra solo la cantidad de warns.
+
+5. **Reportes** — pendiente de desarrollo.
 
 ## Lógica crítica de negocio
 
@@ -121,6 +139,17 @@ Los dos `AgroTrace_*.html` son documentación renderizada, no código de la app.
 ## Pendientes de implementación (integración Supabase)
 
 Ver `Proximospasos.md` para el orden recomendado.
+
+| Módulo | Estado |
+|--------|--------|
+| Panel de alertas — Portal ONG | ✅ Implementado (2026-07-12) |
+| Panel de alertas — Portal RT | ✅ Implementado (2026-07-12) |
+| SQL Políticas RLS para modo supervisión RT | ❌ SQL listo en `summary.md` — ejecutar en Supabase |
+| SQL Tabla `variedades_rnc` | ❌ SQL listo en `summary.md` — ejecutar en Supabase |
+| Fix Edge Function `crear-rt` (nombre incorrecto en Dashboard) | ❌ Acción manual en Dashboard |
+| Fix JWT `crear-ong` (desactivar en Dashboard) | ❌ Acción manual en Dashboard |
+| Sistema de Reportes | ❌ Pendiente |
+| Adaptación mobile | ❌ Pendiente |
 
 ## Decisiones de arquitectura
 

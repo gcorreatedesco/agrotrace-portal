@@ -451,7 +451,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);c
       </div>
       <div class="form-row">
         <div class="form-label">RT asignado</div>
-        <div id="ver-ong-rt" style="font-size:0.82rem;color:var(--bark);padding:4px 0;"></div>
+        <select id="ver-ong-rt-sel" class="form-input" style="font-size:0.82rem;padding:5px 8px;margin-top:2px;"></select>
       </div>
     </div>
     <div class="form-grid-2">
@@ -479,6 +479,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);c
 
     <div class="modal-footer">
       <button class="btn-secondary" onclick="cerrarModalVerONG()">Cerrar</button>
+      <button class="btn-primary" id="btn-guardar-asig-rt" onclick="guardarAsignacionRT()">Guardar asignación RT</button>
     </div>
   </div>
 </div>
@@ -586,6 +587,7 @@ let ALL_VARIEDADES = [];
 let CSV_PARSED = null;
 let RT_TAB  = 'activos';
 let ONG_TAB = 'activas';
+let VER_ONG_ID = null;
 
 /* ── INIT ── */
 async function init() {
@@ -1255,24 +1257,94 @@ async function crearONG() {
 
 /* ── VER DATOS ONG ── */
 function verONG(id) {
+  VER_ONG_ID = id;
   const o = ALL_ONGS.find(ong => ong.id === id);
   if (!o) return;
   document.getElementById('ver-ong-nombre').textContent    = o.nombre || '—';
   document.getElementById('ver-ong-cuit').textContent      = o.cuit || '—';
   document.getElementById('ver-ong-localidad').textContent = o.localidad || '—';
   document.getElementById('ver-ong-reprocann').textContent = o.reprocann || '—';
-  document.getElementById('ver-ong-rt').textContent        = o.rt_nombre || 'Sin asignar';
   document.getElementById('ver-ong-estado').textContent    = o.activa !== false ? 'Activa' : 'Inactiva';
   document.getElementById('ver-ong-creado').textContent    = o.creado_en
     ? new Date(o.creado_en).toLocaleDateString('es-AR', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})
     : '—';
   document.getElementById('ver-ong-admin-nombre').textContent = o.nombre_admin || '—';
   document.getElementById('ver-ong-admin-email').textContent  = o.email_admin  || '—';
+
+  // Poblar select de RT
+  const sel = document.getElementById('ver-ong-rt-sel');
+  sel.innerHTML = '<option value="">— Sin asignar —</option>';
+  ALL_RTS.filter(rt => rt.activo !== false).forEach(rt => {
+    const opt = document.createElement('option');
+    opt.value = rt.id;
+    opt.textContent = rt.nombre || rt.email || '—';
+    if (rt.id === o.rt_id) opt.selected = true;
+    sel.appendChild(opt);
+  });
+
+  const btn = document.getElementById('btn-guardar-asig-rt');
+  if (btn) { btn.textContent = 'Guardar asignación RT'; btn.disabled = false; }
+
   document.getElementById('modal-ver-ong').classList.add('open');
 }
 
 function cerrarModalVerONG() {
   document.getElementById('modal-ver-ong').classList.remove('open');
+}
+
+/* ── GUARDAR ASIGNACIÓN RT ── */
+async function guardarAsignacionRT() {
+  const ong = ALL_ONGS.find(o => o.id === VER_ONG_ID);
+  if (!ong) return;
+
+  const nuevoRtId  = document.getElementById('ver-ong-rt-sel').value || null;
+  const rtActualId = ong.rt_id || null;
+
+  if (nuevoRtId === rtActualId) { cerrarModalVerONG(); return; }
+
+  const rtNuevoNombre = nuevoRtId ? (ALL_RTS.find(r => r.id === nuevoRtId)?.nombre || '—') : null;
+
+  const msg = nuevoRtId
+    ? `¿Asignar "${ong.nombre}" al RT ${rtNuevoNombre}?${rtActualId ? '\n\nReemplazará la asignación anterior.' : ''}`
+    : `¿Desasignar el RT de "${ong.nombre}"?\n\nLa ONG quedará sin RT asignado.`;
+
+  if (!confirm(msg)) return;
+
+  const btn = document.getElementById('btn-guardar-asig-rt');
+  btn.textContent = 'Guardando…'; btn.disabled = true;
+
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) { alert('Sesión expirada. Volvé a ingresar.'); btn.textContent = 'Guardar asignación RT'; btn.disabled = false; return; }
+
+    const { error: errDel } = await sb.from('rt_organizaciones').delete().eq('ong_id', VER_ONG_ID);
+    if (errDel) throw errDel;
+
+    if (nuevoRtId) {
+      const { error: errIns } = await sb.from('rt_organizaciones').insert({ rt_id: nuevoRtId, ong_id: VER_ONG_ID });
+      if (errIns) throw errIns;
+    }
+
+    ong.rt_id = nuevoRtId;
+    ong.rt_nombre = rtNuevoNombre;
+
+    // Recalcular conteo de ONGs por RT en memoria
+    ALL_RTS.forEach(rt => { rt.ongs_count = ALL_ONGS.filter(o => o.rt_id === rt.id).length; });
+
+    // Actualizar opción en filtro-rt si es nueva
+    const filtro = document.getElementById('filtro-rt');
+    if (filtro && nuevoRtId && ![...filtro.options].some(o => o.value === nuevoRtId)) {
+      const opt = document.createElement('option');
+      opt.value = nuevoRtId; opt.textContent = rtNuevoNombre;
+      filtro.appendChild(opt);
+    }
+
+    actualizarMetricas();
+    cerrarModalVerONG();
+  } catch (err) {
+    alert('Error al guardar: ' + (err.message || JSON.stringify(err)));
+    btn.textContent = 'Guardar asignación RT'; btn.disabled = false;
+  }
 }
 
 /* ── CERRAR SESIÓN ── */

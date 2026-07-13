@@ -1565,7 +1565,7 @@ async function cerrarLoteAgotado(){
   if(error){alert('Error al cerrar el lote: '+error.message);return;}
   LOTE_ACTIVO.etapaRaw='completado';
   LOTE_ACTIVO.fecha_cierre=fecha;
-  await cargarLotes();
+  await cargarLotes();calcularAlertas();
   alert('Lote cerrado y movido al historial de lotes terminados.');
   sv('lotes');
 }
@@ -1580,7 +1580,7 @@ async function cerrarLoteAnticipado(){
   LOTE_ACTIVO.etapaRaw='cerrado';
   LOTE_ACTIVO.fecha_cierre=fecha;
   LOTE_ACTIVO.motivo_cierre=motivo.trim();
-  await cargarLotes();
+  await cargarLotes();calcularAlertas();
   alert('Lote cerrado y movido al historial.');
   sv('lotes');
 }
@@ -2428,7 +2428,7 @@ async function guardarAvanzar(){
     if(dbErr)return showErr('Error guardando nursery: '+dbErr.message);
     ({error:dbErr}=await sb.from('lotes_produccion').update({etapa_actual:'vegetativa'}).eq('id',loteId));
     if(dbErr)return showErr('Error actualizando etapa: '+dbErr.message);
-    await cargarLotes();rebuildSearchIndex();actualizarMetricasDash();
+    await cargarLotes();rebuildSearchIndex();actualizarMetricasDash();calcularAlertas();
     alert('¡Nursery cerrada! El lote avanzó a Vegetativa.');
     await openLote(loteId);
 
@@ -2451,7 +2451,7 @@ async function guardarAvanzar(){
     if(dbErr)return showErr('Error guardando vegetativa: '+dbErr.message);
     ({error:dbErr}=await sb.from('lotes_produccion').update({etapa_actual:'floracion'}).eq('id',loteId));
     if(dbErr)return showErr('Error actualizando etapa: '+dbErr.message);
-    await cargarLotes();rebuildSearchIndex();actualizarMetricasDash();
+    await cargarLotes();rebuildSearchIndex();actualizarMetricasDash();calcularAlertas();
     alert('¡Vegetativa cerrada! El lote avanzó a Floración.');
     await openLote(loteId);
 
@@ -2474,7 +2474,7 @@ async function guardarAvanzar(){
     if(dbErr)return showErr('Error guardando floración: '+dbErr.message);
     ({error:dbErr}=await sb.from('lotes_produccion').update({etapa_actual:'cosecha'}).eq('id',loteId));
     if(dbErr)return showErr('Error actualizando etapa: '+dbErr.message);
-    await cargarLotes();rebuildSearchIndex();actualizarMetricasDash();
+    await cargarLotes();rebuildSearchIndex();actualizarMetricasDash();calcularAlertas();
     alert('¡Floración cerrada! El lote avanzó a Cosecha.');
     await openLote(loteId);
 
@@ -2493,7 +2493,7 @@ async function guardarAvanzar(){
     if(dbErr)return showErr('Error guardando cosecha: '+dbErr.message);
     ({error:dbErr}=await sb.from('lotes_produccion').update({etapa_actual:'curado_secado'}).eq('id',loteId));
     if(dbErr)return showErr('Error actualizando etapa: '+dbErr.message);
-    await cargarLotes();rebuildSearchIndex();actualizarMetricasDash();
+    await cargarLotes();rebuildSearchIndex();actualizarMetricasDash();calcularAlertas();
     alert('Cosecha registrada. El lote avanzó a Curado/Secado.');
     await openLote(loteId);
   } else if(et==='curado_secado'){
@@ -2518,7 +2518,7 @@ async function guardarAvanzar(){
     if(!floresExist){({error:dbErr}=await sb.from('flores_cosechadas').insert({lote_id:loteId,stock_inicial:pesoNeto,stock_actual:pesoNeto}));if(dbErr)return showErr('Error creando stock de flores: '+dbErr.message);}
     ({error:dbErr}=await sb.from('lotes_produccion').update({etapa_actual:'flores'}).eq('id',loteId));
     if(dbErr)return showErr('Error actualizando etapa: '+dbErr.message);
-    await cargarLotes();rebuildSearchIndex();actualizarMetricasDash();
+    await cargarLotes();rebuildSearchIndex();actualizarMetricasDash();calcularAlertas();
     alert('Curado/Secado registrado. El lote avanzó a Flores Cosechadas.');
     await openLote(loteId);
   }
@@ -2729,7 +2729,7 @@ async function cL(){
   document.getElementById('cpanel').style.display='none';
   document.getElementById('sscreen').style.display='block';
   document.getElementById('smsg').innerHTML='<strong>'+nombre+'</strong> fue creado y está activo en Nursery.';
-  await cargarLotes();await cargarMaterial();rebuildSearchIndex();actualizarMetricasDash();
+  await cargarLotes();await cargarMaterial();rebuildSearchIndex();actualizarMetricasDash();calcularAlertas();
 }
 
 function wizPaso2Siguiente(){
@@ -2820,7 +2820,7 @@ async function eliminarTotalidadLote(){
   else if(tipo==='pm')await sb.from('lotes_plantas_madre').update({cantidad_actual:0}).eq('id',loteId);
   alert(`El lote "${nombre}" fue eliminado del stock. Stock registrado en 0.`);
   sel.value='';document.getElementById('bn').style.display='none';document.getElementById('bs').style.display='none';
-  await cargarMaterial();rebuildSearchIndex();
+  await cargarMaterial();rebuildSearchIndex();calcularAlertas();
 }
 
 async function guardarBaja(){
@@ -2846,7 +2846,7 @@ async function guardarBaja(){
   alert('¡Baja registrada exitosamente!');
   if(cantEl)cantEl.value='';document.getElementById('b-fecha').value='';document.getElementById('b-motivo').value='';sel.value='';
   document.getElementById('bn').style.display='none';document.getElementById('bs').style.display='none';
-  await cargarMaterial();rebuildSearchIndex();
+  await cargarMaterial();rebuildSearchIndex();calcularAlertas();
 }
 
 /* ── NUEVO MATERIAL ── */
@@ -3079,7 +3079,7 @@ async function guardarMaterial(){
   const rl=document.getElementById('nm-rotulo-lista');if(rl)rl.innerHTML='';
   const fl=document.getElementById('nm-factura-lista');if(fl)fl.innerHTML='';
   TIPO_NM=null;
-  await cargarMaterial();rebuildSearchIndex();sv('stock');
+  await cargarMaterial();rebuildSearchIndex();calcularAlertas();sv('stock');
 }
 
 /* ── SUBLOTES ── */

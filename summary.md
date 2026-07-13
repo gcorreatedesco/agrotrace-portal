@@ -1,3 +1,68 @@
+# AgroTrace — Resumen de sesión (2026-07-12)
+
+## Lo que se hizo en esta sesión
+
+### 1. Sistema de alertas — Portal ONG (`agrotrace_prototipo_v3.html`)
+
+**Panel dinámico** en el dashboard (columna derecha, 260px): reemplazó los 2 items hardcodeados. Detecta y muestra alertas en tiempo real sin necesidad de logout/login.
+
+**Tipos de alerta:**
+- 🟡 **Nursery > 25 días sin avanzar** — lotes con `etapa_actual = 'nursery'` y `fechaInicioRaw` > 25 días. Muestra nombre del lote y días transcurridos.
+- 🟡 **Stock de material básico bajo (<10%)** — recorre `LM.semillas`, `LM.esquejes`, `LM.pm`. Muestra nombre del lote de material, cantidad restante y % del inicial.
+
+**Acciones por alerta:**
+- **`Ver lote ↗`** / **`Ver stock ↗`** — deep link directo al lote o al detalle del material.
+- **`··· Posponer`** — dropdown 7/15/30 días. Snooze guardado en `localStorage` (clave `agrotrace_alertas_snooze`). La alerta reaparece automáticamente al vencer el plazo.
+- La alerta desaparece sola si el problema se resuelve (lote avanza, stock se repone).
+
+**Recálculo automático:** `calcularAlertas()` se llama en 15 puntos del código — en cada operación que modifica lotes o stock (baja de material, avance de etapa, cierre de lote, sublote creado, nuevo material).
+
+**Funciones nuevas:** `calcularAlertas()`, `renderAlertas()`, `getSnoozed()`, `esSnoozedRT()`, `snoozeAlerta()`, `toggleSnooze()`, `irAStock()`.
+**Cambios en `mapLote()`:** agrega `fechaInicioRaw: row.fecha_inicio` para que `calcularAlertas` pueda comparar fechas.
+
+---
+
+### 2. Sistema de alertas — Portal RT (`portal_rt.html`)
+
+**Panel full-width** entre las métricas y el grid de ONGs. Se calcula al cargar el portal consultando Supabase.
+
+**5 tipos de alerta:**
+
+| # | Tipo | Condición | Query |
+|---|------|-----------|-------|
+| 1 | 🟢 Info | ONG inicia nuevo lote (últimos 7 días) | `lotes_produccion WHERE etapa='nursery' AND creado_en >= hace7d` |
+| 2 | 🟢 Info | ONG cosecha finalizada (últimos 7 días) | `etapa_curado_secado WHERE fecha_fin >= hace7d` para lotes en 'flores' |
+| 3 | 🟡 Warn | Lote en Cosecha sin completar | `etapa_cosecha.fecha_inicio` para lotes en etapa 'cosecha' |
+| 4 | 🟡 Warn | ONG sin actividad > 60 días | Max `creado_en` por ONG user < hace60d |
+| 5 | 🟡 Warn | Flores disponibles sin entrega > 90 días | `flores_cosechadas.stock_actual > 0` + última `entregas.fecha_entrega` |
+
+**Flujo de queries:** `perfiles` (1 query) → `lotes_produccion` (1 query) → 3 queries paralelas (`etapa_cosecha`, `etapa_curado_secado`, `flores_cosechadas`) → 1 query secuencial de `entregas`.
+
+**Acciones por alerta:**
+- **`Supervisar ↗`** — navega al portal ONG en modo supervisión de esa ONG (llama a `supervisar(ongId, ongNombre)`).
+- **`··· Posponer`** — dropdown 7/15/30 días. Snooze en `localStorage` (clave `agrotrace_rt_alertas_snooze`, separado del de ONG).
+
+**Métrica `#met-alertas`** en el header muestra solo la cantidad de warns (no las info).
+
+**Funciones nuevas:** `calcularAlertasRT()`, `renderAlertasRT()`, `accionAlertaRT()`, `getSnoozedRT()`, `esSnoozedRT()`, `snoozeAlertaRT()`, `toggleSnoozeRT()`, `fmtDateRT()`.
+
+---
+
+## Estado actual de pendientes
+
+| Pendiente | Estado |
+|-----------|--------|
+| Panel de alertas — Portal ONG | ✅ Implementado |
+| Panel de alertas — Portal RT | ✅ Implementado |
+| SQL Políticas RLS para modo supervisión RT | ❌ SQL listo en summary anterior |
+| SQL Tabla `variedades_rnc` | ❌ SQL listo en summary anterior |
+| Fix Edge Function `crear-rt` | ❌ Acción en Dashboard |
+| Fix JWT `crear-ong` | ❌ Acción en Dashboard |
+| Sistema de Reportes | ❌ Pendiente |
+| Adaptación mobile | ❌ Pendiente |
+
+---
+
 # AgroTrace — Resumen de sesión (2026-07-11)
 
 ## Lo que se hizo en esta sesión

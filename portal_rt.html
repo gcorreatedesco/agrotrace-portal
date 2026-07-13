@@ -189,6 +189,30 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);c
   .form-grid{grid-template-columns:1fr;}
 }
 
+/* ── ALERTAS RT ── */
+.rt-alertas-panel{background:var(--white);border:1px solid rgba(0,0,0,0.07);border-radius:var(--radius-lg);padding:14px 16px;margin-bottom:20px;}
+.rt-alertas-hdr{font-size:0.65rem;font-weight:500;text-transform:uppercase;letter-spacing:0.08em;color:var(--sage);margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+.rt-alertas-badge{background:var(--amber-bg);color:var(--amber);font-size:0.65rem;font-weight:600;padding:1px 7px;border-radius:10px;display:none;}
+.rt-al{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--radius);margin-bottom:6px;font-size:0.75rem;line-height:1.45;}
+.rt-al:last-child{margin-bottom:0;}
+.rt-al.warn{background:var(--amber-bg);color:var(--amber);}
+.rt-al.info{background:var(--dew);color:var(--accent);}
+.rt-al-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.rt-al.warn .rt-al-dot{background:var(--amber);}
+.rt-al.info .rt-al-dot{background:var(--accent);}
+.rt-al-body{flex:1;min-width:0;}
+.rt-al-ong{font-weight:500;font-size:0.78rem;}
+.rt-al-desc{font-size:0.7rem;opacity:0.85;margin-top:2px;}
+.rt-al-actions{display:flex;align-items:center;gap:5px;flex-shrink:0;}
+.rt-al-btn{font-size:0.62rem;padding:3px 8px;border:1px solid currentColor;background:transparent;border-radius:4px;cursor:pointer;color:inherit;font-family:'DM Sans',sans-serif;white-space:nowrap;}
+.rt-al-btn:hover{opacity:0.7;}
+.snooze-wrap{position:relative;}
+.snooze-dd{display:none;position:absolute;right:0;top:calc(100% + 4px);background:var(--white);border:1px solid rgba(0,0,0,0.12);border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,0.1);z-index:200;min-width:100px;}
+.snooze-dd.open{display:block;}
+.snooze-dd div{padding:7px 12px;font-size:0.72rem;color:var(--soil);cursor:pointer;border-radius:6px;}
+.snooze-dd div:hover{background:var(--dew);}
+.rt-alertas-ok{font-size:0.72rem;color:var(--sage);padding:6px 0;}
+
 /* ── BANNER SUPERADMIN ── */
 .sa-bar{background:#1a1040;border-bottom:1px solid rgba(83,74,183,0.35);padding:7px 24px;display:none;align-items:center;justify-content:space-between;gap:12px;flex-shrink:0;}
 .sa-bar.visible{display:flex;}
@@ -297,6 +321,15 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);c
             <div class="rt-metric-val" style="font-size:1rem;padding-top:4px;">—</div>
             <div class="rt-metric-sub">sin actividad registrada</div>
           </div>
+        </div>
+
+        <!-- ── PANEL ALERTAS RT ── -->
+        <div class="rt-alertas-panel">
+          <div class="rt-alertas-hdr">
+            Alertas
+            <span class="rt-alertas-badge" id="rt-alertas-badge"></span>
+          </div>
+          <div id="rt-panel-alertas"><div class="rt-alertas-ok">Cargando…</div></div>
         </div>
 
         <div class="sec-header">
@@ -528,6 +561,7 @@ async function init() {
       }
     }
     await cargarONGsSupabase();
+    await calcularAlertasRT();
   } else {
     document.getElementById('sb-av').textContent = 'RT';
     document.getElementById('sb-nombre').textContent = 'Modo demo';
@@ -1032,6 +1066,215 @@ async function eliminarDocumento(docId, storagePath) {
   await sb.from('documentos_ong').delete().eq('id', docId);
   DOCS_ONG = DOCS_ONG.filter(d => d.id !== docId);
   renderDocumentos();
+}
+
+/* ── ALERTAS RT ── */
+const RT_SNOOZE_KEY = 'agrotrace_rt_alertas_snooze';
+let RT_ALERTAS_MAP = {};
+
+function getSnoozedRT() {
+  try { return JSON.parse(localStorage.getItem(RT_SNOOZE_KEY) || '[]'); } catch { return []; }
+}
+function esSnoozedRT(id) {
+  const hoy = new Date().toISOString().split('T')[0];
+  return getSnoozedRT().some(s => s.id === id && s.hasta >= hoy);
+}
+function snoozeAlertaRT(id, dias) {
+  const arr = getSnoozedRT().filter(s => s.id !== id);
+  const hasta = new Date(Date.now() + dias * 86400000).toISOString().split('T')[0];
+  arr.push({ id, hasta });
+  localStorage.setItem(RT_SNOOZE_KEY, JSON.stringify(arr));
+  document.querySelectorAll('.snooze-dd.open').forEach(d => d.classList.remove('open'));
+  calcularAlertasRT();
+}
+function toggleSnoozeRT(btn) {
+  const dd = btn.nextElementSibling;
+  const wasOpen = dd.classList.contains('open');
+  document.querySelectorAll('.snooze-dd.open').forEach(d => d.classList.remove('open'));
+  if (!wasOpen) dd.classList.add('open');
+}
+document.addEventListener('click', e => {
+  if (!e.target.closest('.snooze-wrap'))
+    document.querySelectorAll('.snooze-dd.open').forEach(d => d.classList.remove('open'));
+});
+
+function fmtDateRT(iso) {
+  if (!iso) return '—';
+  const [y, m, d] = iso.split('-');
+  return d + '/' + m + '/' + y;
+}
+
+function accionAlertaRT(alId) {
+  const a = RT_ALERTAS_MAP[alId];
+  if (a) supervisar(a.ongId, a.ong);
+}
+
+async function calcularAlertasRT() {
+  if (!CURRENT_USER_ID || !ONGS.length) { renderAlertasRT([]); return; }
+
+  const ongIds = ONGS.map(o => o.id);
+
+  // Obtener usuario_ids de las ONGs asignadas a este RT
+  const { data: perfilesData } = await sb.from('perfiles')
+    .select('id, ong_id').in('ong_id', ongIds);
+
+  if (!perfilesData?.length) { renderAlertasRT([]); return; }
+
+  const ongNombreByUid = {}, ongIdByUid = {};
+  perfilesData.forEach(p => {
+    const ong = ONGS.find(o => o.id === p.ong_id);
+    ongNombreByUid[p.id] = ong?.nombre || '—';
+    ongIdByUid[p.id] = p.ong_id;
+  });
+  const usuarioIds = perfilesData.map(p => p.id);
+
+  const hoy = new Date();
+  const hace7d  = new Date(Date.now() -  7 * 86400000).toISOString().split('T')[0];
+  const hace60d = new Date(Date.now() - 60 * 86400000).toISOString().split('T')[0];
+  const hace90d = new Date(Date.now() - 90 * 86400000).toISOString().split('T')[0];
+
+  // Traer todos los lotes de estos usuarios
+  const { data: todosLotes } = await sb.from('lotes_produccion')
+    .select('id, nombre_completo, etapa_actual, usuario_id, creado_en')
+    .in('usuario_id', usuarioIds)
+    .is('lote_padre_id', null);
+
+  const lotes = todosLotes || [];
+  const loteMap = Object.fromEntries(lotes.map(l => [l.id, l]));
+
+  const cosechaIds  = lotes.filter(l => l.etapa_actual === 'cosecha').map(l => l.id);
+  const floresIds   = lotes.filter(l => l.etapa_actual === 'flores').map(l => l.id);
+  const todosIds    = lotes.map(l => l.id);
+
+  // Queries paralelas
+  const [cosechaRes, curadoRes, floresRes] = await Promise.all([
+    cosechaIds.length
+      ? sb.from('etapa_cosecha').select('lote_id, fecha_inicio').in('lote_id', cosechaIds)
+      : { data: [] },
+    floresIds.length
+      ? sb.from('etapa_curado_secado').select('lote_id, fecha_fin').in('lote_id', floresIds).gte('fecha_fin', hace7d)
+      : { data: [] },
+    floresIds.length
+      ? sb.from('flores_cosechadas').select('id, lote_id, stock_actual, created_at').in('lote_id', floresIds).gt('stock_actual', 0)
+      : { data: [] },
+  ]);
+
+  // Última entrega por flores_id
+  const fcItems = floresRes.data || [];
+  const fcIds = fcItems.map(f => f.id);
+  let ultimaEntregaPorFc = {};
+  if (fcIds.length) {
+    const { data: entr } = await sb.from('entregas')
+      .select('flores_id, fecha_entrega').in('flores_id', fcIds)
+      .order('fecha_entrega', { ascending: false });
+    (entr || []).forEach(e => {
+      if (!ultimaEntregaPorFc[e.flores_id]) ultimaEntregaPorFc[e.flores_id] = e.fecha_entrega;
+    });
+  }
+
+  const alertas = [];
+
+  // #1 — ONG inicia nuevo lote (Nursery, últimos 7 días)
+  lotes
+    .filter(l => l.etapa_actual === 'nursery' && (l.creado_en || '').split('T')[0] >= hace7d)
+    .forEach(l => {
+      const aid = 'rt_nuevo_' + l.id;
+      if (esSnoozedRT(aid)) return;
+      alertas.push({ id: aid, tipo: 'info', ong: ongNombreByUid[l.usuario_id],
+        desc: 'Nuevo lote iniciado en Nursery: ' + l.nombre_completo,
+        ongId: ongIdByUid[l.usuario_id] });
+    });
+
+  // #2 — ONG cosecha finalizada (avanzó a Flores en los últimos 7 días)
+  (curadoRes.data || []).forEach(ec => {
+    const lote = loteMap[ec.lote_id];
+    if (!lote) return;
+    const aid = 'rt_cosecha_fin_' + lote.id;
+    if (esSnoozedRT(aid)) return;
+    alertas.push({ id: aid, tipo: 'info', ong: ongNombreByUid[lote.usuario_id],
+      desc: 'Cosecha finalizada · avanzó a Flores: ' + lote.nombre_completo,
+      ongId: ongIdByUid[lote.usuario_id] });
+  });
+
+  // #3 — ONG lote en Cosecha sin completar
+  (cosechaRes.data || []).forEach(ec => {
+    const lote = loteMap[ec.lote_id];
+    if (!lote) return;
+    const dias = Math.floor((hoy - new Date(ec.fecha_inicio)) / 86400000);
+    const aid = 'rt_cosecha_pend_' + lote.id;
+    if (esSnoozedRT(aid)) return;
+    alertas.push({ id: aid, tipo: 'warn', ong: ongNombreByUid[lote.usuario_id],
+      desc: lote.nombre_completo + ' — en Cosecha hace ' + dias + ' días sin completar',
+      ongId: ongIdByUid[lote.usuario_id] });
+  });
+
+  // #4 — ONG sin actividad > 60 días
+  const ultimaActividad = {};
+  lotes.forEach(l => {
+    const uid = l.usuario_id;
+    const f = (l.creado_en || '').split('T')[0];
+    if (!ultimaActividad[uid] || f > ultimaActividad[uid]) ultimaActividad[uid] = f;
+  });
+  usuarioIds.forEach(uid => {
+    const ultima = ultimaActividad[uid] || '2000-01-01';
+    if (ultima < hace60d) {
+      const aid = 'rt_inactividad_' + uid;
+      if (esSnoozedRT(aid)) return;
+      const tieneL = lotes.some(l => l.usuario_id === uid);
+      alertas.push({ id: aid, tipo: 'warn', ong: ongNombreByUid[uid],
+        desc: tieneL
+          ? 'Sin actividad desde ' + fmtDateRT(ultima) + ' (> 60 días)'
+          : 'Sin lotes registrados',
+        ongId: ongIdByUid[uid] });
+    }
+  });
+
+  // #5 — Flores disponibles sin entrega > 90 días
+  fcItems.forEach(fc => {
+    const lote = loteMap[fc.lote_id];
+    if (!lote) return;
+    const ref = ultimaEntregaPorFc[fc.id] || (fc.created_at || '').split('T')[0] || '2000-01-01';
+    if (ref < hace90d) {
+      const aid = 'rt_flores_' + fc.lote_id;
+      if (esSnoozedRT(aid)) return;
+      alertas.push({ id: aid, tipo: 'warn', ong: ongNombreByUid[lote.usuario_id],
+        desc: lote.nombre_completo + ' — ' + fc.stock_actual + 'g disponibles sin entrega hace +90 días',
+        ongId: ongIdByUid[lote.usuario_id] });
+    }
+  });
+
+  renderAlertasRT(alertas);
+}
+
+function renderAlertasRT(alertas) {
+  RT_ALERTAS_MAP = Object.fromEntries(alertas.map(a => [a.id, a]));
+  const panel  = document.getElementById('rt-panel-alertas');
+  const badge  = document.getElementById('rt-alertas-badge');
+  const metEl  = document.getElementById('met-alertas');
+  const warns  = alertas.filter(a => a.tipo === 'warn').length;
+  if (metEl)  metEl.textContent = warns || '0';
+  if (badge)  { badge.textContent = alertas.length; badge.style.display = alertas.length ? 'inline' : 'none'; }
+  if (!panel) return;
+  if (!alertas.length) { panel.innerHTML = '<div class="rt-alertas-ok">Sin alertas activas ✓</div>'; return; }
+  panel.innerHTML = alertas.map(a => `
+    <div class="rt-al ${a.tipo}">
+      <div class="rt-al-dot"></div>
+      <div class="rt-al-body">
+        <div class="rt-al-ong">${a.ong}</div>
+        <div class="rt-al-desc">${a.desc}</div>
+      </div>
+      <div class="rt-al-actions">
+        <button class="rt-al-btn" onclick="accionAlertaRT('${a.id}')">Supervisar ↗</button>
+        <div class="snooze-wrap">
+          <button class="rt-al-btn" onclick="toggleSnoozeRT(this)">··· Posponer</button>
+          <div class="snooze-dd">
+            <div onclick="snoozeAlertaRT('${a.id}',7)">7 días</div>
+            <div onclick="snoozeAlertaRT('${a.id}',15)">15 días</div>
+            <div onclick="snoozeAlertaRT('${a.id}',30)">30 días</div>
+          </div>
+        </div>
+      </div>
+    </div>`).join('');
 }
 
 /* ── VOLVER AL SUPERADMIN ── */
