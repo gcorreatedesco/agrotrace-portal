@@ -48,8 +48,11 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);c
 .search-sb-input::placeholder{color:rgba(255,255,255,0.3);}
 .search-sb-input:focus{border-color:var(--leaf);}
 
-.sb-footer{padding:14px 16px;border-top:1px solid rgba(255,255,255,0.08);}
-.sb-footer p{font-size:0.62rem;color:rgba(255,255,255,0.2);line-height:1.6;}
+.sb-footer{padding:14px 16px;border-top:1px solid rgba(255,255,255,0.08);display:flex;flex-direction:column;gap:8px;}
+.sb-footer p{font-size:0.62rem;color:rgba(255,255,255,0.2);line-height:1.6;margin:0;}
+.sb-logout{display:flex;align-items:center;gap:6px;color:rgba(255,255,255,0.35);font-size:0.72rem;cursor:pointer;background:none;border:none;font-family:'DM Sans',sans-serif;padding:0;transition:color 0.2s ease;}
+.sb-logout:hover{color:var(--error);}
+.sb-logout svg{width:13px;height:13px;fill:currentColor;}
 
 /* ── MAIN ── */
 .main{flex:1;display:flex;flex-direction:column;min-width:0;}
@@ -553,7 +556,13 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
       </div>
     </div>
   </nav>
-  <div class="sb-footer"><p>AgroTrace · Prototipo v3</p></div>
+  <div class="sb-footer">
+    <button class="sb-logout" onclick="cerrarSesion()">
+      <svg viewBox="0 0 24 24"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>
+      Cerrar sesión
+    </button>
+    <p>AgroTrace · Prototipo v3</p>
+  </div>
 </aside>
 
 <!-- ══ MAIN ══ -->
@@ -1088,7 +1097,8 @@ function volverPortalRT(){
   sessionStorage.removeItem('agrotrace_supervisando_ong_id');
   sessionStorage.removeItem('agrotrace_supervisando_ong_nombre');
   sessionStorage.removeItem('agrotrace_supervisando_ong_usuario_id');
-  window.location.href='portal_rt.html';
+  const retorno = sessionStorage.getItem('agrotrace_rt_return_url') || 'portal_rt.html';
+  window.location.href = retorno;
 }
 
 /* ── ORGANIZACIONES (solo RT) ── */
@@ -3289,6 +3299,13 @@ function renderAlertas(alertas){
 function irAStock(matId,matTipo){
   sv('stock');
   setTimeout(()=>openMaterial(matId,matTipo),80);
+}
+
+/* ── CERRAR SESIÓN ── */
+async function cerrarSesion(){
+  await sb.auth.signOut();
+  sessionStorage.clear();
+  window.location.href='index.html';
 }
 
 /* ── INIT ── */

@@ -809,6 +809,8 @@ async function supervisar(ongId, ongNombre) {
   sessionStorage.setItem('agrotrace_supervisando_ong_nombre', ongNombre);
   sessionStorage.setItem('agrotrace_role', 'rt');
   sessionStorage.setItem('agrotrace_user', sessionStorage.getItem('agrotrace_user') || 'Responsable Técnico');
+  // Guardar URL completa del RT portal para que "Cambiar organización" vuelva con los params intactos
+  sessionStorage.setItem('agrotrace_rt_return_url', window.location.href);
 
   // Buscar el usuario admin de la ONG para filtrar sus datos en modo supervisión
   const { data } = await sb.from('perfiles').select('id').eq('ong_id', ongId).maybeSingle();
