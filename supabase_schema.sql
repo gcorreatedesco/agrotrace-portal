@@ -270,10 +270,14 @@ CREATE TABLE IF NOT EXISTS public.etapa_nursery (
   creado_en          TIMESTAMPTZ DEFAULT NOW()
 );
 ALTER TABLE public.etapa_nursery ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "via lote nursery" ON public.etapa_nursery
-  FOR ALL USING (
-    EXISTS (SELECT 1 FROM public.lotes_produccion WHERE id = lote_id AND usuario_id = auth.uid())
-  );
+CREATE POLICY "nursery_select" ON public.etapa_nursery
+  FOR SELECT USING (EXISTS (SELECT 1 FROM public.lotes_produccion WHERE id = lote_id AND usuario_id = auth.uid()));
+CREATE POLICY "nursery_insert" ON public.etapa_nursery
+  FOR INSERT WITH CHECK (EXISTS (SELECT 1 FROM public.lotes_produccion WHERE id = lote_id AND usuario_id = auth.uid()));
+CREATE POLICY "nursery_update" ON public.etapa_nursery
+  FOR UPDATE USING (EXISTS (SELECT 1 FROM public.lotes_produccion WHERE id = lote_id AND usuario_id = auth.uid()));
+CREATE POLICY "nursery_delete" ON public.etapa_nursery
+  FOR DELETE USING (EXISTS (SELECT 1 FROM public.lotes_produccion WHERE id = lote_id AND usuario_id = auth.uid()));
 
 
 -- ── ETAPA VEGETATIVA ─────────────────────────────
@@ -289,10 +293,14 @@ CREATE TABLE IF NOT EXISTS public.etapa_vegetativa (
   creado_en        TIMESTAMPTZ DEFAULT NOW()
 );
 ALTER TABLE public.etapa_vegetativa ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "via lote vegetativa" ON public.etapa_vegetativa
-  FOR ALL USING (
-    EXISTS (SELECT 1 FROM public.lotes_produccion WHERE id = lote_id AND usuario_id = auth.uid())
-  );
+CREATE POLICY "vegetativa_select" ON public.etapa_vegetativa
+  FOR SELECT USING (EXISTS (SELECT 1 FROM public.lotes_produccion WHERE id = lote_id AND usuario_id = auth.uid()));
+CREATE POLICY "vegetativa_insert" ON public.etapa_vegetativa
+  FOR INSERT WITH CHECK (EXISTS (SELECT 1 FROM public.lotes_produccion WHERE id = lote_id AND usuario_id = auth.uid()));
+CREATE POLICY "vegetativa_update" ON public.etapa_vegetativa
+  FOR UPDATE USING (EXISTS (SELECT 1 FROM public.lotes_produccion WHERE id = lote_id AND usuario_id = auth.uid()));
+CREATE POLICY "vegetativa_delete" ON public.etapa_vegetativa
+  FOR DELETE USING (EXISTS (SELECT 1 FROM public.lotes_produccion WHERE id = lote_id AND usuario_id = auth.uid()));
 
 
 -- ── ETAPA FLORACIÓN ──────────────────────────────
@@ -308,10 +316,14 @@ CREATE TABLE IF NOT EXISTS public.etapa_floracion (
   creado_en        TIMESTAMPTZ DEFAULT NOW()
 );
 ALTER TABLE public.etapa_floracion ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "via lote floracion" ON public.etapa_floracion
-  FOR ALL USING (
-    EXISTS (SELECT 1 FROM public.lotes_produccion WHERE id = lote_id AND usuario_id = auth.uid())
-  );
+CREATE POLICY "floracion_select" ON public.etapa_floracion
+  FOR SELECT USING (EXISTS (SELECT 1 FROM public.lotes_produccion WHERE id = lote_id AND usuario_id = auth.uid()));
+CREATE POLICY "floracion_insert" ON public.etapa_floracion
+  FOR INSERT WITH CHECK (EXISTS (SELECT 1 FROM public.lotes_produccion WHERE id = lote_id AND usuario_id = auth.uid()));
+CREATE POLICY "floracion_update" ON public.etapa_floracion
+  FOR UPDATE USING (EXISTS (SELECT 1 FROM public.lotes_produccion WHERE id = lote_id AND usuario_id = auth.uid()));
+CREATE POLICY "floracion_delete" ON public.etapa_floracion
+  FOR DELETE USING (EXISTS (SELECT 1 FROM public.lotes_produccion WHERE id = lote_id AND usuario_id = auth.uid()));
 
 
 -- ── ETAPA COSECHA ────────────────────────────────
@@ -325,10 +337,14 @@ CREATE TABLE IF NOT EXISTS public.etapa_cosecha (
   creado_en         TIMESTAMPTZ DEFAULT NOW()
 );
 ALTER TABLE public.etapa_cosecha ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "via lote cosecha" ON public.etapa_cosecha
-  FOR ALL USING (
-    EXISTS (SELECT 1 FROM public.lotes_produccion WHERE id = lote_id AND usuario_id = auth.uid())
-  );
+CREATE POLICY "cosecha_select" ON public.etapa_cosecha
+  FOR SELECT USING (EXISTS (SELECT 1 FROM public.lotes_produccion WHERE id = lote_id AND usuario_id = auth.uid()));
+CREATE POLICY "cosecha_insert" ON public.etapa_cosecha
+  FOR INSERT WITH CHECK (EXISTS (SELECT 1 FROM public.lotes_produccion WHERE id = lote_id AND usuario_id = auth.uid()));
+CREATE POLICY "cosecha_update" ON public.etapa_cosecha
+  FOR UPDATE USING (EXISTS (SELECT 1 FROM public.lotes_produccion WHERE id = lote_id AND usuario_id = auth.uid()));
+CREATE POLICY "cosecha_delete" ON public.etapa_cosecha
+  FOR DELETE USING (EXISTS (SELECT 1 FROM public.lotes_produccion WHERE id = lote_id AND usuario_id = auth.uid()));
 
 
 -- ── ETAPA CURADO/SECADO ───────────────────────────
@@ -346,10 +362,14 @@ CREATE TABLE IF NOT EXISTS public.etapa_curado_secado (
   creado_en           TIMESTAMPTZ DEFAULT NOW()
 );
 ALTER TABLE public.etapa_curado_secado ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "via lote curado" ON public.etapa_curado_secado
-  FOR ALL USING (
-    EXISTS (SELECT 1 FROM public.lotes_produccion WHERE id = lote_id AND usuario_id = auth.uid())
-  );
+CREATE POLICY "curado_select" ON public.etapa_curado_secado
+  FOR SELECT USING (EXISTS (SELECT 1 FROM public.lotes_produccion WHERE id = lote_id AND usuario_id = auth.uid()));
+CREATE POLICY "curado_insert" ON public.etapa_curado_secado
+  FOR INSERT WITH CHECK (EXISTS (SELECT 1 FROM public.lotes_produccion WHERE id = lote_id AND usuario_id = auth.uid()));
+CREATE POLICY "curado_update" ON public.etapa_curado_secado
+  FOR UPDATE USING (EXISTS (SELECT 1 FROM public.lotes_produccion WHERE id = lote_id AND usuario_id = auth.uid()));
+CREATE POLICY "curado_delete" ON public.etapa_curado_secado
+  FOR DELETE USING (EXISTS (SELECT 1 FROM public.lotes_produccion WHERE id = lote_id AND usuario_id = auth.uid()));
 
 
 -- ── FLORES COSECHADAS ────────────────────────────
@@ -363,10 +383,14 @@ CREATE TABLE IF NOT EXISTS public.flores_cosechadas (
   creado_en        TIMESTAMPTZ DEFAULT NOW()
 );
 ALTER TABLE public.flores_cosechadas ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "via lote flores" ON public.flores_cosechadas
-  FOR ALL USING (
-    EXISTS (SELECT 1 FROM public.lotes_produccion WHERE id = lote_id AND usuario_id = auth.uid())
-  );
+CREATE POLICY "flores_select" ON public.flores_cosechadas
+  FOR SELECT USING (EXISTS (SELECT 1 FROM public.lotes_produccion WHERE id = lote_id AND usuario_id = auth.uid()));
+CREATE POLICY "flores_insert" ON public.flores_cosechadas
+  FOR INSERT WITH CHECK (EXISTS (SELECT 1 FROM public.lotes_produccion WHERE id = lote_id AND usuario_id = auth.uid()));
+CREATE POLICY "flores_update" ON public.flores_cosechadas
+  FOR UPDATE USING (EXISTS (SELECT 1 FROM public.lotes_produccion WHERE id = lote_id AND usuario_id = auth.uid()));
+CREATE POLICY "flores_delete" ON public.flores_cosechadas
+  FOR DELETE USING (EXISTS (SELECT 1 FROM public.lotes_produccion WHERE id = lote_id AND usuario_id = auth.uid()));
 
 
 -- ── ANÁLISIS DE CALIDAD ──────────────────────────
@@ -386,14 +410,14 @@ CREATE TABLE IF NOT EXISTS public.analisis_calidad (
   creado_en        TIMESTAMPTZ DEFAULT NOW()
 );
 ALTER TABLE public.analisis_calidad ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "via flores analisis" ON public.analisis_calidad
-  FOR ALL USING (
-    EXISTS (
-      SELECT 1 FROM public.flores_cosechadas fc
-      JOIN public.lotes_produccion lp ON lp.id = fc.lote_id
-      WHERE fc.id = flores_id AND lp.usuario_id = auth.uid()
-    )
-  );
+CREATE POLICY "analisis_select" ON public.analisis_calidad
+  FOR SELECT USING (EXISTS (SELECT 1 FROM public.flores_cosechadas fc JOIN public.lotes_produccion lp ON lp.id = fc.lote_id WHERE fc.id = flores_id AND lp.usuario_id = auth.uid()));
+CREATE POLICY "analisis_insert" ON public.analisis_calidad
+  FOR INSERT WITH CHECK (EXISTS (SELECT 1 FROM public.flores_cosechadas fc JOIN public.lotes_produccion lp ON lp.id = fc.lote_id WHERE fc.id = flores_id AND lp.usuario_id = auth.uid()));
+CREATE POLICY "analisis_update" ON public.analisis_calidad
+  FOR UPDATE USING (EXISTS (SELECT 1 FROM public.flores_cosechadas fc JOIN public.lotes_produccion lp ON lp.id = fc.lote_id WHERE fc.id = flores_id AND lp.usuario_id = auth.uid()));
+CREATE POLICY "analisis_delete" ON public.analisis_calidad
+  FOR DELETE USING (EXISTS (SELECT 1 FROM public.flores_cosechadas fc JOIN public.lotes_produccion lp ON lp.id = fc.lote_id WHERE fc.id = flores_id AND lp.usuario_id = auth.uid()));
 
 
 -- ── ENTREGAS A PACIENTES ─────────────────────────
@@ -407,14 +431,14 @@ CREATE TABLE IF NOT EXISTS public.entregas (
   creado_en         TIMESTAMPTZ DEFAULT NOW()
 );
 ALTER TABLE public.entregas ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "via flores entregas" ON public.entregas
-  FOR ALL USING (
-    EXISTS (
-      SELECT 1 FROM public.flores_cosechadas fc
-      JOIN public.lotes_produccion lp ON lp.id = fc.lote_id
-      WHERE fc.id = flores_id AND lp.usuario_id = auth.uid()
-    )
-  );
+CREATE POLICY "entregas_select" ON public.entregas
+  FOR SELECT USING (EXISTS (SELECT 1 FROM public.flores_cosechadas fc JOIN public.lotes_produccion lp ON lp.id = fc.lote_id WHERE fc.id = flores_id AND lp.usuario_id = auth.uid()));
+CREATE POLICY "entregas_insert" ON public.entregas
+  FOR INSERT WITH CHECK (EXISTS (SELECT 1 FROM public.flores_cosechadas fc JOIN public.lotes_produccion lp ON lp.id = fc.lote_id WHERE fc.id = flores_id AND lp.usuario_id = auth.uid()));
+CREATE POLICY "entregas_update" ON public.entregas
+  FOR UPDATE USING (EXISTS (SELECT 1 FROM public.flores_cosechadas fc JOIN public.lotes_produccion lp ON lp.id = fc.lote_id WHERE fc.id = flores_id AND lp.usuario_id = auth.uid()));
+CREATE POLICY "entregas_delete" ON public.entregas
+  FOR DELETE USING (EXISTS (SELECT 1 FROM public.flores_cosechadas fc JOIN public.lotes_produccion lp ON lp.id = fc.lote_id WHERE fc.id = flores_id AND lp.usuario_id = auth.uid()));
 
 
 -- ================================================
