@@ -1823,6 +1823,19 @@ function calcPesoNeto(){
   const neto=tiene?Math.max(0,brutoG-taraG):brutoG;
   const el=document.getElementById('cur-peso-neto');
   if(el)el.textContent=neto>0?neto+' g':'—';
+  // Aviso en tiempo real: seco no puede superar húmedo
+  const iniRaw=parseFloat(document.getElementById('cur-peso-ini')?.value)||0;
+  const uI=document.getElementById('cur-unidad-ini')?.value||'gramos';
+  const iniG=uI==='kg'?Math.round(iniRaw*1000*100)/100:iniRaw;
+  const wEl=document.getElementById('cur-warn-pesos');
+  if(wEl){
+    if(brutoG>0&&iniG>0&&brutoG>=iniG){
+      wEl.textContent='⚠ El peso seco ('+brutoG+'g) no puede ser igual o mayor al peso húmedo inicial ('+iniG+'g).';
+      wEl.style.display='block';
+    } else {
+      wEl.style.display='none';
+    }
+  }
 }
 
 function panelCuradoSecado(hist=false){
@@ -1842,8 +1855,9 @@ function panelCuradoSecado(hist=false){
       </div>
       <div>
         <div class="form-col-hdr">Pesos</div>
-        ${pesoField('Peso inicial húmedo<span class="opt">opcional</span>','cur-peso-ini','cur-unidad-ini',d.peso_inicial_humedo)}
+        ${pesoField('Peso inicial húmedo<span class="opt">opcional</span>','cur-peso-ini','cur-unidad-ini',d.peso_inicial_humedo,'calcPesoNeto()')}
         ${pesoField('Peso seco final<span class="req">*</span>','cur-peso-seco','cur-unidad-seco',d.peso_seco_final,'calcPesoNeto()')}
+        <div class="warn-fecha" id="cur-warn-pesos" style="display:none;margin-bottom:6px;"></div>
         <div class="field"><label>¿El peso incluye empaque?</label><select id="cur-empaque" onchange="toggleEmpaque()"><option value="false" ${!d.tiene_empaque?'selected':''}>No</option><option value="true" ${d.tiene_empaque?'selected':''}>Sí</option></select></div>
         <div id="cur-tara-wrap" style="display:${d.tiene_empaque?'block':'none'};">${pesoField('Tara del empaque','cur-tara','cur-unidad-tara',d.tara_empaque,'calcPesoNeto()')}</div>
         <div class="field"><label>Peso neto de flores</label><div class="ro-val" id="cur-peso-neto">${d.peso_seco_final!=null?(d.tiene_empaque&&d.tara_empaque?Math.max(0,d.peso_seco_final-d.tara_empaque):d.peso_seco_final)+' g':'—'}</div></div>
@@ -2615,6 +2629,17 @@ async function guardarAvanzar(){
     if(!ff)return showErr('La Fecha fin de curado/secado es obligatoria para avanzar a Flores.');
     if(!pesoSecoRaw)return showErr('El Peso seco final es obligatorio para avanzar a Flores.');
     if(fi){const wF=warnFechaOrden(fi,ff);if(wF&&!confirm(`⚠ ${wF}\n¿Confirmar igual?`))return;}
+    // Validaciones biológicas de pesos
+    if(pesoIni!=null&&pesoG!=null&&pesoG>=pesoIni){
+      return showErr('El peso seco final ('+pesoG+'g) no puede ser igual o mayor al peso húmedo inicial ('+pesoIni+'g). El secado siempre reduce el peso del material.');
+    }
+    const phCos=HIST_DATA.cosecha?.peso_humedo_total;
+    if(phCos!=null&&pesoG!=null&&pesoG>phCos){
+      return showErr('El peso seco final ('+pesoG+'g) supera el peso húmedo registrado en la etapa de cosecha ('+phCos+'g). Verificá los valores ingresados.');
+    }
+    if(phCos!=null&&pesoIni!=null&&pesoIni>phCos){
+      return showErr('El peso húmedo inicial del curado ('+pesoIni+'g) supera el peso húmedo de cosecha ('+phCos+'g). Verificá los valores ingresados.');
+    }
     const d=HIST_DATA.curado_secado;
     if(d){({error:dbErr}=await sb.from('etapa_curado_secado').update({fecha_inicio:fi,fecha_fin:ff,peso_inicial_humedo:pesoIni,tiene_empaque:tieneEmp,tara_empaque:tieneEmp?tara:null,unidad:'gramos',peso_seco_final:pesoG,notas}).eq('id',d.id));}
     else{({error:dbErr}=await sb.from('etapa_curado_secado').insert({lote_id:loteId,fecha_inicio:fi,fecha_fin:ff,peso_inicial_humedo:pesoIni,tiene_empaque:tieneEmp,tara_empaque:tieneEmp?tara:null,unidad:'gramos',peso_seco_final:pesoG,notas}));}
