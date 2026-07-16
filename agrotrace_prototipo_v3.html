@@ -528,7 +528,7 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
     </div>
     <div class="nav-it" onclick="sv('lotes')">
       <svg viewBox="0 0 24 24"><path d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z"/></svg>
-      Mis lotes productivos<span class="nav-badge">6</span>
+      Mis lotes productivos<span class="nav-badge" id="nav-lotes-cnt">—</span>
     </div>
     <div class="nav-it" onclick="sv('nuevo-lote')">
       <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>Nuevo lote
@@ -1210,6 +1210,7 @@ async function cargarLotes(){
   LD_TERM=todos.filter(l=>l.etapaRaw==='completado');
   LD_CERR=todos.filter(l=>l.etapaRaw==='cerrado');
   const tcA=document.getElementById('tc-activos');if(tcA)tcA.textContent=LD.length;
+  const navCnt=document.getElementById('nav-lotes-cnt');if(navCnt)navCnt.textContent=LD.length;
   const tcT=document.getElementById('tc-terminados');if(tcT)tcT.textContent=LD_TERM.length;
   const tcC=document.getElementById('tc-cerrados');if(tcC)tcC.textContent=LD_CERR.length;
   renderLotesHistorico('terminados');
