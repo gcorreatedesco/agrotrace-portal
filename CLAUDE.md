@@ -72,6 +72,56 @@ Los dos `AgroTrace_*.html` son documentación renderizada, no código de la app.
 
 **Mobile First:** la interfaz se diseña primero para celular (campo), luego se expande a escritorio (reportes).
 
+## Perfiles de usuario — capacidades y permisos
+
+### Regla fundamental de acceso a datos (desde 2026-07-16)
+
+El principio de seguridad no es "solo el creador puede modificar su lote" sino **aislamiento entre ONGs**. Las ONGs no pueden ver ni modificar datos de otras ONGs. Dentro de esa restricción, la jerarquía es:
+
+| Acción | Superadmin | RT | ONG |
+|--------|-----------|-----|-----|
+| Crear ONG | ✅ | ❌ | ❌ |
+| Crear RT | ✅ | ❌ | ❌ |
+| Ver todas las ONGs | ✅ | Solo las asignadas | ❌ |
+| Modificar producción de cualquier ONG | ✅ | Solo las asignadas | Solo la propia |
+| Modificar material básico de cualquier ONG | ✅ | Solo las asignadas | Solo el propio |
+| Activar/desactivar ONG | ✅ | ❌ | ❌ |
+| Alertas | Global | ONGs asignadas | Propia ONG |
+
+### Superadmin
+
+**Portal:** `portal_superadmin.html`
+
+- Crea y gestiona ONGs (nombre, CUIT, localidad, REPROCANN, usuario administrador)
+- Crea Responsables Técnicos y los asigna a ONGs
+- Activa y desactiva ONGs
+- Ve todas las organizaciones del sistema
+- Entra en modo supervisión a cualquier portal RT y desde ahí a cualquier portal ONG
+- **Puede leer y modificar datos de producción y material básico de cualquier ONG**
+- No puede ser creado desde el portal — se asigna manualmente en Supabase
+
+### RT — Responsable Técnico
+
+**Portal:** `portal_rt.html`
+
+- Ve solo las ONGs que el superadmin le asignó
+- Entra en modo supervisión al portal de cada ONG asignada
+- **Puede leer y modificar datos de producción y material básico de sus ONGs supervisadas**
+- Recibe alertas agregadas de sus ONGs (inicio de lote, cosecha finalizada, lote demorado, ONG inactiva, flores sin entregar)
+- No puede crear ONGs ni otros RTs
+
+### ONG — Organización
+
+**Portal:** `agrotrace_prototipo_v3.html`
+
+- Gestiona su stock de material básico propio (semillas, esquejes, plantas madre)
+- Crea y avanza sus lotes de producción: Nursery → Vegetativa → Floración → Cosecha → Curado/Secado → Flores Cosechadas
+- Divide lotes en sublotes, registra entregas y análisis de calidad
+- Ve su dashboard con métricas y alertas propias
+- **No puede ver ni modificar datos de otras ONGs** — RLS lo bloquea a nivel de base de datos
+
+---
+
 ## Arquitectura del sistema — módulos
 
 1. **Autenticación y roles** — tres roles activos en producción:
@@ -147,8 +197,7 @@ Ver `Proximospasos.md` para el orden recomendado.
 | Sidebar usuario ONG (org name + email + ícono "O") | ✅ Implementado (2026-07-13) |
 | Sidebar usuario RT (nombre + email + ícono "RT" fijo) | ✅ Implementado (2026-07-13) |
 | Fix sidebar: supervisor ve su propia identidad (no la supervisada) | ✅ Implementado (2026-07-13) |
-| Fix RLS INSERT tablas etapas (WITH CHECK explícito) | ❌ SQL listo en `summary.md` — ejecutar en Supabase |
-| SQL Políticas RLS para modo supervisión RT | ❌ SQL listo en `summary.md` — ejecutar en Supabase |
+| RLS 3 niveles (superadmin/RT/ONG) en todas las tablas | ✅ Implementado (2026-07-16) |
 | SQL Tabla `variedades_rnc` | ❌ SQL listo en `summary.md` — ejecutar en Supabase |
 | Fix Edge Function `crear-rt` (nombre incorrecto en Dashboard) | ❌ Acción manual en Dashboard |
 | Fix JWT `crear-ong` (desactivar en Dashboard) | ❌ Acción manual en Dashboard |
@@ -186,6 +235,33 @@ El sidebar nunca muestra la identidad de la entidad supervisada — eso se muest
 - **RT**: ícono `RT` fijo, nombre personal del RT (de `perfiles.nombre`), email.
 - **Superadmin supervisando desde portal RT**: ícono `SA`, nombre del superadmin, email.
 - **RT o superadmin supervisando desde portal ONG**: ícono `RT`/`SA`, nombre propio, email.
+
+**Arquitectura RLS de 3 niveles con funciones SECURITY DEFINER (desde 2026-07-16)**
+
+Todas las tablas de datos de producción usan cuatro funciones helper para evaluar el acceso. Al ser `SECURITY DEFINER`, las funciones corren como el owner de la DB y evitan recursión o bloqueos por RLS interno:
+
+```sql
+es_superadmin()                    -- true si auth.uid() tiene rol superadmin
+es_rt_de_usuario(uid)              -- true si auth.uid() es RT supervisor del usuario uid
+puede_acceder_usuario(uid)         -- ONG propia OR RT supervisor OR superadmin
+puede_acceder_lote(lote_id)        -- resuelve usuario_id y llama puede_acceder_usuario
+puede_acceder_flores(flores_id)    -- resuelve lote_id y llama puede_acceder_lote
+```
+
+Política en todas las tablas (una sola por tabla, cubre SELECT/INSERT/UPDATE/DELETE):
+
+```sql
+-- Tablas con usuario_id directo (lotes_produccion, material básico, bajas)
+FOR ALL USING (puede_acceder_usuario(usuario_id)) WITH CHECK (puede_acceder_usuario(usuario_id))
+
+-- Tablas de etapas (etapa_*, flores_cosechadas)
+FOR ALL USING (puede_acceder_lote(lote_id)) WITH CHECK (puede_acceder_lote(lote_id))
+
+-- entregas y analisis_calidad
+FOR ALL USING (puede_acceder_flores(flores_id)) WITH CHECK (puede_acceder_flores(flores_id))
+```
+
+Para aplicar desde cero: el SQL completo está en `summary.md` sección 2026-07-16.
 
 **Alta de ONGs: solo el Superadmin (desde 2026-07-11)**
 El RT no puede crear ONGs. Solo el Superadmin crea ONGs (vía `crear-ong` Edge Function) y las asigna a un RT en el momento del alta. El RT solo supervisa las ONGs que el Superadmin le asignó.
