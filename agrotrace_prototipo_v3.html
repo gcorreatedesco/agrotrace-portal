@@ -2408,7 +2408,10 @@ async function guardarEtapaHist(key){
 
 /* ── NAVIGATION ── */
 let PREV_VIEW='lotes';
+let formDirty=false;
+const SAFE_VIEWS=['dashboard','lotes','stock','busqueda','organizaciones'];
 function sv(id){
+  if(SAFE_VIEWS.includes(id))formDirty=false;
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.getElementById('view-'+id).classList.add('active');
   document.querySelectorAll('.nav-it').forEach(n=>n.classList.remove('active'));
@@ -2534,7 +2537,7 @@ async function guardarAvanzar(){
     if(dbErr)return showErr('Error actualizando etapa: '+dbErr.message);
     await cargarLotes();rebuildSearchIndex();actualizarMetricasDash();calcularAlertas();
     logActividad('avance_etapa', LOTE_ACTIVO.n+' — avanzó a Vegetativa', loteId, {de:'nursery',a:'vegetativa'});
-    alert('¡Nursery cerrada! El lote avanzó a Vegetativa.');
+    formDirty=false;alert('¡Nursery cerrada! El lote avanzó a Vegetativa.');
     await openLote(loteId);
 
   } else if(et==='vegetativa'){
@@ -2558,7 +2561,7 @@ async function guardarAvanzar(){
     if(dbErr)return showErr('Error actualizando etapa: '+dbErr.message);
     await cargarLotes();rebuildSearchIndex();actualizarMetricasDash();calcularAlertas();
     logActividad('avance_etapa', LOTE_ACTIVO.n+' — avanzó a Floración', loteId, {de:'vegetativa',a:'floracion'});
-    alert('¡Vegetativa cerrada! El lote avanzó a Floración.');
+    formDirty=false;alert('¡Vegetativa cerrada! El lote avanzó a Floración.');
     await openLote(loteId);
 
   } else if(et==='floracion'){
@@ -2582,7 +2585,7 @@ async function guardarAvanzar(){
     if(dbErr)return showErr('Error actualizando etapa: '+dbErr.message);
     await cargarLotes();rebuildSearchIndex();actualizarMetricasDash();calcularAlertas();
     logActividad('avance_etapa', LOTE_ACTIVO.n+' — avanzó a Cosecha', loteId, {de:'floracion',a:'cosecha'});
-    alert('¡Floración cerrada! El lote avanzó a Cosecha.');
+    formDirty=false;alert('¡Floración cerrada! El lote avanzó a Cosecha.');
     await openLote(loteId);
 
   } else if(et==='cosecha'){
@@ -2615,7 +2618,7 @@ async function guardarAvanzar(){
     if(dbErr)return showErr('Error actualizando etapa: '+dbErr.message);
     await cargarLotes();rebuildSearchIndex();actualizarMetricasDash();calcularAlertas();
     logActividad('avance_etapa', LOTE_ACTIVO.n+' — avanzó a Curado/Secado', loteId, {de:'cosecha',a:'curado_secado'});
-    alert('Cosecha registrada. El lote avanzó a Curado/Secado.');
+    formDirty=false;alert('Cosecha registrada. El lote avanzó a Curado/Secado.');
     await openLote(loteId);
   } else if(et==='curado_secado'){
     const fi=document.getElementById('cur-fecha-ini').value||null;
@@ -2652,7 +2655,7 @@ async function guardarAvanzar(){
     if(dbErr)return showErr('Error actualizando etapa: '+dbErr.message);
     await cargarLotes();rebuildSearchIndex();actualizarMetricasDash();calcularAlertas();
     logActividad('avance_etapa', LOTE_ACTIVO.n+' — flores cosechadas', loteId, {de:'curado_secado',a:'flores'});
-    alert('Curado/Secado registrado. El lote avanzó a Flores Cosechadas.');
+    formDirty=false;alert('Curado/Secado registrado. El lote avanzó a Flores Cosechadas.');
     await openLote(loteId);
   }
 }
@@ -2859,6 +2862,7 @@ async function cL(){
     else if(OA==='esquejes')await sb.from('lotes_esquejes').update({stock_actual:Math.max(0,LA.stock-c)}).eq('id',LA.v);
   }
   NUEVO_LOTE_ID=lote.id;
+  formDirty=false;
   logActividad('nuevo_lote', nombre+' — inicio en Nursery', lote.id);
   document.getElementById('cpanel').style.display='none';
   document.getElementById('sscreen').style.display='block';
@@ -3204,7 +3208,7 @@ async function guardarMaterial(){
   }
 
   logActividad('nuevo_material', nombre+' — nuevo lote de '+({semillas:'Semillas',esquejes:'Esquejes',pm:'Plantas Madre'}[TIPO_NM]||TIPO_NM));
-  alert('¡Lote de material básico creado exitosamente!');
+  formDirty=false;alert('¡Lote de material básico creado exitosamente!');
   ['nm-nombre','nm-fecha','nm-variedad','nm-stock','nm-notas'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   const pEl=document.getElementById('nm-proveedor');if(pEl)pEl.value='';
   document.getElementById('nm-origen').value='';document.getElementById('nm-unidad').value='';
@@ -3344,6 +3348,9 @@ document.addEventListener('click',e=>{
   if(!e.target.closest('.snooze-wrap'))
     document.querySelectorAll('.snooze-dd.open').forEach(d=>d.classList.remove('open'));
 });
+document.addEventListener('input',()=>{formDirty=true;});
+document.addEventListener('change',()=>{formDirty=true;});
+window.addEventListener('beforeunload',e=>{if(formDirty){e.preventDefault();e.returnValue='';} });
 
 function calcularAlertas(){
   const alertas=[];
