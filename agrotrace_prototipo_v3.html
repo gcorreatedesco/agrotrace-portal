@@ -114,6 +114,23 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);c
 .sort-btn.active{background:var(--soil);color:var(--dew);border-color:var(--soil);}
 .org-card{background:var(--white);border:1px solid rgba(0,0,0,0.07);border-radius:var(--radius-lg);padding:16px 18px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:12px;transition:border-color var(--trans);}
 .org-card:hover{border-color:var(--mist);}
+.establ-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;margin-top:4px;}
+.establ-card{background:var(--white);border:1px solid rgba(0,0,0,0.08);border-radius:var(--radius-lg);padding:16px 18px;display:flex;flex-direction:column;gap:10px;transition:border-color var(--trans),box-shadow var(--trans);}
+.establ-card:hover{border-color:var(--mist);box-shadow:0 2px 8px rgba(0,0,0,0.06);}
+.establ-card-top{display:flex;align-items:flex-start;gap:12px;}
+.establ-pin{width:34px;height:34px;border-radius:50%;background:var(--dew);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.establ-pin svg{width:16px;height:16px;fill:var(--accent);}
+.establ-info{flex:1;min-width:0;}
+.establ-nombre{font-size:0.9rem;font-weight:500;color:var(--soil);margin-bottom:2px;}
+.establ-dir{font-size:0.75rem;color:var(--sage);line-height:1.4;}
+.establ-geo{font-size:0.68rem;color:var(--sage);background:var(--dew);border-radius:var(--radius);padding:2px 7px;display:inline-block;margin-top:4px;}
+.establ-actions{display:flex;justify-content:flex-end;}
+.establ-empty{padding:40px 0;text-align:center;color:var(--sage);font-size:0.82rem;}
+.establ-count{font-size:0.72rem;color:var(--sage);text-align:right;margin-top:10px;}
+.establ-form-grid{display:grid;gap:12px;}
+.establ-row2{display:grid;grid-template-columns:1fr 80px;gap:10px;}
+.establ-row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+.establ-row2-geo{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
 .org-nombre{font-weight:500;font-size:0.92rem;color:var(--soil);margin-bottom:4px;}
 .org-meta{font-size:0.72rem;color:var(--sage);display:flex;gap:12px;flex-wrap:wrap;}
 .org-meta span::before{content:'·';margin-right:4px;opacity:0.4;}
@@ -542,6 +559,12 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
     <div class="nav-it new-mat" onclick="sv('nuevo-material')">
       <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>
       + Nuevo lote de material básico
+    </div>
+
+    <div class="nav-sec">Establecimientos</div>
+    <div class="nav-it" id="nav-establecimientos" onclick="sv('establecimientos')">
+      <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+      Mis establecimientos
     </div>
 
     <div class="nav-sec" id="nav-sec-org" style="display:none;">Organizaciones</div>
@@ -984,6 +1007,58 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
     <div class="search-query-sub" id="sq-sub"></div>
   </div>
   <div id="search-results-container"></div>
+</div>
+
+<!-- ESTABLECIMIENTOS -->
+<div class="view" id="view-establecimientos">
+  <div id="establ-list-container"><div class="establ-empty">Cargando establecimientos...</div></div>
+</div>
+
+<!-- FORMULARIO ESTABLECIMIENTO -->
+<div class="view" id="view-establ-form">
+  <div class="panel">
+    <div class="pt" id="establ-form-titulo">Nuevo establecimiento</div>
+    <div class="establ-form-grid">
+      <div class="field"><label>Nombre del establecimiento<span class="req">*</span></label>
+        <input type="text" id="ef-nombre" placeholder="Ej: Invernadero Norte, Parcela A..."/>
+      </div>
+      <div class="establ-row2">
+        <div class="field"><label>Calle<span class="req">*</span></label>
+          <input type="text" id="ef-calle" placeholder="Nombre de la calle"/>
+        </div>
+        <div class="field"><label>Nro<span class="req">*</span></label>
+          <input type="text" id="ef-nro" placeholder="S/N si no tiene"/>
+        </div>
+      </div>
+      <div class="establ-row3">
+        <div class="field"><label>Ciudad<span class="req">*</span></label>
+          <input type="text" id="ef-ciudad" placeholder="Ciudad"/>
+        </div>
+        <div class="field"><label>Partido<span class="req">*</span></label>
+          <input type="text" id="ef-partido" placeholder="Partido"/>
+        </div>
+        <div class="field"><label>Provincia<span class="req">*</span></label>
+          <input type="text" id="ef-provincia" placeholder="Provincia"/>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:0.72rem;color:var(--sage);margin-bottom:8px;">Coordenadas geográficas <span class="opt">opcionales</span></div>
+        <div class="establ-row2-geo">
+          <div class="field"><label>Latitud</label>
+            <input type="number" id="ef-latitud" placeholder="-34.6037" step="any"/>
+          </div>
+          <div class="field"><label>Longitud</label>
+            <input type="number" id="ef-longitud" placeholder="-58.3816" step="any"/>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="establ-form-err" class="warn-fecha" style="display:none;margin:10px 0;"></div>
+    <div class="ab">
+      <button class="btn btn-secondary" onclick="sv('establecimientos')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarEstabl()">Guardar establecimiento</button>
+    </div>
+  </div>
 </div>
 
 <div class="view" id="view-organizaciones">
@@ -2409,7 +2484,7 @@ async function guardarEtapaHist(key){
 /* ── NAVIGATION ── */
 let PREV_VIEW='lotes';
 let formDirty=false;
-const SAFE_VIEWS=['dashboard','lotes','stock','busqueda','organizaciones'];
+const SAFE_VIEWS=['dashboard','lotes','stock','busqueda','organizaciones','establecimientos'];
 function sv(id){
   if(SAFE_VIEWS.includes(id))formDirty=false;
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
@@ -2425,6 +2500,8 @@ function sv(id){
     'nuevo-material':['Nuevo lote de material básico','Registrar ingreso de material',''],
     busqueda:['Búsqueda de lotes','Resultados de búsqueda por nombre',''],
     organizaciones:['Mis organizaciones','Organizaciones a tu cargo','<button class="btn btn-primary" onclick="volverPortalRT()">+ Nueva ONG</button>'],
+    establecimientos:['Mis establecimientos','Sedes de producción registradas','<button class="btn btn-primary" onclick="abrirFormEstabl(null)">+ Nuevo establecimiento</button>'],
+    'establ-form':['','',''],
   };
   if(mp[id]){document.getElementById('tt').textContent=mp[id][0];document.getElementById('ts').textContent=mp[id][1];document.getElementById('ta').innerHTML=mp[id][2];}
   // botón de retorno
@@ -2434,12 +2511,14 @@ function sv(id){
   if(backBtn){
     if(id==='detalle'){PREV_VIEW='lotes';backBtn.style.display='flex';backLabel.textContent='Mis Lotes';}
     else if(id==='detalle-material'){PREV_VIEW='stock';backBtn.style.display='flex';backLabel.textContent='Stock';}
+    else if(id==='establ-form'){PREV_VIEW='establecimientos';backBtn.style.display='flex';backLabel.textContent='Establecimientos';}
     else{backBtn.style.display='none';}
   }
   if(id==='lotes'){rAll('lotes-list','todos');}
   if(id==='dashboard')rAll('dash-lotes','todos');
   if(id==='stock')renderStock();
   if(id==='organizaciones')cargarOrganizaciones();
+  if(id==='establecimientos')cargarEstablecimientos();
   if(id==='nuevo-lote')rW();
 }
 function volverDesdePantalla(){sv(PREV_VIEW);}
@@ -2658,6 +2737,95 @@ async function guardarAvanzar(){
     formDirty=false;alert('Curado/Secado registrado. El lote avanzó a Flores Cosechadas.');
     await openLote(loteId);
   }
+}
+
+/* ── ESTABLECIMIENTOS ── */
+let ESTABL_EDITANDO=null;
+
+async function cargarEstablecimientos(){
+  const cont=document.getElementById('establ-list-container');
+  if(!cont)return;
+  if(!CURRENT_USER){cont.innerHTML='<div class="establ-empty">Iniciá sesión para ver tus establecimientos.</div>';return;}
+  const{data,error}=await sb.from('establecimientos').select('*').eq('usuario_id',CURRENT_USER.id).eq('activo',true).order('creado_en',{ascending:false});
+  if(error){cont.innerHTML='<div class="establ-empty">Error cargando establecimientos.</div>';return;}
+  if(!data||!data.length){
+    cont.innerHTML='<div class="establ-empty">Aún no registraste establecimientos.<br><br><button class="btn btn-primary" onclick="abrirFormEstabl(null)">+ Registrar primer establecimiento</button></div>';
+    return;
+  }
+  const cards=data.map(e=>`
+    <div class="establ-card">
+      <div class="establ-card-top">
+        <div class="establ-pin"><svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg></div>
+        <div class="establ-info">
+          <div class="establ-nombre">${e.nombre}</div>
+          <div class="establ-dir">${e.calle} ${e.nro}, ${e.ciudad}<br>${e.partido} · ${e.provincia}</div>
+          ${(e.latitud!=null&&e.longitud!=null)?`<div class="establ-geo">📍 ${e.latitud}, ${e.longitud}</div>`:''}
+        </div>
+      </div>
+      <div class="establ-actions">
+        <button class="btn btn-secondary" style="font-size:0.75rem;padding:5px 12px;" onclick="abrirFormEstabl('${e.id}')">Editar</button>
+      </div>
+    </div>
+  `).join('');
+  cont.innerHTML=`<div class="establ-grid">${cards}</div><div class="establ-count">${data.length} establecimiento${data.length!==1?'s':''} registrado${data.length!==1?'s':''}</div>`;
+}
+
+function abrirFormEstabl(id){
+  ESTABL_EDITANDO=id;
+  const titulo=document.getElementById('establ-form-titulo');
+  const errEl=document.getElementById('establ-form-err');
+  if(errEl)errEl.style.display='none';
+  if(!id){
+    if(titulo)titulo.textContent='Nuevo establecimiento';
+    ['ef-nombre','ef-calle','ef-nro','ef-ciudad','ef-partido','ef-provincia','ef-latitud','ef-longitud'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
+    sv('establ-form');
+    return;
+  }
+  // Edición: cargar datos del establecimiento
+  sb.from('establecimientos').select('*').eq('id',id).maybeSingle().then(({data})=>{
+    if(!data)return;
+    if(titulo)titulo.textContent='Editar establecimiento';
+    document.getElementById('ef-nombre').value=data.nombre||'';
+    document.getElementById('ef-calle').value=data.calle||'';
+    document.getElementById('ef-nro').value=data.nro||'';
+    document.getElementById('ef-ciudad').value=data.ciudad||'';
+    document.getElementById('ef-partido').value=data.partido||'';
+    document.getElementById('ef-provincia').value=data.provincia||'';
+    document.getElementById('ef-latitud').value=data.latitud!=null?data.latitud:'';
+    document.getElementById('ef-longitud').value=data.longitud!=null?data.longitud:'';
+  });
+  sv('establ-form');
+}
+
+async function guardarEstabl(){
+  const errEl=document.getElementById('establ-form-err');
+  function showErr(msg){errEl.textContent=msg;errEl.style.display='block';}
+  errEl.style.display='none';
+  const nombre=document.getElementById('ef-nombre').value.trim();
+  const calle=document.getElementById('ef-calle').value.trim();
+  const nro=document.getElementById('ef-nro').value.trim();
+  const ciudad=document.getElementById('ef-ciudad').value.trim();
+  const partido=document.getElementById('ef-partido').value.trim();
+  const provincia=document.getElementById('ef-provincia').value.trim();
+  const latRaw=document.getElementById('ef-latitud').value.trim();
+  const lngRaw=document.getElementById('ef-longitud').value.trim();
+  if(!nombre||!calle||!nro||!ciudad||!partido||!provincia)return showErr('Completá todos los campos obligatorios.');
+  const latitud=latRaw!==''?parseFloat(latRaw):null;
+  const longitud=lngRaw!==''?parseFloat(lngRaw):null;
+  if(latRaw!==''&&isNaN(latitud))return showErr('La latitud debe ser un número (ej: -34.6037).');
+  if(lngRaw!==''&&isNaN(longitud))return showErr('La longitud debe ser un número (ej: -58.3816).');
+  const payload={nombre,calle,nro,ciudad,partido,provincia,latitud,longitud};
+  let dbErr;
+  if(ESTABL_EDITANDO){
+    ({error:dbErr}=await sb.from('establecimientos').update(payload).eq('id',ESTABL_EDITANDO));
+  } else {
+    ({error:dbErr}=await sb.from('establecimientos').insert({...payload,usuario_id:CURRENT_USER.id}));
+  }
+  if(dbErr)return showErr('Error guardando: '+dbErr.message);
+  formDirty=false;
+  alert(ESTABL_EDITANDO?'Establecimiento actualizado.':'Establecimiento registrado exitosamente.');
+  ESTABL_EDITANDO=null;
+  sv('establecimientos');
 }
 
 /* ── BÚSQUEDA ── */
