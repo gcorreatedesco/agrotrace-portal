@@ -406,7 +406,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);c
         <svg viewBox="0 0 24 24"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg>
       </div>
       <div class="csv-drop-text" id="csv-drop-text">Seleccioná o arrastrá el archivo CSV</div>
-      <div class="csv-drop-sub">Formato: catalogo_consulta.csv · Codificación Latin-1</div>
+      <div class="csv-drop-sub">Formato: catalogo_consulta.csv · UTF-8 o Latin-1 (detección automática)</div>
     </label>
     <input type="file" id="csv-input" accept=".csv" style="display:none;" onchange="previsualizarCSV(this)"/>
     <div class="csv-preview" id="csv-preview"></div>
@@ -1100,7 +1100,9 @@ function previsualizarCSV(input) {
   const reader = new FileReader();
   reader.onload = function(e) {
     try {
-      const text = new TextDecoder('iso-8859-1').decode(e.target.result);
+      let text;
+      try { text = new TextDecoder('utf-8', { fatal: true }).decode(e.target.result); }
+      catch { text = new TextDecoder('iso-8859-1').decode(e.target.result); }
       const lines = text.split('\n').filter(l => l.trim());
       if (lines.length < 2) throw new Error('El archivo parece vacío o mal formado.');
 
