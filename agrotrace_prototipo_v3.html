@@ -88,6 +88,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);c
 .metric-val.green{color:var(--accent);}
 .metric-val.amber{color:var(--amber);}
 .metric-val.purple{color:var(--purple);}
+.metric-sub{font-size:0.65rem;color:var(--sage);text-align:right;margin-top:4px;}
 
 /* ── PILLS ── */
 .filters{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;}
@@ -619,7 +620,7 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
   <div class="metrics">
     <div class="metric"><div class="metric-label">Lotes activos</div><div class="metric-val" id="m-lotes">—</div></div>
     <div class="metric"><div class="metric-label">En floración</div><div class="metric-val green" id="m-flor">—</div></div>
-    <div class="metric"><div class="metric-label">Stock flores</div><div class="metric-val purple" id="m-flores">—</div></div>
+    <div class="metric"><div class="metric-label">Stock flores</div><div class="metric-val purple" id="m-flores">—</div><div class="metric-sub" id="m-flores-lotes"></div></div>
     <div class="metric"><div class="metric-label">Alertas</div><div class="metric-val amber" id="m-alertas">0</div></div>
   </div>
   <div class="lay2">
@@ -1342,10 +1343,22 @@ function rebuildSearchIndex(){
 }
 
 /* ── MÉTRICAS ── */
-function actualizarMetricasDash(){
+async function actualizarMetricasDash(){
   document.getElementById('m-lotes').textContent=LD.length;
   document.getElementById('m-flor').textContent=LD.filter(l=>l.et==='floracion').length;
-  document.getElementById('m-flores').textContent='—';
+  const ongUid=sessionStorage.getItem('agrotrace_supervisando_ong_usuario_id');
+  let fq=sb.from('flores_cosechadas').select('stock_actual').gt('stock_actual',0);
+  if(ongUid){
+    const ids=[...LD,...(LD_TERM||[]),...(LD_CERR||[])].map(l=>l.id);
+    if(!ids.length){document.getElementById('m-flores').textContent='—';document.getElementById('m-flores-lotes').textContent='';renderActividad();return;}
+    fq=fq.in('lote_id',ids);
+  }
+  const{data:fd}=await fq;
+  const totalG=(fd||[]).reduce((s,r)=>s+(r.stock_actual||0),0);
+  const n=(fd||[]).length;
+  const kgStr=n>0?parseFloat((totalG/1000).toFixed(3))+' kg':'—';
+  document.getElementById('m-flores').textContent=kgStr;
+  document.getElementById('m-flores-lotes').textContent=n>0?(n===1?'1 lote':n+' lotes'):'';
   renderActividad();
 }
 
