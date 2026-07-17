@@ -714,6 +714,9 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
         </select>
       </div>
       <div class="field"><label>Variedad<span class="opt">se completa automáticamente desde el lote de origen en paso 2</span></label><input type="text" id="p1v" placeholder="Se completará automáticamente" readonly/></div>
+      <div class="field"><label>Establecimiento<span class="req">*</span></label>
+        <select id="p1-establ"><option value="">— Cargando establecimientos... —</option></select>
+      </div>
       <div class="erb" id="p1-err" style="display:none;"></div>
       <div class="wb" id="p1-warn" style="display:none;white-space:pre-line;"></div>
       <div class="ab" style="justify-content:space-between;">
@@ -933,6 +936,9 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
     <div class="g2">
       <div class="field"><label>Nombre del lote<span class="req">*</span></label><input type="text" id="nm-nombre" placeholder="Ej: Semillas Batch Abril 2025"/></div>
       <div class="field"><label>Fecha de adquisición<span class="req">*</span></label><input type="date" id="nm-fecha"/></div>
+    </div>
+    <div class="field"><label>Establecimiento<span class="req">*</span></label>
+      <select id="nm-establ"><option value="">— Cargando establecimientos... —</option></select>
     </div>
     <div class="field"><label>Origen<span class="req">*</span></label>
       <select id="nm-origen" onchange="onNMOrigen(this.value)">
@@ -2519,6 +2525,7 @@ function sv(id){
   if(id==='stock')renderStock();
   if(id==='organizaciones')cargarOrganizaciones();
   if(id==='establecimientos')cargarEstablecimientos();
+  if(id==='nuevo-material')cargarEstablecimientosSelect('nm-establ');
   if(id==='nuevo-lote')rW();
 }
 function volverDesdePantalla(){sv(PREV_VIEW);}
@@ -2739,6 +2746,18 @@ async function guardarAvanzar(){
   }
 }
 
+/* ── ESTABLECIMIENTOS SELECT ── */
+async function cargarEstablecimientosSelect(selectId){
+  const sel=document.getElementById(selectId);
+  if(!sel||!CURRENT_USER)return;
+  const{data}=await sb.from('establecimientos').select('id,nombre').eq('usuario_id',CURRENT_USER.id).eq('activo',true).order('nombre');
+  if(!data||!data.length){
+    sel.innerHTML='<option value="">— Sin establecimientos registrados —</option>';
+    return;
+  }
+  sel.innerHTML='<option value="">— Elegí el establecimiento —</option>'+data.map(e=>`<option value="${e.id}">${e.nombre}</option>`).join('');
+}
+
 /* ── ESTABLECIMIENTOS ── */
 let ESTABL_EDITANDO=null;
 
@@ -2908,6 +2927,7 @@ function wizPaso1Siguiente(){
   errEl.style.display='none';warnEl.style.display='none';
   if(!nombre){errEl.textContent='El nombre del lote es obligatorio.';errEl.style.display='block';return;}
   if(!fecha){errEl.textContent='La fecha de inicio es obligatoria.';errEl.style.display='block';return;}
+  if(!document.getElementById('p1-establ').value){errEl.textContent='Seleccioná el establecimiento donde se producirá este lote.';errEl.style.display='block';return;}
   const val=validarNombreLote(nombre);
   if(!val.ok&&val.bloqueo){
     errEl.textContent=val.msg+(val.sugerencia?'\nSugerencia de nombre: "'+val.sugerencia+'"':'');
@@ -3007,6 +3027,7 @@ async function cL(){
   const{data:lote,error:loteErr}=await sb.from('lotes_produccion').insert({
     usuario_id:CURRENT_USER.id,nombre_base:nombre,nombre_completo:nombre,
     fecha_inicio:fecha,etapa_actual:etapa,
+    establecimiento_id:document.getElementById('p1-establ').value||null,
     origen_semilla_id:OA==='semillas'?LA.v:null,
     origen_esqueje_id:OA==='esquejes'?LA.v:null,
     origen_pm_id:OA==='pm'?LA.v:null,
@@ -3060,6 +3081,7 @@ function rW(){
   // Paso 1
   ['p1n','p1f','p1v'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
   const p1e=document.getElementById('p1e');if(p1e)p1e.selectedIndex=0;
+  cargarEstablecimientosSelect('p1-establ');
   ['p1-err','p1-warn'].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display='none';});
 
   // Paso 2 — tipo de origen
@@ -3330,18 +3352,20 @@ async function guardarMaterial(){
   const unidad=document.getElementById('nm-unidad').value;
   const notas=document.getElementById('nm-notas').value.trim()||null;
   const prov=origen==='externo'?(document.getElementById('nm-proveedor').value.trim()||null):null;
+  const establIdNM=document.getElementById('nm-establ')?.value||'';
   if(!TIPO_NM){alert('Elegí el tipo de material.');return;}
   if(!nombre||!fecha||!origen||!variedad||isNaN(stockIni)||stockIni<=0||!unidad){alert('Completá todos los campos obligatorios.');return;}
+  if(!establIdNM){alert('Seleccioná el establecimiento donde se almacena este material.');return;}
   let error;
-  if(TIPO_NM==='semillas'){({error}=await sb.from('lotes_semillas').insert({usuario_id:CURRENT_USER.id,nombre_lote:nombre,fecha_adquisicion:fecha,origen_tipo:origen,proveedor:prov,variedad,stock_inicial:stockIni,stock_actual:stockIni,unidad,notas}));}
+  if(TIPO_NM==='semillas'){({error}=await sb.from('lotes_semillas').insert({usuario_id:CURRENT_USER.id,nombre_lote:nombre,fecha_adquisicion:fecha,origen_tipo:origen,proveedor:prov,variedad,stock_inicial:stockIni,stock_actual:stockIni,unidad,notas,establecimiento_id:establIdNM||null}));}
   else if(TIPO_NM==='esquejes'){
     const loteOrigenIdEsq=document.getElementById('nm-lote-origen')?.value||null;
     const origenTipoEsq=origen==='externo'?'externo':origen==='lote_produccion_propio'?'lote_produccion_propio':'plantas_madre_propio';
-    ({error}=await sb.from('lotes_esquejes').insert({usuario_id:CURRENT_USER.id,nombre_lote:nombre,fecha_adquisicion:fecha,origen_tipo:origenTipoEsq,proveedor:origen==='externo'?prov:null,lote_origen_id:loteOrigenIdEsq||null,variedad,stock_inicial:Math.round(stockIni),stock_actual:Math.round(stockIni),notas}));
+    ({error}=await sb.from('lotes_esquejes').insert({usuario_id:CURRENT_USER.id,nombre_lote:nombre,fecha_adquisicion:fecha,origen_tipo:origenTipoEsq,proveedor:origen==='externo'?prov:null,lote_origen_id:loteOrigenIdEsq||null,variedad,stock_inicial:Math.round(stockIni),stock_actual:Math.round(stockIni),notas,establecimiento_id:establIdNM||null}));
   }
   else if(TIPO_NM==='pm'){
     const loteOrigenId=document.getElementById('nm-lote-origen')?.value||null;
-    ({error}=await sb.from('lotes_plantas_madre').insert({usuario_id:CURRENT_USER.id,nombre_lote:nombre,fecha_adquisicion:fecha,origen_tipo:origen,proveedor:origen==='externo'?prov:null,lote_origen_id:loteOrigenId||null,variedad,cantidad_inicial:Math.round(stockIni),cantidad_actual:Math.round(stockIni),notas}));
+    ({error}=await sb.from('lotes_plantas_madre').insert({usuario_id:CURRENT_USER.id,nombre_lote:nombre,fecha_adquisicion:fecha,origen_tipo:origen,proveedor:origen==='externo'?prov:null,lote_origen_id:loteOrigenId||null,variedad,cantidad_inicial:Math.round(stockIni),cantidad_actual:Math.round(stockIni),notas,establecimiento_id:establIdNM||null}));
   }
   if(error){alert('Error al guardar: '+error.message);return;}
 
@@ -3386,6 +3410,7 @@ async function guardarMaterial(){
   const rl=document.getElementById('nm-rotulo-lista');if(rl)rl.innerHTML='';
   const fl=document.getElementById('nm-factura-lista');if(fl)fl.innerHTML='';
   TIPO_NM=null;
+  cargarEstablecimientosSelect('nm-establ');
   await cargarMaterial();rebuildSearchIndex();calcularAlertas();sv('stock');
 }
 
