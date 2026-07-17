@@ -643,3 +643,60 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 GRANT SELECT ON public.perfiles TO authenticated;
+
+
+-- ── VARIEDADES RNC (catálogo INASE, gestionado por superadmin) ──
+CREATE TABLE IF NOT EXISTS public.variedades_rnc (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  nro_rnc     TEXT UNIQUE NOT NULL,
+  cultivar    TEXT NOT NULL,
+  especie     TEXT,
+  activa      BOOLEAN DEFAULT TRUE,
+  fecha_carga TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE public.variedades_rnc ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "autenticados pueden leer variedades" ON public.variedades_rnc
+  FOR SELECT TO authenticated USING (true);
+CREATE POLICY "solo superadmin gestiona variedades" ON public.variedades_rnc
+  FOR ALL TO authenticated
+  USING (EXISTS (SELECT 1 FROM public.perfiles WHERE id = auth.uid() AND rol = 'superadmin'))
+  WITH CHECK (EXISTS (SELECT 1 FROM public.perfiles WHERE id = auth.uid() AND rol = 'superadmin'));
+GRANT SELECT ON public.variedades_rnc TO authenticated;
+GRANT INSERT, UPDATE, DELETE ON public.variedades_rnc TO authenticated;
+
+
+-- ── ESTABLECIMIENTOS (predios/campos por usuario ONG) ──
+CREATE TABLE IF NOT EXISTS public.establecimientos (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  usuario_id  UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  nombre      TEXT NOT NULL,
+  calle       TEXT,
+  nro         TEXT,
+  ciudad      TEXT,
+  partido     TEXT,
+  provincia   TEXT,
+  latitud     FLOAT8,
+  longitud    FLOAT8,
+  activo      BOOLEAN DEFAULT TRUE,
+  creado_en   TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE public.establecimientos ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "establecimientos_all" ON public.establecimientos
+  FOR ALL USING (puede_acceder_usuario(usuario_id)) WITH CHECK (puede_acceder_usuario(usuario_id));
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.establecimientos TO authenticated;
+
+
+-- ── ACTIVIDADES LOG (historial de acciones por usuario) ──
+CREATE TABLE IF NOT EXISTS public.actividades_log (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  usuario_id  UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  tipo        TEXT NOT NULL,
+  descripcion TEXT NOT NULL,
+  lote_id     UUID REFERENCES public.lotes_produccion(id) ON DELETE SET NULL,
+  meta        JSONB,
+  creado_en   TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE public.actividades_log ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "actividades_all" ON public.actividades_log
+  FOR ALL USING (puede_acceder_usuario(usuario_id)) WITH CHECK (puede_acceder_usuario(usuario_id));
+GRANT SELECT, INSERT ON public.actividades_log TO authenticated;
