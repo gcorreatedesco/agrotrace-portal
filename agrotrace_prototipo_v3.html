@@ -1852,7 +1852,7 @@ async function cerrarLoteAgotado(){
   logActividad('completado', LOTE_ACTIVO.n+' — ciclo completado', LOTE_ACTIVO.id);
   LOTE_ACTIVO.etapaRaw='completado';
   LOTE_ACTIVO.fecha_cierre=fecha;
-  await cargarLotes();calcularAlertas();
+  await cargarLotes();actualizarMetricasDash();calcularAlertas();
   alert('Lote cerrado y movido al historial de lotes terminados.');
   sv('lotes');
 }
@@ -1868,7 +1868,7 @@ async function cerrarLoteAnticipado(){
   LOTE_ACTIVO.etapaRaw='cerrado';
   LOTE_ACTIVO.fecha_cierre=fecha;
   LOTE_ACTIVO.motivo_cierre=motivo.trim();
-  await cargarLotes();calcularAlertas();
+  await cargarLotes();actualizarMetricasDash();calcularAlertas();
   alert('Lote cerrado y movido al historial.');
   sv('lotes');
 }
@@ -2393,6 +2393,7 @@ async function guardarCorreccion(entregaId,fcId){
   await cargarHistorialEntregas();
   const el=document.getElementById('det-panel');
   if(el)el.innerHTML=panelFlores();
+  actualizarMetricasDash();calcularAlertas();
 }
 
 function abrirFormEntrega(){
@@ -2459,6 +2460,7 @@ async function guardarEntrega(){
   cerrarFormEntrega();
   const el=document.getElementById('det-panel');
   if(el)el.innerHTML=panelFlores();
+  actualizarMetricasDash();calcularAlertas();
   alert(`Entrega registrada correctamente.\nStock restante: ${nuevoStock} g`);
 }
 
