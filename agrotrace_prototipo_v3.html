@@ -1448,9 +1448,12 @@ async function actualizarMetricasDash(){
   document.getElementById('m-lotes').textContent=LD.length;
   document.getElementById('m-flor').textContent=LD.filter(l=>l.et==='floracion').length;
   const ongUid=sessionStorage.getItem('agrotrace_supervisando_ong_usuario_id');
-  let fq=sb.from('flores_cosechadas').select('stock_actual').gt('stock_actual',0);
+  let fq=sb.from('flores_cosechadas')
+    .select('stock_actual,lotes_produccion!inner(etapa_actual)')
+    .gt('stock_actual',0)
+    .neq('lotes_produccion.etapa_actual','cerrado');
   if(ongUid){
-    const ids=[...LD,...(LD_TERM||[]),...(LD_CERR||[])].map(l=>l.id);
+    const ids=[...LD,...(LD_TERM||[])].map(l=>l.id);
     if(!ids.length){document.getElementById('m-flores').textContent='—';document.getElementById('m-flores-lotes').textContent='';renderActividad();return;}
     fq=fq.in('lote_id',ids);
   }
