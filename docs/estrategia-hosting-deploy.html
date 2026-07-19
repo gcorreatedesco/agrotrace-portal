@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AgroTrace — Estrategia de Hosting, Seguridad y Deploy</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500&display=swap');
+
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+
+  :root{
+    --soil:#2C1F0E;
+    --accent:#4E7C3F;
+    --amber:#854F0B;
+    --amber-bg:#FAEEDA;
+    --dew:#EDF2E8;
+    --cream:#F7F4EF;
+    --mist:#C8D9BC;
+    --error:#B94A3A;
+    --error-bg:#FAECE7;
+    --purple:#534AB7;
+    --purple-bg:#EEEDFE;
+  }
+
+  body{
+    font-family:'DM Sans',sans-serif;
+    font-size:13px;
+    line-height:1.65;
+    color:var(--soil);
+    background:#fff;
+    padding:40px;
+    max-width:900px;
+    margin:0 auto;
+  }
+
+  /* ── PORTADA ── */
+  .cover{
+    text-align:center;
+    padding:48px 0 40px;
+    border-bottom:2px solid var(--accent);
+    margin-bottom:36px;
+  }
+  .cover-brand{
+    font-family:'DM Serif Display',serif;
+    font-size:2.2rem;
+    color:var(--accent);
+    margin-bottom:6px;
+  }
+  .cover-title{
+    font-size:1.05rem;
+    font-weight:500;
+    color:var(--soil);
+    margin-bottom:4px;
+  }
+  .cover-sub{
+    font-size:0.8rem;
+    color:#666;
+    font-weight:300;
+  }
+
+  /* ── ÍNDICE ── */
+  .toc{
+    background:var(--dew);
+    border-left:3px solid var(--accent);
+    padding:20px 24px;
+    margin-bottom:36px;
+    border-radius:4px;
+  }
+  .toc h2{
+    font-family:'DM Serif Display',serif;
+    font-size:1rem;
+    margin-bottom:12px;
+    color:var(--accent);
+  }
+  .toc ol{
+    padding-left:20px;
+  }
+  .toc li{
+    margin-bottom:4px;
+    font-size:0.82rem;
+  }
+
+  /* ── SECCIONES ── */
+  .section{
+    margin-bottom:40px;
+    page-break-inside:avoid;
+  }
+  .section-num{
+    display:inline-block;
+    background:var(--accent);
+    color:#fff;
+    font-size:0.7rem;
+    font-weight:500;
+    padding:2px 8px;
+    border-radius:3px;
+    margin-bottom:8px;
+    letter-spacing:0.05em;
+    text-transform:uppercase;
+  }
+  h1{
+    font-family:'DM Serif Display',serif;
+    font-size:1.5rem;
+    color:var(--soil);
+    margin-bottom:16px;
+  }
+  h2{
+    font-family:'DM Serif Display',serif;
+    font-size:1.15rem;
+    color:var(--soil);
+    margin:24px 0 10px;
+    border-bottom:1px solid var(--mist);
+    padding-bottom:4px;
+  }
+  h3{
+    font-size:0.88rem;
+    font-weight:500;
+    color:var(--accent);
+    margin:16px 0 6px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+  }
+  p{
+    margin-bottom:10px;
+    font-size:0.85rem;
+  }
+
+  /* ── TABLAS ── */
+  table{
+    width:100%;
+    border-collapse:collapse;
+    margin:12px 0 18px;
+    font-size:0.82rem;
+  }
+  th{
+    background:var(--soil);
+    color:#fff;
+    padding:7px 10px;
+    text-align:left;
+    font-weight:500;
+  }
+  td{
+    padding:6px 10px;
+    border-bottom:1px solid #e8e4de;
+    vertical-align:top;
+  }
+  tr:nth-child(even) td{background:var(--cream);}
+
+  /* ── CÓDIGO ── */
+  pre{
+    background:#1e1e1e;
+    color:#d4d4d4;
+    padding:14px 16px;
+    border-radius:5px;
+    font-family:'Courier New',monospace;
+    font-size:0.75rem;
+    overflow-x:auto;
+    margin:10px 0 16px;
+    line-height:1.55;
+  }
+  code{
+    font-family:'Courier New',monospace;
+    font-size:0.8rem;
+    background:#eee;
+    padding:1px 5px;
+    border-radius:3px;
+    color:#333;
+  }
+  pre code{background:none;padding:0;color:inherit;}
+
+  /* ── CALLOUTS ── */
+  .callout{
+    padding:12px 16px;
+    border-radius:5px;
+    margin:14px 0;
+    font-size:0.83rem;
+    border-left:3px solid;
+  }
+  .callout-warn{background:var(--amber-bg);border-color:var(--amber);color:var(--amber);}
+  .callout-ok{background:var(--dew);border-color:var(--accent);color:#2a5c1e;}
+  .callout-info{background:var(--purple-bg);border-color:var(--purple);color:var(--purple);}
+  .callout-error{background:var(--error-bg);border-color:var(--error);color:var(--error);}
+  .callout strong{display:block;margin-bottom:4px;font-weight:500;}
+
+  /* ── LISTAS ── */
+  ul,ol{
+    padding-left:20px;
+    margin-bottom:10px;
+    font-size:0.85rem;
+  }
+  li{margin-bottom:4px;}
+
+  /* ── BADGES ── */
+  .badge{
+    display:inline-block;
+    font-size:0.68rem;
+    font-weight:500;
+    padding:2px 7px;
+    border-radius:10px;
+    letter-spacing:0.03em;
+  }
+  .badge-ok{background:#d4edda;color:#155724;}
+  .badge-warn{background:var(--amber-bg);color:var(--amber);}
+  .badge-error{background:var(--error-bg);color:var(--error);}
+  .badge-info{background:var(--purple-bg);color:var(--purple);}
+
+  /* ── DIAGRAMA ASCII ── */
+  .diagram{
+    background:var(--cream);
+    border:1px solid var(--mist);
+    border-radius:5px;
+    padding:14px 18px;
+    font-family:'Courier New',monospace;
+    font-size:0.78rem;
+    line-height:1.7;
+    margin:12px 0 16px;
+    color:var(--soil);
+  }
+
+  /* ── PRINT ── */
+  @media print{
+    body{padding:20px;font-size:12px;}
+    .cover{padding:30px 0 24px;}
+    pre{font-size:0.7rem;}
+    h2{page-break-after:avoid;}
+    .section{page-break-inside:avoid;}
+    .no-print{display:none;}
+  }
+
+  /* ── FOOTER ── */
+  .doc-footer{
+    margin-top:48px;
+    padding-top:16px;
+    border-top:1px solid var(--mist);
+    font-size:0.72rem;
+    color:#999;
+    text-align:center;
+  }
+
+  .step-list{counter-reset:steps;list-style:none;padding:0;}
+  .step-list li{
+    counter-increment:steps;
+    display:flex;gap:12px;align-items:flex-start;margin-bottom:10px;
+  }
+  .step-list li::before{
+    content:counter(steps);
+    background:var(--accent);color:#fff;
+    font-size:0.72rem;font-weight:500;
+    min-width:22px;height:22px;
+    border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;margin-top:1px;
+  }
+</style>
+</head>
+<body>
+
+<!-- PORTADA -->
+<div class="cover">
+  <div class="cover-brand">AgroTrace</div>
+  <div class="cover-title">Estrategia de Hosting, Seguridad y Deploy</div>
+  <div class="cover-sub">Documento de referencia · Julio 2026</div>
+</div>
+
+<!-- ÍNDICE -->
+<div class="toc">
+  <h2>Índice</h2>
+  <ol>
+    <li>Dominio y hosting: conceptos base</li>
+    <li>Opciones de hosting gratuito</li>
+    <li>Opciones de dominio propio</li>
+    <li>Ruta recomendada paso a paso</li>
+    <li>URL gratuita para probar antes de pagar un dominio</li>
+    <li>Seguridad del código en GitHub público</li>
+    <li>Cómo proteger el código fuente (repo privado)</li>
+    <li>Estrategia de branches para desarrollo sin afectar producción</li>
+    <li>Supabase dev vs producción: qué son y cómo crearlos</li>
+    <li>Política de inactividad de Supabase (pausa automática)</li>
+    <li>Keep Alive: qué es y cómo funciona</li>
+    <li>Resumen de prioridades y costos</li>
+  </ol>
+</div>
+
+
+<!-- 1 -->
+<div class="section">
+  <span class="section-num">1</span>
+  <h1>Dominio y hosting: conceptos base</h1>
+  <p>Para tener AgroTrace en una dirección <code>www.agrotrace.com.ar</code> necesitás dos cosas separadas que se contratan por separado y luego se conectan.</p>
+  <table>
+    <tr><th>Cosa</th><th>Qué es</th><th>Analogía</th></tr>
+    <tr><td><strong>Dominio</strong></td><td><code>agrotrace.com.ar</code> — la dirección</td><td>El nombre de la calle</td></tr>
+    <tr><td><strong>Hosting</strong></td><td>El servidor que guarda tus archivos</td><td>El edificio</td></tr>
+    <tr><td><strong>DNS</strong></td><td>El sistema que conecta dominio al hosting</td><td>El cartero que sabe dónde está el edificio</td></tr>
+  </table>
+  <div class="callout callout-ok">
+    <strong>Buena noticia</strong>
+    Tu app es HTML estático (no tiene código de servidor). Eso hace que el hosting pueda ser completamente gratuito.
+  </div>
+</div>
+
+
+<!-- 2 -->
+<div class="section">
+  <span class="section-num">2</span>
+  <h1>Opciones de hosting gratuito</h1>
+
+  <h2>GitHub Pages (ya lo tenés)</h2>
+  <p>Tu app ya corre en <code>https://gcorreatedesco.github.io/agrotrace-portal/</code>. Es gratuito, tiene HTTPS, y se actualiza solo con cada <code>git push</code>.</p>
+  <p><strong>Limitación:</strong> el repo tiene que ser público para que GitHub Pages funcione gratis.</p>
+
+  <h2>Cloudflare Pages (recomendado)</h2>
+  <ul>
+    <li>Gratis para siempre en el plan gratuito</li>
+    <li>Acepta repos <strong>privados</strong> (GitHub Pages gratuito no)</li>
+    <li>Deploy automático en cada <code>git push</code></li>
+    <li>CDN global (carga más rápido desde cualquier lugar)</li>
+    <li>HTTPS automático incluido</li>
+    <li>Cada branch recibe su propia URL de preview automáticamente</li>
+  </ul>
+
+  <h3>Cómo migrar a Cloudflare Pages (15 minutos)</h3>
+  <ol class="step-list">
+    <li>Crear cuenta gratuita en cloudflare.com</li>
+    <li>Workers &amp; Pages → Create → Pages → Connect to Git</li>
+    <li>Elegir repo <code>agrotrace-portal</code></li>
+    <li>Framework preset: <strong>None</strong> — Build command: vacío — Output: vacío</li>
+    <li>Deploy → quedás en <code>agrotrace-portal.pages.dev</code></li>
+  </ol>
+
+  <table>
+    <tr><th>Plataforma</th><th>URL gratuita</th><th>Repo privado</th><th>Costo</th></tr>
+    <tr><td>GitHub Pages</td><td><code>usuario.github.io/repo</code></td><td>❌ No</td><td>$0</td></tr>
+    <tr><td><strong>Cloudflare Pages</strong></td><td><code>proyecto.pages.dev</code></td><td>✅ Sí</td><td>$0</td></tr>
+    <tr><td>Netlify</td><td><code>proyecto.netlify.app</code></td><td>✅ Sí</td><td>$0</td></tr>
+    <tr><td>Vercel</td><td><code>proyecto.vercel.app</code></td><td>✅ Sí</td><td>$0</td></tr>
+  </table>
+</div>
+
+
+<!-- 3 -->
+<div class="section">
+  <span class="section-num">3</span>
+  <h1>Opciones de dominio propio</h1>
+
+  <h2>Opción A: .com.ar — NIC Argentina</h2>
+  <ul>
+    <li>Costo: ~$2.000–3.500 ARS/año (precio en pesos)</li>
+    <li>Requisito: CUIT o CUIL argentino</li>
+    <li>Registro: <strong>nic.ar</strong> — el ente oficial argentino</li>
+    <li>Ejemplo: <code>agrotrace.com.ar</code></li>
+  </ul>
+
+  <h2>Opción B: .com — Cloudflare Registrar</h2>
+  <ul>
+    <li>Costo: ~US$10/año (precio de costo, sin markup)</li>
+    <li>Sin requisito de CUIT</li>
+    <li>Ventaja: si usás Cloudflare Pages, todo queda en un solo panel</li>
+    <li>Ejemplo: <code>agrotrace.com</code></li>
+  </ul>
+</div>
+
+
+<!-- 4 -->
+<div class="section">
+  <span class="section-num">4</span>
+  <h1>Ruta recomendada paso a paso</h1>
+
+  <div class="diagram">
+GitHub (tu código)
+    ↓ push automático
+Cloudflare Pages (hosting gratuito)
+    ↓ sirve los archivos
+DNS de Cloudflare (gratuito)
+    ↓ apunta
+agrotrace.com.ar (dominio ~$3.000 ARS/año)
+  </div>
+
+  <h3>Paso 1 — Registrar el dominio en NIC Argentina</h3>
+  <ol class="step-list">
+    <li>Crear cuenta en nic.ar con tu CUIT</li>
+    <li>Buscar <code>agrotrace.com.ar</code> y comprarlo (~$3.000 ARS/año)</li>
+    <li>En la configuración DNS del dominio, cambiar los nameservers por los de Cloudflare (Cloudflare te da los valores exactos)</li>
+  </ol>
+
+  <h3>Paso 2 — Conectar el dominio a Cloudflare</h3>
+  <ol class="step-list">
+    <li>Crear cuenta gratuita en cloudflare.com</li>
+    <li>"Add a site" → ingresar tu dominio</li>
+    <li>Cloudflare te da 2 nameservers (ej: <code>alice.ns.cloudflare.com</code>)</li>
+    <li>Cargar esos nameservers en NIC Argentina</li>
+    <li>Esperar 1–24 hs a que se propague</li>
+  </ol>
+
+  <h3>Paso 3 — Crear el hosting en Cloudflare Pages</h3>
+  <ol class="step-list">
+    <li>En Cloudflare → "Pages" → "Create a project"</li>
+    <li>Conectar tu cuenta de GitHub y elegir el repo</li>
+    <li>Build settings: output vacío, sin build command</li>
+    <li>Deploy</li>
+  </ol>
+
+  <h3>Paso 4 — Conectar dominio al hosting</h3>
+  <ol class="step-list">
+    <li>En Cloudflare Pages → "Custom domains"</li>
+    <li>Ingresar <code>www.agrotrace.com.ar</code></li>
+    <li>Cloudflare configura el DNS automáticamente</li>
+    <li>HTTPS activo en minutos</li>
+  </ol>
+
+  <table>
+    <tr><th>Concepto</th><th>Costo</th></tr>
+    <tr><td>Cloudflare Pages (hosting)</td><td>$0/mes</td></tr>
+    <tr><td>DNS Cloudflare</td><td>$0/mes</td></tr>
+    <tr><td>Dominio .com.ar (NIC Argentina)</td><td>~$3.000 ARS/año</td></tr>
+    <tr><td>SSL / HTTPS</td><td>$0 (incluido)</td></tr>
+  </table>
+
+  <div class="callout callout-warn">
+    <strong>⚠️ Antes de publicar con dominio propio</strong>
+    Cambiar la contraseña del usuario <code>admin@agrotrace.dev</code> en Supabase Auth. Esa contraseña quedó visible en el historial de git. Con dominio público, el sistema tiene más exposición.
+  </div>
+</div>
+
+
+<!-- 5 -->
+<div class="section">
+  <span class="section-num">5</span>
+  <h1>URL gratuita para probar antes de pagar un dominio</h1>
+
+  <p>Ya tenés una URL funcionando ahora mismo:</p>
+  <div class="diagram">https://gcorreatedesco.github.io/agrotrace-portal/</div>
+
+  <p>Tiene HTTPS y se actualiza sola con cada push. Podés compartirla con cualquier persona para que pruebe el sistema sin pagar nada.</p>
+
+  <p>Si querés algo más "profesional" antes del dominio pago, Cloudflare Pages te da:</p>
+  <div class="diagram">https://agrotrace-portal.pages.dev</div>
+
+  <p>Mismo costo ($0), pero URL más limpia y sin el <code>github.io</code>.</p>
+
+  <div class="callout callout-info">
+    <strong>Recomendación</strong>
+    Usá la URL de GitHub Pages para las primeras pruebas. Si el feedback es positivo, registrás el dominio .com.ar (10 minutos, ~$3.000 ARS/año). El dominio no cambia nada técnico — solo la dirección que ven los usuarios.
+  </div>
+</div>
+
+
+<!-- 6 -->
+<div class="section">
+  <span class="section-num">6</span>
+  <h1>Seguridad del código en GitHub público</h1>
+
+  <h2>Concepto clave: el código del navegador siempre es visible</h2>
+  <p>Cuando alguien abre tu app en el navegador y presiona <strong>F12 → Sources</strong>, ve exactamente el mismo código que está en GitHub. Hacer el repo privado no cambia esto.</p>
+  <p>Esto es una característica inherente de la web: todo HTML/CSS/JS que corre en el navegador es, por definición, visible para el usuario.</p>
+
+  <h2>Riesgos reales evaluados</h2>
+  <table>
+    <tr><th>Riesgo</th><th>Nivel</th><th>Estado actual</th></tr>
+    <tr><td>Alguien lee el código HTML/JS</td><td><span class="badge badge-ok">Bajo</span></td><td>Siempre visible por F12 igual</td></tr>
+    <tr><td>Supabase <code>anon key</code> expuesta</td><td><span class="badge badge-ok">Bajo</span></td><td>Es pública por diseño, RLS la protege</td></tr>
+    <tr><td><code>service_role_key</code> expuesta</td><td><span class="badge badge-error">Crítico</span></td><td>✅ No está en el código HTML</td></tr>
+    <tr><td>Password de admin en git history</td><td><span class="badge badge-warn">Alto</span></td><td>⚠️ Pendiente cambiarla en Supabase</td></tr>
+    <tr><td>XSS (inyección de código por usuario)</td><td><span class="badge badge-warn">Alto</span></td><td>✅ Corregido (función esc())</td></tr>
+    <tr><td>RLS mal configurado</td><td><span class="badge badge-error">Crítico</span></td><td>✅ Implementado 3 niveles</td></tr>
+    <tr><td>Alguien copia la idea de negocio</td><td><span class="badge badge-info">Medio</span></td><td>Repo privado ayuda</td></tr>
+  </table>
+
+  <div class="callout callout-error">
+    <strong>🔴 Acción urgente pendiente</strong>
+    Cambiar la contraseña de <code>admin@agrotrace.dev</code> en Supabase Dashboard → Authentication → Users. La contraseña anterior (<code>AgroTrace2025!</code>) quedó grabada en el historial de git y es visible para cualquiera que acceda al repo.
+  </div>
+</div>
+
+
+<!-- 7 -->
+<div class="section">
+  <span class="section-num">7</span>
+  <h1>Cómo proteger el código fuente (repo privado)</h1>
+
+  <h2>Qué protege hacer el repo privado</h2>
+  <ul>
+    <li>✅ Nadie puede navegar tu código en github.com</li>
+    <li>✅ Competidores no ven tu lógica de negocio</li>
+    <li>✅ Comentarios internos, TODOs, datos de prueba quedan ocultos</li>
+  </ul>
+  <h2>Qué NO protege</h2>
+  <ul>
+    <li>❌ El código que corre en el navegador (F12 siempre lo muestra)</li>
+    <li>❌ La anon key de Supabase (visible en el navegador)</li>
+  </ul>
+
+  <h2>Pasos para hacer el repo privado</h2>
+  <ol class="step-list">
+    <li>GitHub → tu repo → Settings → scroll hasta abajo → <strong>Change repository visibility → Make private</strong></li>
+    <li>GitHub Pages deja de funcionar (requiere plan pago para repos privados)</li>
+    <li>Migrar a Cloudflare Pages (gratis, acepta repos privados) — ver Sección 2</li>
+  </ol>
+
+  <h2>Obfuscación: hacer el código ilegible</h2>
+  <p>Además de ocultar el repo, podés transformar el código en algo técnicamente funcional pero prácticamente imposible de leer para un humano. Se llama <strong>ofuscación</strong>.</p>
+
+  <table>
+    <tr><th>Antes (legible)</th><th>Después (ofuscado)</th></tr>
+    <tr>
+      <td><code>function rLC(l){ const etapa = l.et; }</code></td>
+      <td><code>function a1b(x){var _0x3f=x['et'];}</code></td>
+    </tr>
+  </table>
+  <p>Un competidor casual abandona. Un hacker dedicado puede revertirlo, pero le lleva horas. Conviene agregar esto cuando el sistema esté en producción real — no antes.</p>
+</div>
+
+
+<!-- 8 -->
+<div class="section">
+  <span class="section-num">8</span>
+  <h1>Estrategia de branches para desarrollo sin afectar producción</h1>
+
+  <div class="diagram">
+main ──────────────────────── producción (lo que usan las ONGs)
+         │
+         └── dev ──────────── donde probás cambios
+                  │
+                  └── feature/X ── una mejora específica
+  </div>
+
+  <p>Cuando terminás de probar en <code>dev</code> y todo funciona, hacés un <strong>merge</strong> a <code>main</code> y la producción se actualiza sola.</p>
+
+  <h2>Con Cloudflare Pages: preview automático por branch</h2>
+  <table>
+    <tr><th>Branch</th><th>URL generada automáticamente</th></tr>
+    <tr><td><code>main</code></td><td><code>agrotrace-portal.pages.dev</code> (producción)</td></tr>
+    <tr><td><code>dev</code></td><td><code>dev.agrotrace-portal.pages.dev</code> (preview)</td></tr>
+  </table>
+  <p>No necesitás configurar nada extra. Cloudflare genera la URL de preview sola en cada push a cualquier branch que no sea main.</p>
+
+  <h2>Flujo de trabajo</h2>
+  <ol class="step-list">
+    <li>Crear branch <code>dev</code> en GitHub</li>
+    <li>Hacer cambios en el código (en <code>dev</code>)</li>
+    <li>Probar en la URL de preview de Cloudflare</li>
+    <li>Cuando funciona → merge a <code>main</code></li>
+    <li>Producción se actualiza sola en minutos</li>
+    <li>Las ONGs nunca vieron nada raro</li>
+  </ol>
+</div>
+
+
+<!-- 9 -->
+<div class="section">
+  <span class="section-num">9</span>
+  <h1>Supabase dev vs producción</h1>
+
+  <h2>No son lo mismo que las branches de GitHub</h2>
+  <table>
+    <tr><th>Cosa</th><th>Qué controla</th><th>Analogía</th></tr>
+    <tr><td>Branch de GitHub</td><td>El código (HTML/JS/CSS)</td><td>La receta escrita</td></tr>
+    <tr><td>Proyecto de Supabase</td><td>La base de datos (tablas, datos)</td><td>La cocina real</td></tr>
+  </table>
+
+  <p>Podés tener dos versiones del código (branches) pero si ambas apuntan a la misma base de datos, los cambios en la estructura de la base de datos afectan a las dos.</p>
+
+  <h2>Qué pasa si compartís el mismo Supabase entre branches</h2>
+  <table>
+    <tr><th>Tipo de cambio en dev</th><th>¿Afecta producción?</th></tr>
+    <tr><td>Cambio visual (CSS, layout)</td><td>✅ No afecta</td></tr>
+    <tr><td>Nueva función JS</td><td>✅ No afecta</td></tr>
+    <tr><td>Agregar una columna a una tabla</td><td>⚠️ Sí — aparece en producción</td></tr>
+    <tr><td>Cambiar una política RLS</td><td>⚠️ Sí — afecta a ONGs reales</td></tr>
+    <tr><td>Insertar datos de prueba</td><td>⚠️ Sí — mezclados con datos reales</td></tr>
+  </table>
+
+  <h2>La solución: dos proyectos Supabase</h2>
+  <div class="diagram">
+main branch  →  Supabase PRODUCCIÓN  (datos reales de ONGs)
+dev branch   →  Supabase DEV         (datos de prueba, podés borrar todo)
+  </div>
+
+  <h2>Cómo crear el Supabase dev (sin nueva cuenta, sin pagar)</h2>
+  <p>Supabase permite <strong>2 proyectos gratuitos</strong> por cuenta. No necesitás otra cuenta.</p>
+  <ol class="step-list">
+    <li>Entrar a supabase.com con tu cuenta actual</li>
+    <li>Click en <strong>"New project"</strong>, nombre: <code>agrotrace-dev</code></li>
+    <li>Abrir el SQL Editor del proyecto nuevo y ejecutar el contenido de <code>supabase_schema.sql</code></li>
+    <li>En la branch <code>dev</code> del HTML, cambiar las dos líneas de conexión:</li>
+  </ol>
+
+  <pre><code>// En dev branch
+const SUPABASE_URL  = 'https://NUEVO-ID.supabase.co';
+const SUPABASE_ANON = 'nueva-anon-key-del-proyecto-dev';
+
+// En main branch — sin tocar
+const SUPABASE_URL  = 'https://jqkyifuyaxxwugrnjfnq.supabase.co';
+const SUPABASE_ANON = 'la-key-actual';</code></pre>
+
+  <div class="callout callout-info">
+    <strong>¿Cuándo necesitás el Supabase dev?</strong>
+    Solo si vas a tocar la base de datos (nuevas tablas, columnas, cambios de RLS). Si tus próximos cambios son solo HTML/JS, podés seguir con el mismo Supabase sin riesgo.
+  </div>
+</div>
+
+
+<!-- 10 -->
+<div class="section">
+  <span class="section-num">10</span>
+  <h1>Política de inactividad de Supabase (pausa automática)</h1>
+
+  <h2>Qué pasa exactamente</h2>
+  <p>Supabase en el plan gratuito monitorea si tu proyecto recibe consultas reales a la base de datos. Si no recibe ninguna durante <strong>7 días seguidos</strong>, lo pausa automáticamente.</p>
+
+  <table>
+    <tr><th>Estado</th><th>Consecuencia</th></tr>
+    <tr><td>Proyecto activo</td><td>Todo funciona normalmente</td></tr>
+    <tr><td>Proyecto pausado</td><td>La app da error, los usuarios no pueden entrar</td></tr>
+    <tr><td>Datos cuando está pausado</td><td>✅ Se conservan, no se borran</td></tr>
+    <tr><td>Para reactivar</td><td>Dashboard → "Restore project" → 1-2 minutos</td></tr>
+  </table>
+
+  <h2>Qué cuenta como "actividad"</h2>
+  <table>
+    <tr><th>Acción</th><th>¿Evita la pausa?</th></tr>
+    <tr><td>Alguien inicia sesión en la app</td><td>✅ Sí</td></tr>
+    <tr><td>Una ONG carga o consulta datos</td><td>✅ Sí</td></tr>
+    <tr><td>Alguien abre el dashboard (aunque no cargue nada)</td><td>✅ Sí — la app hace consultas automáticas al cargar</td></tr>
+    <tr><td>Vos entrás al dashboard de Supabase</td><td>❌ No</td></tr>
+    <tr><td>El repo de GitHub existe</td><td>❌ No</td></tr>
+  </table>
+
+  <div class="callout callout-warn">
+    <strong>⚠️ Importante: también afecta al proyecto de producción</strong>
+    Si ninguna ONG ni vos entrás a la app por 7 días, el proyecto de producción también se pausa. Durante la etapa de desarrollo esto es un riesgo real.
+  </div>
+
+  <h2>Planes de Supabase</h2>
+  <table>
+    <tr><th></th><th>Free</th><th>Nano</th><th>Pro</th></tr>
+    <tr><td>Costo</td><td>$0</td><td>~$10 USD/mes</td><td>$25 USD/mes</td></tr>
+    <tr><td>Pausa por inactividad</td><td>Sí (7 días)</td><td><strong>No</strong></td><td><strong>No</strong></td></tr>
+    <tr><td>Proyectos activos</td><td>2</td><td>Por proyecto</td><td>Por proyecto</td></tr>
+    <tr><td>Base de datos</td><td>500 MB</td><td>500 MB</td><td>8 GB</td></tr>
+    <tr><td>Cuándo conviene</td><td>Desarrollo</td><td>Producción chica</td><td>Producción grande</td></tr>
+  </table>
+</div>
+
+
+<!-- 11 -->
+<div class="section">
+  <span class="section-num">11</span>
+  <h1>Keep Alive: qué es y cómo funciona</h1>
+
+  <h2>La analogía del sereno</h2>
+  <p>Supabase es como un depósito prestado gratis con la condición: "si no veo actividad en 7 días, cierro". El <strong>keep alive</strong> es un sereno automático que pasa cada 5 días, toca el timbre, y se va. El dueño ve actividad y no cierra.</p>
+
+  <h2>Qué es GitHub Actions</h2>
+  <p>GitHub tiene un sistema para ejecutar tareas automáticas en horarios programados, como un despertador que en vez de sonar, ejecuta una acción.</p>
+
+  <div class="diagram">
+Cada 5 días a las 8am:
+  → GitHub despierta automáticamente
+  → Hace una consulta mínima a Supabase
+        (equivale a "entrar a la app y ver el dashboard")
+  → Supabase registra actividad
+  → El contador de 7 días se resetea
+  → GitHub se vuelve a dormir
+  </div>
+
+  <p>Todo esto pasa <strong>sin que vos hagas nada</strong>. Se configura una vez y funciona solo para siempre, gratis.</p>
+
+  <h2>Cómo se implementa</h2>
+  <p>Es un archivo de texto de 15 líneas que se agrega al repo en esta ubicación:</p>
+  <div class="diagram">agrotrace-portal/
+  .github/
+    workflows/
+      keep-alive.yml</div>
+
+  <pre><code>name: Keep Supabase alive
+on:
+  schedule:
+    - cron: '0 8 */5 * *'   # cada 5 días a las 8am
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase
+        run: |
+          curl -X GET \
+            'https://jqkyifuyaxxwugrnjfnq.supabase.co/rest/v1/perfiles?select=id&limit=1' \
+            -H 'apikey: TU_ANON_KEY' \
+            -H 'Authorization: Bearer TU_ANON_KEY'</code></pre>
+
+  <div class="diagram">
+Sin keep alive:
+  Día 1 ── Día 7 ── PAUSA ── error ── reactivás manualmente
+
+Con keep alive:
+  Día 1 ── Día 5 ── 🤖 ping automático ── Día 10 ── 🤖 ping ── nunca pausa
+  </div>
+
+  <div class="callout callout-ok">
+    <strong>Costo del keep alive</strong>
+    $0. GitHub Actions incluye 2.000 minutos gratuitos por mes. Este job tarda menos de 10 segundos cada 5 días.
+  </div>
+</div>
+
+
+<!-- 12 -->
+<div class="section">
+  <span class="section-num">12</span>
+  <h1>Resumen de prioridades y costos</h1>
+
+  <h2>Acciones por prioridad</h2>
+  <table>
+    <tr><th>Prioridad</th><th>Acción</th><th>Cuándo</th><th>Costo</th></tr>
+    <tr>
+      <td><span class="badge badge-error">🔴 Urgente</span></td>
+      <td>Cambiar password <code>admin@agrotrace.dev</code> en Supabase Auth</td>
+      <td>Hoy</td>
+      <td>$0</td>
+    </tr>
+    <tr>
+      <td><span class="badge badge-warn">🟡 Pronto</span></td>
+      <td>Hacer repo privado + migrar a Cloudflare Pages</td>
+      <td>Antes de compartir URL públicamente</td>
+      <td>$0</td>
+    </tr>
+    <tr>
+      <td><span class="badge badge-warn">🟡 Pronto</span></td>
+      <td>Agregar keep-alive.yml al repo</td>
+      <td>Antes de dejar el sistema sin usar una semana</td>
+      <td>$0</td>
+    </tr>
+    <tr>
+      <td><span class="badge badge-info">🔵 Cuando convenga</span></td>
+      <td>Registrar dominio <code>agrotrace.com.ar</code> en NIC Argentina</td>
+      <td>Cuando el modelo de negocio esté validado</td>
+      <td>~$3.000 ARS/año</td>
+    </tr>
+    <tr>
+      <td><span class="badge badge-info">🔵 Cuando convenga</span></td>
+      <td>Crear segundo proyecto Supabase para dev</td>
+      <td>Cuando vayas a tocar el schema de la DB</td>
+      <td>$0</td>
+    </tr>
+    <tr>
+      <td><span class="badge badge-info">🔵 Futuro</span></td>
+      <td>Supabase Nano (elimina pausa automática)</td>
+      <td>Cuando tengas ONGs reales dependiendo del sistema</td>
+      <td>~$10 USD/mes</td>
+    </tr>
+  </table>
+
+  <h2>Costo total en cada etapa</h2>
+  <table>
+    <tr><th>Etapa</th><th>Hosting</th><th>Dominio</th><th>Supabase</th><th>Total/mes</th></tr>
+    <tr><td>Desarrollo actual</td><td>$0 (GitHub Pages)</td><td>—</td><td>$0 (Free)</td><td><strong>$0</strong></td></tr>
+    <tr><td>Prueba con usuarios reales</td><td>$0 (Cloudflare Pages)</td><td>~$250 ARS/mes</td><td>$0 (Free + keep-alive)</td><td><strong>~$250 ARS</strong></td></tr>
+    <tr><td>Producción estable</td><td>$0 (Cloudflare Pages)</td><td>~$250 ARS/mes</td><td>~$10 USD/mes (Nano)</td><td><strong>~$10 USD + $250 ARS</strong></td></tr>
+  </table>
+</div>
+
+
+<div class="doc-footer">
+  AgroTrace · Documento interno de referencia · Generado en sesión de trabajo con Claude Code · Julio 2026
+</div>
+
+</body>
+</html>
