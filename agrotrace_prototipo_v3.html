@@ -136,9 +136,17 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);c
 .establ-nombre{font-size:0.9rem;font-weight:500;color:var(--soil);margin-bottom:2px;}
 .establ-dir{font-size:0.75rem;color:var(--sage);line-height:1.4;}
 .establ-geo{font-size:0.68rem;color:var(--sage);background:var(--dew);border-radius:var(--radius);padding:2px 7px;display:inline-block;margin-top:4px;}
-.establ-actions{display:flex;justify-content:flex-end;}
+.establ-actions{display:flex;justify-content:flex-end;gap:6px;}
 .establ-empty{padding:40px 0;text-align:center;color:var(--sage);font-size:0.82rem;}
 .establ-count{font-size:0.72rem;color:var(--sage);text-align:right;margin-top:10px;}
+.establ-card.inactivo{opacity:0.6;background:var(--cream);border-style:dashed;}
+.establ-card.inactivo .establ-pin{background:#eee;}
+.establ-card.inactivo .establ-pin svg{fill:var(--sage);}
+.establ-badge-inactivo{display:inline-block;font-size:0.62rem;font-weight:500;background:#e0e0e0;color:#666;border-radius:10px;padding:1px 7px;margin-bottom:4px;letter-spacing:0.04em;text-transform:uppercase;}
+.btn-baja{font-size:0.75rem;padding:5px 12px;border:1px solid var(--error);background:transparent;color:var(--error);border-radius:var(--radius);cursor:pointer;font-family:'DM Sans',sans-serif;transition:background var(--trans),color var(--trans);}
+.btn-baja:hover{background:var(--error);color:#fff;}
+.establ-inactivos-header{margin-top:20px;font-size:0.75rem;font-weight:500;color:var(--sage);cursor:pointer;display:flex;align-items:center;gap:6px;padding:8px 0;border-top:1px dashed var(--mist);}
+.establ-inactivos-header svg{width:12px;height:12px;fill:var(--sage);transition:transform 0.2s;}
 .establ-form-grid{display:grid;gap:12px;}
 .establ-row2{display:grid;grid-template-columns:1fr 80px;gap:10px;}
 .establ-row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
@@ -2883,28 +2891,75 @@ async function cargarEstablecimientos(){
   const cont=document.getElementById('establ-list-container');
   if(!cont)return;
   if(!CURRENT_USER){cont.innerHTML='<div class="establ-empty">Iniciá sesión para ver tus establecimientos.</div>';return;}
-  const{data,error}=await sb.from('establecimientos').select('*').eq('usuario_id',CURRENT_USER.id).eq('activo',true).order('creado_en',{ascending:false});
+  const{data,error}=await sb.from('establecimientos').select('*').eq('usuario_id',CURRENT_USER.id).order('activo',{ascending:false}).order('creado_en',{ascending:false});
   if(error){cont.innerHTML='<div class="establ-empty">Error cargando establecimientos.</div>';return;}
-  if(!data||!data.length){
+  const activos=(data||[]).filter(e=>e.activo);
+  const inactivos=(data||[]).filter(e=>!e.activo);
+  if(!activos.length&&!inactivos.length){
     cont.innerHTML='<div class="establ-empty">Aún no registraste establecimientos.<br><br><button class="btn btn-primary" onclick="abrirFormEstabl(null)">+ Registrar primer establecimiento</button></div>';
     return;
   }
-  const cards=data.map(e=>`
-    <div class="establ-card">
+  const PIN='<svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>';
+  const renderCard=(e,esActivo)=>{
+    const safeNombre=esc((e.nombre||'').replace(/'/g,"\\'"));
+    const geo=(e.latitud!=null&&e.longitud!=null)?`<div class="establ-geo">📍 ${e.latitud}, ${e.longitud}</div>`:'';
+    const btns=esActivo
+      ?`<button class="btn btn-secondary" style="font-size:0.75rem;padding:5px 12px;" onclick="abrirFormEstabl('${e.id}')">Editar</button>
+         <button class="btn-baja" onclick="darDeBajaEstabl('${e.id}','${safeNombre}')">Dar de baja</button>`
+      :`<button class="btn btn-secondary" style="font-size:0.75rem;padding:5px 12px;" onclick="reactivarEstabl('${e.id}','${safeNombre}')">Reactivar</button>`;
+    return`<div class="establ-card${esActivo?'':' inactivo'}">
       <div class="establ-card-top">
-        <div class="establ-pin"><svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg></div>
+        <div class="establ-pin">${PIN}</div>
         <div class="establ-info">
-          <div class="establ-nombre">${e.nombre}</div>
-          <div class="establ-dir">${e.calle} ${e.nro}, ${e.ciudad}<br>${e.partido} · ${e.provincia}</div>
-          ${(e.latitud!=null&&e.longitud!=null)?`<div class="establ-geo">📍 ${e.latitud}, ${e.longitud}</div>`:''}
+          ${esActivo?'':'<span class="establ-badge-inactivo">Inactivo</span>'}
+          <div class="establ-nombre">${esc(e.nombre)}</div>
+          <div class="establ-dir">${esc(e.calle)} ${esc(e.nro)}, ${esc(e.ciudad)}<br>${esc(e.partido)} · ${esc(e.provincia)}</div>
+          ${geo}
         </div>
       </div>
-      <div class="establ-actions">
-        <button class="btn btn-secondary" style="font-size:0.75rem;padding:5px 12px;" onclick="abrirFormEstabl('${e.id}')">Editar</button>
-      </div>
-    </div>
-  `).join('');
-  cont.innerHTML=`<div class="establ-grid">${cards}</div><div class="establ-count">${data.length} establecimiento${data.length!==1?'s':''} registrado${data.length!==1?'s':''}</div>`;
+      <div class="establ-actions">${btns}</div>
+    </div>`;
+  };
+  let html=activos.length?`<div class="establ-grid">${activos.map(e=>renderCard(e,true)).join('')}</div>`:'<div class="establ-empty" style="padding:20px 0;">Sin establecimientos activos.</div>';
+  html+=`<div class="establ-count">${activos.length} activo${activos.length!==1?'s':''}${inactivos.length?` · ${inactivos.length} inactivo${inactivos.length!==1?'s':''}`:''}`;
+  if(inactivos.length){
+    html+=`</div><div class="establ-inactivos-header" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none';this.querySelector('svg').style.transform=this.nextElementSibling.style.display==='none'?'':'rotate(180deg)'">
+      <svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg> Ver establecimientos inactivos (${inactivos.length})</div>
+      <div style="display:none;"><div class="establ-grid" style="margin-top:10px;">${inactivos.map(e=>renderCard(e,false)).join('')}</div></div>`;
+  } else {
+    html+='</div>';
+  }
+  cont.innerHTML=html;
+}
+
+async function darDeBajaEstabl(id,nombre){
+  const[lotesR,semR,esqR,pmR]=await Promise.all([
+    sb.from('lotes_produccion').select('id',{count:'exact',head:true}).eq('establecimiento_id',id).not('etapa_actual','in','(completado,cerrado)'),
+    sb.from('lotes_semillas').select('id',{count:'exact',head:true}).eq('establecimiento_id',id).gt('stock_actual',0),
+    sb.from('lotes_esquejes').select('id',{count:'exact',head:true}).eq('establecimiento_id',id).gt('stock_actual',0),
+    sb.from('lotes_plantas_madre').select('id',{count:'exact',head:true}).eq('establecimiento_id',id).gt('cantidad_actual',0),
+  ]);
+  const lotesActivos=lotesR.count||0;
+  const materialActivo=(semR.count||0)+(esqR.count||0)+(pmR.count||0);
+  let msg=`¿Dar de baja "${nombre}"?\n\nEl establecimiento dejará de aparecer en los listados para nuevos registros. Los lotes y materiales existentes que lo referencian no se modifican.`;
+  if(lotesActivos||materialActivo){
+    msg+='\n\n⚠️ Aviso: tiene';
+    if(lotesActivos)msg+=` ${lotesActivos} lote${lotesActivos>1?'s':''} activo${lotesActivos>1?'s':''}`;
+    if(lotesActivos&&materialActivo)msg+=' y';
+    if(materialActivo)msg+=` ${materialActivo} lote${materialActivo>1?'s':''} de material con stock`;
+    msg+='. Podés reasignarlos luego si es necesario.';
+  }
+  if(!confirm(msg))return;
+  const{error}=await sb.from('establecimientos').update({activo:false}).eq('id',id);
+  if(error){alert('Error: '+error.message);return;}
+  cargarEstablecimientos();
+}
+
+async function reactivarEstabl(id,nombre){
+  if(!confirm(`¿Reactivar "${nombre}"?\n\nVolverá a aparecer en los listados para nuevos lotes y materiales.`))return;
+  const{error}=await sb.from('establecimientos').update({activo:true}).eq('id',id);
+  if(error){alert('Error: '+error.message);return;}
+  cargarEstablecimientos();
 }
 
 function abrirFormEstabl(id){
