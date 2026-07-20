@@ -1298,7 +1298,11 @@ async function cargarLotes(){
   if(error){console.error('Error cargando lotes:',error);return;}
   const establIds=[...new Set((data||[]).map(r=>r.establecimiento_id).filter(Boolean))];
   let establMap={};
-  if(establIds.length>0){const{data:eD}=await sb.from('establecimientos').select('id,nombre').in('id',establIds);if(eD)establMap=Object.fromEntries(eD.map(e=>[e.id,e.nombre]));}
+  if(establIds.length>0){
+    const uid=ongUid||CURRENT_USER?.id;
+    const{data:eD}=await sb.from('establecimientos').select('id,nombre').eq('usuario_id',uid).in('id',establIds);
+    if(eD)establMap=Object.fromEntries(eD.map(e=>[e.id,e.nombre]));
+  }
   const todos=(data||[]).map(r=>mapLote(r,establMap));
   LD=todos.filter(l=>l.etapaRaw!=='completado'&&l.etapaRaw!=='cerrado');
   LD_TERM=todos.filter(l=>l.etapaRaw==='completado');
