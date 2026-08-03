@@ -1330,6 +1330,7 @@ function renderOrgs(){
 function supervisarDesdeOrgs(ongId,ongNombre){
   sessionStorage.setItem('agrotrace_supervisando_ong_id',ongId);
   sessionStorage.setItem('agrotrace_supervisando_ong_nombre',ongNombre);
+  sessionStorage.removeItem('agrotrace_supervisando_ong_usuario_id');
   const bar=document.getElementById('rt-bar');
   if(bar){bar.style.display='flex';document.getElementById('rt-bar-ong').textContent=ongNombre;}
   sv('lotes');
