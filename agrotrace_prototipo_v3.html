@@ -1134,21 +1134,20 @@ async function ensureActiveOngUserContext(){
   return resolveScopedUserId();
 }
 
-async function serverWrite({ table, operation, record, filters = {}, userId = null }){
-  const { data: { session } } = await sb.auth.getSession();
-  const token = session?.access_token || SUPABASE_ANON;
-  const res = await fetch(`${SUPABASE_URL}/functions/v1/escribir-datos`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-      'apikey': SUPABASE_ANON,
-    },
-    body: JSON.stringify({ table, operation, record, filters, userId }),
-  });
-  const responseData = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(responseData.error || 'Error de escritura');
-  return responseData;
+async function serverWrite({ table, operation, record, filters = {} }){
+  if(operation === 'insert'){
+    const { data, error } = await sb.from(table).insert(record).select().single();
+    if(error) throw new Error(error.message);
+    return { data };
+  } else {
+    let q = sb.from(table).update(record);
+    for(const [key, val] of Object.entries(filters)){
+      q = q.eq(key, val);
+    }
+    const { data, error } = await q.select();
+    if(error) throw new Error(error.message);
+    return { data: data?.[0] ?? null };
+  }
 }
 
 async function logActividad(tipo, descripcion, loteId=null, meta=null){
