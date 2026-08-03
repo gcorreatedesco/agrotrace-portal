@@ -1110,14 +1110,16 @@ function getActiveUsuarioId(){
   return sessionStorage.getItem('agrotrace_supervisando_ong_usuario_id') || null;
 }
 
-async function ensureActiveOngUserContext(){
+// Helper centralizado para cualquier módulo que deba respetar el contexto de la ONG activa.
+// Si hay una ONG supervisada, usa el usuario admin de esa ONG; si no, usa el usuario actual.
+async function resolveScopedUserId({ forceRefresh = false } = {}){
   const existing = sessionStorage.getItem('agrotrace_supervisando_ong_usuario_id');
-  if (existing) return existing;
+  if (!forceRefresh && existing) return existing;
 
   const rolActivo = sessionStorage.getItem('agrotrace_role');
   const ongId = sessionStorage.getItem('agrotrace_supervisando_ong_id');
-  if (!ongId || !CURRENT_USER?.id) {
-    return rolActivo === 'ong' ? CURRENT_USER?.id || null : null;
+  if (rolActivo === 'ong' || !ongId) {
+    return CURRENT_USER?.id || null;
   }
 
   const { data } = await sb.from('perfiles').select('id').eq('ong_id', ongId).eq('rol', 'ong').maybeSingle();
@@ -1125,7 +1127,11 @@ async function ensureActiveOngUserContext(){
     sessionStorage.setItem('agrotrace_supervisando_ong_usuario_id', data.id);
     return data.id;
   }
-  return null;
+  return CURRENT_USER?.id || null;
+}
+
+async function ensureActiveOngUserContext(){
+  return resolveScopedUserId();
 }
 
 async function logActividad(tipo, descripcion, loteId=null, meta=null){
