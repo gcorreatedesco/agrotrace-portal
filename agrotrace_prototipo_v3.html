@@ -3108,24 +3108,13 @@ async function guardarEstabl(){
   if(!uid){return showErr('No se pudo identificar el usuario de la ONG activa.');}
 
   try {
-    const { data: { session } } = await sb.auth.getSession();
-    const token = session?.access_token || SUPABASE_ANON;
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/crear-establecimiento`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-        'apikey': SUPABASE_ANON,
-      },
-      body: JSON.stringify({
-        accion: ESTABL_EDITANDO ? 'update' : 'create',
-        id: ESTABL_EDITANDO || null,
-        usuario_id: uid,
-        payload,
-      }),
-    });
-    const responseData = await res.json();
-    if (!res.ok) throw new Error(responseData.error || 'Error guardando establecimiento');
+    let dbError;
+    if(ESTABL_EDITANDO){
+      ({error:dbError}=await sb.from('establecimientos').update(payload).eq('id',ESTABL_EDITANDO));
+    } else {
+      ({error:dbError}=await sb.from('establecimientos').insert({...payload,usuario_id:uid}));
+    }
+    if(dbError)throw new Error(dbError.message);
 
     formDirty=false;
     alert(ESTABL_EDITANDO?'Establecimiento actualizado.':'Establecimiento registrado exitosamente.');
