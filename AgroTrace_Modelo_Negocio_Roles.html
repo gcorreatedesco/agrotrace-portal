@@ -109,6 +109,8 @@
   <!-- INTRO -->
   <div class="intro">
     AgroTrace es una plataforma SaaS de trazabilidad cannábica bajo el marco regulatorio <strong>REPROCANN (Argentina)</strong>. Se ofrece como servicio a ONG productoras, pudiendo combinarse con el servicio de <strong>Responsable Técnico (RT)</strong> o contratarse de forma independiente por ONG que ya cuentan con su propio RT.
+    <br><br>
+    <strong>Definición de referencia para permisos y arquitectura:</strong> un <em>cliente</em> es la instancia o contexto desde donde se está operando la aplicación (por ejemplo, el navegador del usuario, una sesión activa o un portal específico), mientras que un <em>perfil</em> es el rol que define qué permisos tiene ese cliente dentro del sistema. En este proyecto, cada perfil debe estar alineado con las políticas de la base de datos y con el contexto de la sesión para que la lectura y la escritura sean consistentes en todos los portales.
   </div>
 
   <!-- MODELO DE CLIENTES -->

@@ -1098,8 +1098,8 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 const SUPABASE_URL = 'https://jqkyifuyaxxwugrnjfnq.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impxa3lpZnV5YXh4d3Vncm5qZm5xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyMjE1NjgsImV4cCI6MjA5Njc5NzU2OH0.0r2A5wC4hZ6sg0TAC9_pEdvit5PMHj8XB1wsXWdDVww';
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impxa3lpZnV5YXh4d3Vncm5qZm5xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyMjE1NjgsImV4cCI6MjA5Njc5NzU2OH0.0r2A5wC4hZ6sg0TAC9_pEdvit5PMHj8XB1wsXWdDVww';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 </script>
 
 <script>
@@ -1132,6 +1132,23 @@ async function resolveScopedUserId({ forceRefresh = false } = {}){
 
 async function ensureActiveOngUserContext(){
   return resolveScopedUserId();
+}
+
+async function serverWrite({ table, operation, record, filters = {}, userId = null }){
+  const { data: { session } } = await sb.auth.getSession();
+  const token = session?.access_token || SUPABASE_ANON;
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/escribir-datos`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+      'apikey': SUPABASE_ANON,
+    },
+    body: JSON.stringify({ table, operation, record, filters, userId }),
+  });
+  const responseData = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(responseData.error || 'Error de escritura');
+  return responseData;
 }
 
 async function logActividad(tipo, descripcion, loteId=null, meta=null){
@@ -2988,6 +3005,32 @@ async function cargarEstablecimientos(){
   cont.innerHTML=html;
 }
 
+async function cambiarEstadoEstabl(id, activo){
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    const token = session?.access_token || SUPABASE_ANON;
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/crear-establecimiento`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        'apikey': SUPABASE_ANON,
+      },
+      body: JSON.stringify({
+        accion: 'update',
+        id,
+        payload: { activo },
+      }),
+    });
+    const responseData = await res.json();
+    if (!res.ok) throw new Error(responseData.error || 'Error actualizando establecimiento');
+    return true;
+  } catch (e) {
+    alert(`Error: ${e.message}`);
+    return false;
+  }
+}
+
 async function darDeBajaEstabl(id,nombre){
   const[lotesR,semR,esqR,pmR]=await Promise.all([
     sb.from('lotes_produccion').select('id',{count:'exact',head:true}).eq('establecimiento_id',id).not('etapa_actual','in','(completado,cerrado)'),
@@ -3006,16 +3049,14 @@ async function darDeBajaEstabl(id,nombre){
     msg+='. Podés reasignarlos luego si es necesario.';
   }
   if(!confirm(msg))return;
-  const{error}=await sb.from('establecimientos').update({activo:false}).eq('id',id);
-  if(error){alert('Error: '+error.message);return;}
-  cargarEstablecimientos();
+  const ok=await cambiarEstadoEstabl(id,false);
+  if(ok) cargarEstablecimientos();
 }
 
 async function reactivarEstabl(id,nombre){
   if(!confirm(`¿Reactivar "${nombre}"?\n\nVolverá a aparecer en los listados para nuevos lotes y materiales.`))return;
-  const{error}=await sb.from('establecimientos').update({activo:true}).eq('id',id);
-  if(error){alert('Error: '+error.message);return;}
-  cargarEstablecimientos();
+  const ok=await cambiarEstadoEstabl(id,true);
+  if(ok) cargarEstablecimientos();
 }
 
 function abrirFormEstabl(id){
@@ -3065,17 +3106,34 @@ async function guardarEstabl(){
   const payload={nombre,calle,nro,ciudad,partido,provincia,latitud,longitud};
   const uid=await ensureActiveOngUserContext();
   if(!uid){return showErr('No se pudo identificar el usuario de la ONG activa.');}
-  let dbErr;
-  if(ESTABL_EDITANDO){
-    ({error:dbErr}=await sb.from('establecimientos').update(payload).eq('id',ESTABL_EDITANDO));
-  } else {
-    ({error:dbErr}=await sb.from('establecimientos').insert({...payload,usuario_id:uid}));
+
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    const token = session?.access_token || SUPABASE_ANON;
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/crear-establecimiento`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        'apikey': SUPABASE_ANON,
+      },
+      body: JSON.stringify({
+        accion: ESTABL_EDITANDO ? 'update' : 'create',
+        id: ESTABL_EDITANDO || null,
+        usuario_id: uid,
+        payload,
+      }),
+    });
+    const responseData = await res.json();
+    if (!res.ok) throw new Error(responseData.error || 'Error guardando establecimiento');
+
+    formDirty=false;
+    alert(ESTABL_EDITANDO?'Establecimiento actualizado.':'Establecimiento registrado exitosamente.');
+    ESTABL_EDITANDO=null;
+    sv('establecimientos');
+  } catch (e) {
+    showErr('Error guardando: ' + e.message);
   }
-  if(dbErr)return showErr('Error guardando: '+dbErr.message);
-  formDirty=false;
-  alert(ESTABL_EDITANDO?'Establecimiento actualizado.':'Establecimiento registrado exitosamente.');
-  ESTABL_EDITANDO=null;
-  sv('establecimientos');
 }
 
 /* ── BÚSQUEDA ── */
@@ -3255,33 +3313,52 @@ async function cL(){
   if(!nombre||!fecha||!LA){alert('Completá todos los campos obligatorios.');return;}
   const valN=validarNombreLote(nombre);
   if(!valN.ok&&valN.bloqueo){alert('Error en el nombre: '+valN.msg);return;}
-  const uid=getActiveUsuarioId();
+  const uid=await ensureActiveOngUserContext();
   if(!uid){alert('No se pudo identificar el usuario de la ONG activa.');return;}
-  const{data:lote,error:loteErr}=await sb.from('lotes_produccion').insert({
-    usuario_id:uid,nombre_base:nombre,nombre_completo:nombre,
-    fecha_inicio:fecha,etapa_actual:etapa,
-    establecimiento_id:document.getElementById('p1-establ').value||null,
-    origen_semilla_id:OA==='semillas'?LA.v:null,
-    origen_esqueje_id:OA==='esquejes'?LA.v:null,
-    origen_pm_id:OA==='pm'?LA.v:null,
-  }).select().single();
-  if(loteErr){alert('Error al crear el lote: '+loteErr.message);return;}
+  let lote;
+  try {
+    const loteResp=await serverWrite({
+      table:'lotes_produccion',
+      operation:'insert',
+      userId:uid,
+      record:{
+        usuario_id:uid,nombre_base:nombre,nombre_completo:nombre,
+        fecha_inicio:fecha,etapa_actual:etapa,
+        establecimiento_id:document.getElementById('p1-establ').value||null,
+        origen_semilla_id:OA==='semillas'?LA.v:null,
+        origen_esqueje_id:OA==='esquejes'?LA.v:null,
+        origen_pm_id:OA==='pm'?LA.v:null,
+      },
+    });
+    lote=loteResp.data;
+  } catch (e) {
+    alert('Error al crear el lote: '+e.message);return;
+  }
   if(etapa==='nursery'){
     const metodo=document.getElementById('mcb').classList.contains('sel')?'bandejas':'directo';
     const nB=parseInt(document.getElementById('nb').value)||null;
     const nA=parseInt(document.getElementById('na').value)||null;
     const cantI=metodo==='bandejas'?(nB||0)*(nA||0):parseInt(document.getElementById('cnd').value)||0;
-    await sb.from('etapa_nursery').insert({
-      lote_id:lote.id,origen_material:OA==='pm'?'plantas_madre':OA,
-      fecha_inicio:document.getElementById('p3f').value||fecha,
-      metodo_ingreso:metodo,bandejas:metodo==='bandejas'?nB:null,alveolos:metodo==='bandejas'?nA:null,
-      cantidad_ingreso:cantI,material_utilizado:OA==='semillas'?gC():null,
-    });
+    try {
+      await serverWrite({
+        table:'etapa_nursery',
+        operation:'insert',
+        userId:uid,
+        record:{
+          lote_id:lote.id,origen_material:OA==='pm'?'plantas_madre':OA,
+          fecha_inicio:document.getElementById('p3f').value||fecha,
+          metodo_ingreso:metodo,bandejas:metodo==='bandejas'?nB:null,alveolos:metodo==='bandejas'?nA:null,
+          cantidad_ingreso:cantI,material_utilizado:OA==='semillas'?gC():null,
+        },
+      });
+    } catch (e) {
+      alert('Error al crear la etapa Nursery: '+e.message);return;
+    }
   }
   if(!UI){
     const c=gC();
-    if(OA==='semillas')await sb.from('lotes_semillas').update({stock_actual:Math.max(0,LA.stock-c)}).eq('id',LA.v);
-    else if(OA==='esquejes')await sb.from('lotes_esquejes').update({stock_actual:Math.max(0,LA.stock-c)}).eq('id',LA.v);
+    if(OA==='semillas')await serverWrite({table:'lotes_semillas',operation:'update',userId:uid,record:{stock_actual:Math.max(0,LA.stock-c)},filters:{id:LA.v}});
+    else if(OA==='esquejes')await serverWrite({table:'lotes_esquejes',operation:'update',userId:uid,record:{stock_actual:Math.max(0,LA.stock-c)},filters:{id:LA.v}});
   }
   NUEVO_LOTE_ID=lote.id;
   formDirty=false;
@@ -3370,17 +3447,16 @@ async function eliminarTotalidadLote(){
   const lote=[...LM.semillas,...LM.esquejes,...LM.pm].find(x=>x.v===loteId);
   const stock=lote?.stock??0;
   if(stock<=0){alert('El stock de este lote ya es 0.');return;}
-  const uid=getActiveUsuarioId();
+  const uid=await ensureActiveOngUserContext();
   if(!uid){alert('No se pudo identificar el usuario de la ONG activa.');return;}
-  const{error:bajaErr}=await sb.from('bajas_material').insert({
-    usuario_id:uid,lote_id:loteId,
-    lote_tipo:tipo==='pm'?'plantas_madre':tipo,
-    fecha_baja:fecha,cantidad_baja:stock,motivo_baja:'Eliminación total del lote'
-  });
-  if(bajaErr){alert('Error al registrar la baja: '+bajaErr.message);return;}
-  if(tipo==='semillas')await sb.from('lotes_semillas').update({stock_actual:0}).eq('id',loteId);
-  else if(tipo==='esquejes')await sb.from('lotes_esquejes').update({stock_actual:0}).eq('id',loteId);
-  else if(tipo==='pm')await sb.from('lotes_plantas_madre').update({cantidad_actual:0}).eq('id',loteId);
+  try {
+    await serverWrite({table:'bajas_material',operation:'insert',userId:uid,record:{usuario_id:uid,lote_id:loteId,lote_tipo:tipo==='pm'?'plantas_madre':tipo,fecha_baja:fecha,cantidad_baja:stock,motivo_baja:'Eliminación total del lote'}});
+  } catch (e) {
+    alert('Error al registrar la baja: '+e.message);return;
+  }
+  if(tipo==='semillas')await serverWrite({table:'lotes_semillas',operation:'update',userId:uid,record:{stock_actual:0},filters:{id:loteId}});
+  else if(tipo==='esquejes')await serverWrite({table:'lotes_esquejes',operation:'update',userId:uid,record:{stock_actual:0},filters:{id:loteId}});
+  else if(tipo==='pm')await serverWrite({table:'lotes_plantas_madre',operation:'update',userId:uid,record:{cantidad_actual:0},filters:{id:loteId}});
   alert(`El lote "${nombre}" fue eliminado del stock. Stock registrado en 0.`);
   sel.value='';document.getElementById('bn').style.display='none';document.getElementById('bs').style.display='none';
   await cargarMaterial();rebuildSearchIndex();calcularAlertas();
@@ -3397,17 +3473,16 @@ async function guardarBaja(){
   if(!cant||cant<=0){alert('Ingresá una cantidad válida.');return;}
   if(!fecha){alert('Ingresá la fecha de la baja.');return;}
   if(!motivo){alert('Ingresá el motivo de la baja.');return;}
-  const uid=getActiveUsuarioId();
+  const uid=await ensureActiveOngUserContext();
   if(!uid){alert('No se pudo identificar el usuario de la ONG activa.');return;}
-  const{error:bajaErr}=await sb.from('bajas_material').insert({
-    usuario_id:uid,lote_id:loteId,
-    lote_tipo:tipo==='pm'?'plantas_madre':tipo,
-    fecha_baja:fecha,cantidad_baja:cant,motivo_baja:motivo
-  });
-  if(bajaErr){alert('Error al registrar la baja: '+bajaErr.message);return;}
-  if(tipo==='semillas'){const l=LM.semillas.find(x=>x.v===loteId);if(l)await sb.from('lotes_semillas').update({stock_actual:Math.max(0,l.stock-cant)}).eq('id',loteId);}
-  else if(tipo==='esquejes'){const l=LM.esquejes.find(x=>x.v===loteId);if(l)await sb.from('lotes_esquejes').update({stock_actual:Math.max(0,l.stock-cant)}).eq('id',loteId);}
-  else if(tipo==='pm'){const l=LM.pm.find(x=>x.v===loteId);if(l)await sb.from('lotes_plantas_madre').update({cantidad_actual:Math.max(0,l.stock-cant)}).eq('id',loteId);}
+  try {
+    await serverWrite({table:'bajas_material',operation:'insert',userId:uid,record:{usuario_id:uid,lote_id:loteId,lote_tipo:tipo==='pm'?'plantas_madre':tipo,fecha_baja:fecha,cantidad_baja:cant,motivo_baja:motivo}});
+  } catch (e) {
+    alert('Error al registrar la baja: '+e.message);return;
+  }
+  if(tipo==='semillas'){const l=LM.semillas.find(x=>x.v===loteId);if(l)await serverWrite({table:'lotes_semillas',operation:'update',userId:uid,record:{stock_actual:Math.max(0,l.stock-cant)},filters:{id:loteId}});}
+  else if(tipo==='esquejes'){const l=LM.esquejes.find(x=>x.v===loteId);if(l)await serverWrite({table:'lotes_esquejes',operation:'update',userId:uid,record:{stock_actual:Math.max(0,l.stock-cant)},filters:{id:loteId}});}
+  else if(tipo==='pm'){const l=LM.pm.find(x=>x.v===loteId);if(l)await serverWrite({table:'lotes_plantas_madre',operation:'update',userId:uid,record:{cantidad_actual:Math.max(0,l.stock-cant)},filters:{id:loteId}});}
   alert('¡Baja registrada exitosamente!');
   if(cantEl)cantEl.value='';document.getElementById('b-fecha').value='';document.getElementById('b-motivo').value='';sel.value='';
   document.getElementById('bn').style.display='none';document.getElementById('bs').style.display='none';
@@ -3595,26 +3670,31 @@ async function guardarMaterial(){
   if(!establIdNM){alert('Seleccioná el establecimiento donde se almacena este material.');return;}
   const uid=await ensureActiveOngUserContext();
   if(!uid){alert('No se pudo identificar el usuario de la ONG activa.');return;}
-  let error;
-  if(TIPO_NM==='semillas'){({error}=await sb.from('lotes_semillas').insert({usuario_id:uid,nombre_lote:nombre,fecha_adquisicion:fecha,origen_tipo:origen,proveedor:prov,variedad,stock_inicial:stockIni,stock_actual:stockIni,unidad,notas,establecimiento_id:establIdNM||null}));}
-  else if(TIPO_NM==='esquejes'){
-    const loteOrigenIdEsq=document.getElementById('nm-lote-origen')?.value||null;
-    const origenTipoEsq=origen==='externo'?'externo':origen==='lote_produccion_propio'?'lote_produccion_propio':'plantas_madre_propio';
-    ({error}=await sb.from('lotes_esquejes').insert({usuario_id:uid,nombre_lote:nombre,fecha_adquisicion:fecha,origen_tipo:origenTipoEsq,proveedor:origen==='externo'?prov:null,lote_origen_id:loteOrigenIdEsq||null,variedad,stock_inicial:Math.round(stockIni),stock_actual:Math.round(stockIni),notas,establecimiento_id:establIdNM||null}));
+  let nuevoMaterialId = null;
+  try {
+    if(TIPO_NM==='semillas'){
+      const resp=await serverWrite({table:'lotes_semillas',operation:'insert',userId:uid,record:{usuario_id:uid,nombre_lote:nombre,fecha_adquisicion:fecha,origen_tipo:origen,proveedor:prov,variedad,stock_inicial:stockIni,stock_actual:stockIni,unidad,notas,establecimiento_id:establIdNM||null}});
+      nuevoMaterialId=resp?.data?.id || null;
+    }
+    else if(TIPO_NM==='esquejes'){
+      const loteOrigenIdEsq=document.getElementById('nm-lote-origen')?.value||null;
+      const origenTipoEsq=origen==='externo'?'externo':origen==='lote_produccion_propio'?'lote_produccion_propio':'plantas_madre_propio';
+      const resp=await serverWrite({table:'lotes_esquejes',operation:'insert',userId:uid,record:{usuario_id:uid,nombre_lote:nombre,fecha_adquisicion:fecha,origen_tipo:origenTipoEsq,proveedor:origen==='externo'?prov:null,lote_origen_id:loteOrigenIdEsq||null,variedad,stock_inicial:Math.round(stockIni),stock_actual:Math.round(stockIni),notas,establecimiento_id:establIdNM||null}});
+      nuevoMaterialId=resp?.data?.id || null;
+    }
+    else if(TIPO_NM==='pm'){
+      const loteOrigenId=document.getElementById('nm-lote-origen')?.value||null;
+      const resp=await serverWrite({table:'lotes_plantas_madre',operation:'insert',userId:uid,record:{usuario_id:uid,nombre_lote:nombre,fecha_adquisicion:fecha,origen_tipo:origen,proveedor:origen==='externo'?prov:null,lote_origen_id:loteOrigenId||null,variedad,cantidad_inicial:Math.round(stockIni),cantidad_actual:Math.round(stockIni),notas,establecimiento_id:establIdNM||null}});
+      nuevoMaterialId=resp?.data?.id || null;
+    }
+  } catch (e) {
+    alert('Error al guardar: '+e.message);return;
   }
-  else if(TIPO_NM==='pm'){
-    const loteOrigenId=document.getElementById('nm-lote-origen')?.value||null;
-    ({error}=await sb.from('lotes_plantas_madre').insert({usuario_id:uid,nombre_lote:nombre,fecha_adquisicion:fecha,origen_tipo:origen,proveedor:origen==='externo'?prov:null,lote_origen_id:loteOrigenId||null,variedad,cantidad_inicial:Math.round(stockIni),cantidad_actual:Math.round(stockIni),notas,establecimiento_id:establIdNM||null}));
-  }
-  if(error){alert('Error al guardar: '+error.message);return;}
 
   // ── Subir documentos si hay archivos seleccionados ──
   const tipoTblDoc={semillas:'semillas',esquejes:'esquejes',pm:'pm'}[TIPO_NM];
-  // Recuperar el ID del lote recién creado
-  const tblMap={semillas:'lotes_semillas',esquejes:'lotes_esquejes',pm:'lotes_plantas_madre'};
-  const{data:nuevoLote}=await sb.from(tblMap[TIPO_NM]).select('id').eq('usuario_id',uid).order('creado_en',{ascending:false}).limit(1).single();
-  if(nuevoLote){
-    const loteId=nuevoLote.id;
+  const loteId=nuevoMaterialId;
+  if(loteId){
     const ts=Date.now();
     // Rótulos (múltiples)
     for(let i=0;i<_mbArchivosRotulo.length;i++){
