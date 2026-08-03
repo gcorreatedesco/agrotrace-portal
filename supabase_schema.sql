@@ -51,6 +51,53 @@ RETURNS TEXT AS $$
 $$ LANGUAGE sql SECURITY DEFINER STABLE;
 
 
+-- ── FUNCIONES HELPER PARA RLS DE 3 NIVELES (superadmin / RT / ONG) ──
+-- Todas son SECURITY DEFINER para evitar recursión interna de RLS.
+
+CREATE OR REPLACE FUNCTION public.es_superadmin()
+RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  RETURN EXISTS (SELECT 1 FROM perfiles WHERE id = auth.uid() AND rol = 'superadmin');
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.es_rt_de_usuario(uid UUID)
+RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM perfiles p
+    JOIN rt_organizaciones rto ON rto.ong_id = p.ong_id
+    WHERE p.id = uid AND rto.rt_id = auth.uid()
+  );
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.puede_acceder_usuario(uid UUID)
+RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  RETURN auth.uid() = uid OR es_superadmin() OR es_rt_de_usuario(uid);
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.puede_acceder_lote(lote_id UUID)
+RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE v_uid UUID;
+BEGIN
+  SELECT usuario_id INTO v_uid FROM lotes_produccion WHERE id = lote_id;
+  RETURN puede_acceder_usuario(v_uid);
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.puede_acceder_flores(flores_id UUID)
+RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE v_lote UUID;
+BEGIN
+  SELECT lote_id INTO v_lote FROM flores_cosechadas WHERE id = flores_id;
+  RETURN puede_acceder_lote(v_lote);
+END;
+$$;
+
+
 -- ── POLÍTICAS RLS (se definen DESPUÉS de crear todas las tablas) ──
 
 -- perfiles
