@@ -22,6 +22,11 @@
 
 ## Pendientes incorporados en esta sesión
 
+### Resumen de la sesión (2026-08-03)
+- Se ajustó el wizard de alta de lote para eliminar la fecha fin de Nursery en el paso inicial.
+- Se dejó el flujo más coherente con la lógica de negocio: la fecha fin se usa al cerrar realmente la etapa Nursery.
+- Se priorizaron próximos trabajos para pacientes, reportes, estrategia de desarrollo con main branch, demo interactiva y adaptación mobile.
+
 1. **Listado de pacientes por ONG**
    - Analizar la posibilidad de incorporar un módulo donde cada ONG pueda cargar y administrar su listado de pacientes.
    - Definir si será parte del modelo de datos, el flujo de alta/edición y la visibilidad por ONG.
