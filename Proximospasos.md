@@ -20,6 +20,30 @@
 | Adaptación mobile | ❌ Pendiente |
 | Auth real en alta ONG por RT | ❌ Pendiente |
 
+## Pendientes incorporados en esta sesión
+
+1. **Listado de pacientes por ONG**
+   - Analizar la posibilidad de incorporar un módulo donde cada ONG pueda cargar y administrar su listado de pacientes.
+   - Definir si será parte del modelo de datos, el flujo de alta/edición y la visibilidad por ONG.
+
+2. **Sistema de reportes**
+   - Diseñar e implementar reportes con distintos objetivos:
+     - informes REPROCANN,
+     - control de superficie de producción y/o cantidad de plantas para el RT,
+     - exportación de base para backup de ONG y RT (exportable e importable).
+
+3. **Estrategia de desarrollo seguro con main branch**
+   - Definir un flujo de trabajo para modificar SQL e interfaz sin romper la base de datos ni generar incompatibilidades con cambios posteriores.
+   - Incorporar buenas prácticas: migraciones SQL versionadas, backup previo, validación previa al deploy y rollback simple.
+
+4. **Demo interactiva para evaluación**
+   - Crear una demo usable para que RTs y ONGs puedan probar el sistema y evaluar flujo, permisos y experiencia.
+   - Incluir usuarios de prueba con roles reales y escenarios guiados.
+
+5. **Adaptación mobile y prueba en laptop**
+   - Verificar el layout desde celular.
+   - Definir cómo probar el sistema desde una laptop en formato mobile (por ejemplo, responsive mode en navegador).
+
 ---
 
 ## Paso 1 — Crear tabla variedades_rnc en Supabase

@@ -1,3 +1,26 @@
+# AgroTrace — Resumen de sesión (2026-08-03)
+
+## Lo que se hizo en esta sesión
+
+### 1. Ajuste de UX en el wizard de creación de lote
+- Se removió el campo de "Fecha fin" del paso inicial de alta del lote en Nursery.
+- El flujo quedó más claro: la fecha fin se reserva para el cierre real de la etapa Nursery, cuando el lote avanza a Vegetativa.
+- Esto reduce la confusión del usuario y alinea la interfaz con la lógica de negocio.
+
+### 2. Priorización de próximos desarrollos
+- Se registraron como pendientes las siguientes mejoras:
+  - incorporación del listado de pacientes por ONG,
+  - sistema de reportes para REPROCANN, control de producción y backup exportable/importable,
+  - estrategia de desarrollo segura con main branch para SQL e interfaz,
+  - demo interactiva para evaluación por RTs y ONGs,
+  - adaptación mobile y pruebas responsive desde laptop.
+
+### 3. Estado general
+- El flujo de lotes quedó más claro en la creación inicial.
+- Quedan abiertos los trabajos de reporting, demo y estrategia de mantenimiento para evitar incompatibilidades futuras.
+
+---
+
 # AgroTrace — Resumen de sesión (2026-07-13)
 
 ## Lo que se hizo en esta sesión
