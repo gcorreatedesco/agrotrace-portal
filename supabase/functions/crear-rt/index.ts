@@ -86,10 +86,29 @@ Deno.serve(async (req) => {
       throw new Error('Error al crear usuario: ' + errorMsg)
     }
 
+    const newUserId: string = createUserData.id
+
+    // Verificar que el trigger handle_new_user creó el perfil
+    const { data: perfCreado } = await supabaseAdmin
+      .from('perfiles').select('id').eq('id', newUserId).maybeSingle()
+
+    if (!perfCreado) {
+      // El trigger falló — el usuario existe en Auth pero sin perfil. Rollback.
+      console.error('Trigger handle_new_user no creó el perfil para', newUserId)
+      await fetch(`${Deno.env.get('SUPABASE_URL')}/auth/v1/admin/users/${newUserId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+          'apikey': Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+        },
+      })
+      throw new Error('Error interno: el perfil del RT no fue creado. El usuario fue eliminado. Intentá de nuevo.')
+    }
+
     return new Response(
       JSON.stringify({
         ok: true,
-        user_id: createUserData.id,
+        user_id: newUserId,
         email: createUserData.email,
         mensaje: `RT ${nombre} creado exitosamente. Puede loguearse con ${email}`
       }),

@@ -1323,6 +1323,7 @@ let PAC_ONG_ID=null;
 let _pac_ac_data=[];
 let _guardandoEntrega=false;
 let _guardandoAvance=false;
+let _g={}; // guards de doble-submit por función
 
 async function cargarPacientes(){
   const el=document.getElementById('pac-list');
@@ -1458,21 +1459,24 @@ async function abrirNuevoPac(){
 function cerrarNuevoPac(){document.getElementById('modal-nuevo-pac').style.display='none';}
 
 async function guardarNuevoPac(){
-  const nombre  =document.getElementById('np-nombre').value.trim();
-  const apellido=document.getElementById('np-apellido').value.trim();
-  const repro   =document.getElementById('np-repro').value.trim();
-  const tel     =document.getElementById('np-tel').value.trim()||null;
-  const numero  =parseInt(document.getElementById('np-num-val').value);
-  const errEl   =document.getElementById('np-error');
-  if(!nombre||!apellido||!repro){errEl.textContent='Completá los campos obligatorios.';errEl.style.display='block';return;}
-  errEl.style.display='none';
-  const uid=await ensureActiveOngUserContext();
-  if(!uid)return;
-  const{error}=await sb.from('pacientes').insert({usuario_id:uid,numero,nombre,apellido,nro_reprocann:repro,tel_contacto:tel});
-  if(error){errEl.textContent='Error al guardar: '+error.message;errEl.style.display='block';return;}
-  cerrarNuevoPac();
-  await cargarPacientes();
-  document.querySelectorAll('.pac-tab')[0]?.click();
+  if(_g.np)return; _g.np=true;
+  try{
+    const nombre  =document.getElementById('np-nombre').value.trim();
+    const apellido=document.getElementById('np-apellido').value.trim();
+    const repro   =document.getElementById('np-repro').value.trim();
+    const tel     =document.getElementById('np-tel').value.trim()||null;
+    const numero  =parseInt(document.getElementById('np-num-val').value);
+    const errEl   =document.getElementById('np-error');
+    if(!nombre||!apellido||!repro){errEl.textContent='Completá los campos obligatorios.';errEl.style.display='block';return;}
+    errEl.style.display='none';
+    const uid=await ensureActiveOngUserContext();
+    if(!uid)return;
+    const{error}=await sb.from('pacientes').insert({usuario_id:uid,numero,nombre,apellido,nro_reprocann:repro,tel_contacto:tel});
+    if(error){errEl.textContent='Error al guardar: '+error.message;errEl.style.display='block';return;}
+    cerrarNuevoPac();
+    await cargarPacientes();
+    document.querySelectorAll('.pac-tab')[0]?.click();
+  }finally{_g.np=false;}
 }
 
 function abrirEditarPac(id){
@@ -1490,17 +1494,20 @@ function abrirEditarPac(id){
 function cerrarEditarPac(){document.getElementById('modal-editar-pac').style.display='none';}
 
 async function guardarEditarPac(){
-  const nombre  =document.getElementById('ep-nombre').value.trim();
-  const apellido=document.getElementById('ep-apellido').value.trim();
-  const repro   =document.getElementById('ep-repro').value.trim();
-  const tel     =document.getElementById('ep-tel').value.trim()||null;
-  const errEl   =document.getElementById('ep-error');
-  if(!nombre||!apellido||!repro){errEl.textContent='Completá los campos obligatorios.';errEl.style.display='block';return;}
-  errEl.style.display='none';
-  const{error}=await sb.from('pacientes').update({nombre,apellido,nro_reprocann:repro,tel_contacto:tel}).eq('id',PAC_EDIT_ID);
-  if(error){errEl.textContent='Error al guardar: '+error.message;errEl.style.display='block';return;}
-  cerrarEditarPac();
-  await cargarPacientes();
+  if(_g.ep)return; _g.ep=true;
+  try{
+    const nombre  =document.getElementById('ep-nombre').value.trim();
+    const apellido=document.getElementById('ep-apellido').value.trim();
+    const repro   =document.getElementById('ep-repro').value.trim();
+    const tel     =document.getElementById('ep-tel').value.trim()||null;
+    const errEl   =document.getElementById('ep-error');
+    if(!nombre||!apellido||!repro){errEl.textContent='Completá los campos obligatorios.';errEl.style.display='block';return;}
+    errEl.style.display='none';
+    const{error}=await sb.from('pacientes').update({nombre,apellido,nro_reprocann:repro,tel_contacto:tel}).eq('id',PAC_EDIT_ID);
+    if(error){errEl.textContent='Error al guardar: '+error.message;errEl.style.display='block';return;}
+    cerrarEditarPac();
+    await cargarPacientes();
+  }finally{_g.ep=false;}
 }
 
 async function toggleEstadoPac(id){
@@ -1945,23 +1952,26 @@ function habilitarEdicionMaterial(){
 }
 
 async function guardarEdicionMaterial(){
-  const tbl={semillas:'lotes_semillas',esquejes:'lotes_esquejes',pm:'lotes_plantas_madre'}[MAT_TIPO];
-  const cambios={
-    nombre_lote:document.getElementById('dm-nombre-e').value.trim(),
-    variedad:document.getElementById('dm-variedad-e').value.trim(),
-    fecha_adquisicion:document.getElementById('dm-fecha-e').value||null,
-    proveedor:document.getElementById('dm-proveedor-e').value.trim()||null,
-    notas:document.getElementById('dm-notas-e')?.value.trim()||null,
-  };
-  if(!cambios.nombre_lote||!cambios.variedad){alert('Nombre y variedad son obligatorios.');return;}
-  const{error}=await sb.from(tbl).update(cambios).eq('id',MAT_ACTIVO.id);
-  if(error){alert('Error al guardar: '+error.message);return;}
-  Object.assign(MAT_ACTIVO,cambios);
-  document.getElementById('dm-nombre').textContent=MAT_ACTIVO.nombre_lote;
-  document.getElementById('dm-sub').textContent=(MAT_ACTIVO.variedad||'')+(MAT_ACTIVO.proveedor?' · '+MAT_ACTIVO.proveedor:'');
-  await cargarMaterial();rebuildSearchIndex();
-  renderPanelMaterial(false);
-  alert('¡Datos actualizados correctamente!');
+  if(_g.em)return; _g.em=true;
+  try{
+    const tbl={semillas:'lotes_semillas',esquejes:'lotes_esquejes',pm:'lotes_plantas_madre'}[MAT_TIPO];
+    const cambios={
+      nombre_lote:document.getElementById('dm-nombre-e').value.trim(),
+      variedad:document.getElementById('dm-variedad-e').value.trim(),
+      fecha_adquisicion:document.getElementById('dm-fecha-e').value||null,
+      proveedor:document.getElementById('dm-proveedor-e').value.trim()||null,
+      notas:document.getElementById('dm-notas-e')?.value.trim()||null,
+    };
+    if(!cambios.nombre_lote||!cambios.variedad){alert('Nombre y variedad son obligatorios.');return;}
+    const{error}=await sb.from(tbl).update(cambios).eq('id',MAT_ACTIVO.id);
+    if(error){alert('Error al guardar: '+error.message);return;}
+    Object.assign(MAT_ACTIVO,cambios);
+    document.getElementById('dm-nombre').textContent=MAT_ACTIVO.nombre_lote;
+    document.getElementById('dm-sub').textContent=(MAT_ACTIVO.variedad||'')+(MAT_ACTIVO.proveedor?' · '+MAT_ACTIVO.proveedor:'');
+    await cargarMaterial();rebuildSearchIndex();
+    renderPanelMaterial(false);
+    alert('¡Datos actualizados correctamente!');
+  }finally{_g.em=false;}
 }
 
 /* ── RENDER LOTES ── */
@@ -2475,6 +2485,8 @@ function handleFileDrop(event){
 }
 
 async function guardarAnalisis(){
+  if(_g.an)return; _g.an=true;
+  try{
   const fecha=document.getElementById('an-fecha').value;
   const errEl=document.getElementById('an-error');
   if(!fecha){errEl.classList.add('show');return;}
@@ -2526,6 +2538,7 @@ async function guardarAnalisis(){
   });
   document.getElementById('an-file-drop').classList.remove('drag');
   cargarAnalisis();
+  }finally{_g.an=false;}
 }
 
 async function cargarAnalisis(){
@@ -2640,43 +2653,47 @@ function abrirFormCorreccion(entregaId,fcId){
 }
 
 async function guardarCorreccion(entregaId,fcId){
-  const nuevoReprocann=document.getElementById('corr-reprocann-'+fcId)?.value.trim();
-  const nuevaCantStr=document.getElementById('corr-cantidad-'+fcId)?.value;
-  const corregidoPor=document.getElementById('corr-por-'+fcId)?.value.trim()||null;
-  const notas=document.getElementById('corr-notas-'+fcId)?.value.trim()||null;
-  if(!nuevoReprocann){alert('El Nro. REPROCANN es obligatorio.');return;}
-  const nuevaCant=parseFloat(nuevaCantStr);
-  if(!nuevaCant||nuevaCant<=0){alert('La cantidad debe ser mayor a 0.');return;}
-  const entregas=HIST_DATA._entregas||[];
-  const e=entregas.find(x=>x.id===entregaId);
-  if(!e){alert('Error: no se encontró la entrega original.');return;}
-  const diff=nuevaCant-e.cantidad_otorgada;
-  const nuevoStock=Math.round((HIST_DATA.flores.stock_actual-diff)*100)/100;
-  if(nuevoStock<0){alert(`La corrección dejaría el stock en ${nuevoStock} g. No es posible.`);return;}
-  // guardar corrección
-  const{error:corrErr}=await sb.from('entregas_correcciones').insert({
-    entrega_id:entregaId,
-    nro_reprocann_ant:e.nro_reprocann,cantidad_ant:e.cantidad_otorgada,notas_ant:e.notas,registrado_por_ant:e.registrado_por,
-    nro_reprocann_nvo:nuevoReprocann,cantidad_nvo:nuevaCant,notas_nvo:notas,
-    corregido_por:corregidoPor
-  });
-  if(corrErr){alert('Error al guardar la corrección: '+corrErr.message);return;}
-  // actualizar entrega
-  const{error:entErr}=await sb.from('entregas').update({nro_reprocann:nuevoReprocann,cantidad_otorgada:nuevaCant,notas:notas??e.notas}).eq('id',entregaId);
-  if(entErr){alert('Error al actualizar la entrega: '+entErr.message);return;}
-  // actualizar stock si cambió la cantidad
-  if(diff!==0){
-    const{error:stockErr}=await sb.from('flores_cosechadas').update({stock_actual:nuevoStock}).eq('id',HIST_DATA.flores.id);
-    if(stockErr){alert('Error al actualizar el stock: '+stockErr.message);return;}
-    HIST_DATA.flores.stock_actual=nuevoStock;
-  }
-  // actualizar entrega en cache local
-  e.nro_reprocann=nuevoReprocann;e.cantidad_otorgada=nuevaCant;if(notas)e.notas=notas;
-  document.getElementById(fcId).style.display='none';
-  await cargarHistorialEntregas();
-  const el=document.getElementById('det-panel');
-  if(el)el.innerHTML=panelFlores();
-  actualizarMetricasDash();calcularAlertas();
+  if(_g.corr)return; _g.corr=true;
+  try{
+    const nuevoReprocann=document.getElementById('corr-reprocann-'+fcId)?.value.trim();
+    const nuevaCantStr=document.getElementById('corr-cantidad-'+fcId)?.value;
+    const corregidoPor=document.getElementById('corr-por-'+fcId)?.value.trim()||null;
+    const notas=document.getElementById('corr-notas-'+fcId)?.value.trim()||null;
+    if(!nuevoReprocann){alert('El Nro. REPROCANN es obligatorio.');return;}
+    const nuevaCant=parseFloat(nuevaCantStr);
+    if(!nuevaCant||nuevaCant<=0){alert('La cantidad debe ser mayor a 0.');return;}
+    const entregas=HIST_DATA._entregas||[];
+    const e=entregas.find(x=>x.id===entregaId);
+    if(!e){alert('Error: no se encontró la entrega original.');return;}
+    const diff=nuevaCant-e.cantidad_otorgada;
+    // validación previa con cache local (UI check)
+    const stockEstimado=Math.round((HIST_DATA.flores.stock_actual-diff)*100)/100;
+    if(stockEstimado<0){alert(`La corrección dejaría el stock en ${stockEstimado} g. No es posible.`);return;}
+    const{error:corrErr}=await sb.from('entregas_correcciones').insert({
+      entrega_id:entregaId,
+      nro_reprocann_ant:e.nro_reprocann,cantidad_ant:e.cantidad_otorgada,notas_ant:e.notas,registrado_por_ant:e.registrado_por,
+      nro_reprocann_nvo:nuevoReprocann,cantidad_nvo:nuevaCant,notas_nvo:notas,
+      corregido_por:corregidoPor
+    });
+    if(corrErr){alert('Error al guardar la corrección: '+corrErr.message);return;}
+    const{error:entErr}=await sb.from('entregas').update({nro_reprocann:nuevoReprocann,cantidad_otorgada:nuevaCant,notas:notas??e.notas}).eq('id',entregaId);
+    if(entErr){alert('Error al actualizar la entrega: '+entErr.message);return;}
+    if(diff!==0){
+      // leer stock fresco de DB para evitar stale cache (B-3)
+      const{data:floresFresh}=await sb.from('flores_cosechadas').select('stock_actual').eq('id',HIST_DATA.flores.id).single();
+      const nuevoStock=Math.round(((floresFresh?.stock_actual??HIST_DATA.flores.stock_actual)-diff)*100)/100;
+      if(nuevoStock<0){alert(`El stock actual (${floresFresh?.stock_actual} g) es insuficiente para esta corrección.`);return;}
+      const{error:stockErr}=await sb.from('flores_cosechadas').update({stock_actual:nuevoStock}).eq('id',HIST_DATA.flores.id);
+      if(stockErr){alert('Error al actualizar el stock: '+stockErr.message);return;}
+      HIST_DATA.flores.stock_actual=nuevoStock;
+    }
+    e.nro_reprocann=nuevoReprocann;e.cantidad_otorgada=nuevaCant;if(notas)e.notas=notas;
+    document.getElementById(fcId).style.display='none';
+    await cargarHistorialEntregas();
+    const el=document.getElementById('det-panel');
+    if(el)el.innerHTML=panelFlores();
+    actualizarMetricasDash();calcularAlertas();
+  }finally{_g.corr=false;}
 }
 
 async function _loadPacAc(){
@@ -2898,7 +2915,9 @@ function openEtapaHist(key){
 function volverEtapaActual(){renderPanelActivo();}
 
 async function guardarEtapaHist(key){
+  if(_g.eh)return; _g.eh=true;
   let dbErr;
+  try{
   if(key==='nursery'){
     const d=HIST_DATA.nursery;
     if(d){const eg=parseInt(document.getElementById('nur-egreso').value)||null;const bj=eg!=null?(d.cantidad_ingreso||0)-eg:0;({error:dbErr}=await sb.from('etapa_nursery').update({fecha_fin:document.getElementById('nur-fecha-fin').value||null,cantidad_egreso:eg,bajas:bj,notas:document.getElementById('nur-notas').value||null}).eq('id',d.id));}
@@ -2935,6 +2954,7 @@ async function guardarEtapaHist(key){
     alert('Corrección guardada correctamente.');
   }
   document.getElementById('det-panel').innerHTML=panelReadOnly(key);
+  }finally{_g.eh=false;}
 }
 
 /* ── NAVIGATION ── */
@@ -3001,8 +3021,10 @@ function fL(el,et){
 
 async function guardarBorrador(){
   if(!LOTE_ACTIVO)return;
+  if(_g.bd)return; _g.bd=true;
   const et=LOTE_ACTIVO.etapaRaw;
   let err;
+  try{
   if(et==='nursery'){
     const d=HIST_DATA.nursery;
     if(d){const eg=parseInt(document.getElementById('nur-egreso').value)||null;const bj=eg!=null?(d.cantidad_ingreso||0)-eg:0;({error:err}=await sb.from('etapa_nursery').update({fecha_fin:document.getElementById('nur-fecha-fin').value||null,cantidad_egreso:eg,bajas:bj,notas:document.getElementById('nur-notas').value||null}).eq('id',d.id));}
@@ -3046,6 +3068,7 @@ async function guardarBorrador(){
   if(tbl){const{data}=await sb.from(tbl).select('*').eq('lote_id',LOTE_ACTIVO.id).maybeSingle();if(data)HIST_DATA[et]=data;}
   renderPanelActivo();
   alert('Borrador guardado correctamente.');
+  }finally{_g.bd=false;}
 }
 
 async function guardarAvanzar(){
@@ -3681,56 +3704,72 @@ function onBL(v){
 }
 
 async function eliminarTotalidadLote(){
-  const sel=document.getElementById('bl');const loteId=sel.value;
-  if(!loteId){alert('Primero elegí el lote que querés eliminar.');return;}
-  const tipoOpt=sel.options[sel.selectedIndex];
-  const tipo=tipoOpt?.dataset.tipo;
-  const nombre=tipoOpt?.text?.split(' (')[0]||'este lote';
-  if(!confirm(`⚠ ATENCIÓN\n\nEstás por eliminar la totalidad del stock de:\n"${nombre}"\n\nSe registrará una baja total y el stock quedará en 0.\n\n¿Confirmás?`))return;
-  const fecha=new Date().toISOString().split('T')[0];
-  const lote=[...LM.semillas,...LM.esquejes,...LM.pm].find(x=>x.v===loteId);
-  const stock=lote?.stock??0;
-  if(stock<=0){alert('El stock de este lote ya es 0.');return;}
-  const uid=await ensureActiveOngUserContext();
-  if(!uid){alert('No se pudo identificar el usuario de la ONG activa.');return;}
-  try {
-    await serverWrite({table:'bajas_material',operation:'insert',userId:uid,record:{usuario_id:uid,lote_id:loteId,lote_tipo:tipo==='pm'?'plantas_madre':tipo,fecha_baja:fecha,cantidad_baja:stock,motivo_baja:'Eliminación total del lote'}});
-  } catch (e) {
-    alert('Error al registrar la baja: '+e.message);return;
-  }
-  if(tipo==='semillas')await serverWrite({table:'lotes_semillas',operation:'update',userId:uid,record:{stock_actual:0},filters:{id:loteId}});
-  else if(tipo==='esquejes')await serverWrite({table:'lotes_esquejes',operation:'update',userId:uid,record:{stock_actual:0},filters:{id:loteId}});
-  else if(tipo==='pm')await serverWrite({table:'lotes_plantas_madre',operation:'update',userId:uid,record:{cantidad_actual:0},filters:{id:loteId}});
-  alert(`El lote "${nombre}" fue eliminado del stock. Stock registrado en 0.`);
-  sel.value='';document.getElementById('bn').style.display='none';document.getElementById('bs').style.display='none';
-  await cargarMaterial();rebuildSearchIndex();calcularAlertas();
+  if(_g.et)return; _g.et=true;
+  try{
+    const sel=document.getElementById('bl');const loteId=sel.value;
+    if(!loteId){alert('Primero elegí el lote que querés eliminar.');return;}
+    const tipoOpt=sel.options[sel.selectedIndex];
+    const tipo=tipoOpt?.dataset.tipo;
+    const nombre=tipoOpt?.text?.split(' (')[0]||'este lote';
+    if(!confirm(`⚠ ATENCIÓN\n\nEstás por eliminar la totalidad del stock de:\n"${nombre}"\n\nSe registrará una baja total y el stock quedará en 0.\n\n¿Confirmás?`))return;
+    const fecha=new Date().toISOString().split('T')[0];
+    const lote=[...LM.semillas,...LM.esquejes,...LM.pm].find(x=>x.v===loteId);
+    const stock=lote?.stock??0;
+    if(stock<=0){alert('El stock de este lote ya es 0.');return;}
+    const uid=await ensureActiveOngUserContext();
+    if(!uid){alert('No se pudo identificar el usuario de la ONG activa.');return;}
+    let bajaId=null;
+    try{
+      const{data:bd}=await serverWrite({table:'bajas_material',operation:'insert',userId:uid,record:{usuario_id:uid,lote_id:loteId,lote_tipo:tipo==='pm'?'plantas_madre':tipo,fecha_baja:fecha,cantidad_baja:stock,motivo_baja:'Eliminación total del lote'}});
+      bajaId=bd?.id||null;
+    }catch(e){alert('Error al registrar la baja: '+e.message);return;}
+    try{
+      if(tipo==='semillas')await serverWrite({table:'lotes_semillas',operation:'update',userId:uid,record:{stock_actual:0},filters:{id:loteId}});
+      else if(tipo==='esquejes')await serverWrite({table:'lotes_esquejes',operation:'update',userId:uid,record:{stock_actual:0},filters:{id:loteId}});
+      else if(tipo==='pm')await serverWrite({table:'lotes_plantas_madre',operation:'update',userId:uid,record:{cantidad_actual:0},filters:{id:loteId}});
+    }catch(e){
+      if(bajaId)await sb.from('bajas_material').delete().eq('id',bajaId);
+      alert('Error al actualizar el stock. La baja fue revertida.\n'+e.message);return;
+    }
+    alert(`El lote "${nombre}" fue eliminado del stock. Stock registrado en 0.`);
+    sel.value='';document.getElementById('bn').style.display='none';document.getElementById('bs').style.display='none';
+    await cargarMaterial();rebuildSearchIndex();calcularAlertas();
+  }finally{_g.et=false;}
 }
 
 async function guardarBaja(){
-  const sel=document.getElementById('bl');const loteId=sel.value;
-  if(!loteId){alert('Elegí el lote al que darle de baja.');return;}
-  const tipo=sel.options[sel.selectedIndex]?.dataset.tipo;
-  const cantEl=tipo==='semillas'?document.getElementById('b-cant-s'):document.getElementById('b-cant-n');
-  const cant=parseFloat(cantEl?.value);
-  const fecha=document.getElementById('b-fecha').value;
-  const motivo=document.getElementById('b-motivo').value.trim();
-  if(!cant||cant<=0){alert('Ingresá una cantidad válida.');return;}
-  if(!fecha){alert('Ingresá la fecha de la baja.');return;}
-  if(!motivo){alert('Ingresá el motivo de la baja.');return;}
-  const uid=await ensureActiveOngUserContext();
-  if(!uid){alert('No se pudo identificar el usuario de la ONG activa.');return;}
-  try {
-    await serverWrite({table:'bajas_material',operation:'insert',userId:uid,record:{usuario_id:uid,lote_id:loteId,lote_tipo:tipo==='pm'?'plantas_madre':tipo,fecha_baja:fecha,cantidad_baja:cant,motivo_baja:motivo}});
-  } catch (e) {
-    alert('Error al registrar la baja: '+e.message);return;
-  }
-  if(tipo==='semillas'){const l=LM.semillas.find(x=>x.v===loteId);if(l)await serverWrite({table:'lotes_semillas',operation:'update',userId:uid,record:{stock_actual:Math.max(0,l.stock-cant)},filters:{id:loteId}});}
-  else if(tipo==='esquejes'){const l=LM.esquejes.find(x=>x.v===loteId);if(l)await serverWrite({table:'lotes_esquejes',operation:'update',userId:uid,record:{stock_actual:Math.max(0,l.stock-cant)},filters:{id:loteId}});}
-  else if(tipo==='pm'){const l=LM.pm.find(x=>x.v===loteId);if(l)await serverWrite({table:'lotes_plantas_madre',operation:'update',userId:uid,record:{cantidad_actual:Math.max(0,l.stock-cant)},filters:{id:loteId}});}
-  alert('¡Baja registrada exitosamente!');
-  if(cantEl)cantEl.value='';document.getElementById('b-fecha').value='';document.getElementById('b-motivo').value='';sel.value='';
-  document.getElementById('bn').style.display='none';document.getElementById('bs').style.display='none';
-  await cargarMaterial();rebuildSearchIndex();calcularAlertas();
+  if(_g.baja)return; _g.baja=true;
+  try{
+    const sel=document.getElementById('bl');const loteId=sel.value;
+    if(!loteId){alert('Elegí el lote al que darle de baja.');return;}
+    const tipo=sel.options[sel.selectedIndex]?.dataset.tipo;
+    const cantEl=tipo==='semillas'?document.getElementById('b-cant-s'):document.getElementById('b-cant-n');
+    const cant=parseFloat(cantEl?.value);
+    const fecha=document.getElementById('b-fecha').value;
+    const motivo=document.getElementById('b-motivo').value.trim();
+    if(!cant||cant<=0){alert('Ingresá una cantidad válida.');return;}
+    if(!fecha){alert('Ingresá la fecha de la baja.');return;}
+    if(!motivo){alert('Ingresá el motivo de la baja.');return;}
+    const uid=await ensureActiveOngUserContext();
+    if(!uid){alert('No se pudo identificar el usuario de la ONG activa.');return;}
+    let bajaId=null;
+    try{
+      const{data:bd}=await serverWrite({table:'bajas_material',operation:'insert',userId:uid,record:{usuario_id:uid,lote_id:loteId,lote_tipo:tipo==='pm'?'plantas_madre':tipo,fecha_baja:fecha,cantidad_baja:cant,motivo_baja:motivo}});
+      bajaId=bd?.id||null;
+    }catch(e){alert('Error al registrar la baja: '+e.message);return;}
+    try{
+      if(tipo==='semillas'){const l=LM.semillas.find(x=>x.v===loteId);if(l)await serverWrite({table:'lotes_semillas',operation:'update',userId:uid,record:{stock_actual:Math.max(0,l.stock-cant)},filters:{id:loteId}});}
+      else if(tipo==='esquejes'){const l=LM.esquejes.find(x=>x.v===loteId);if(l)await serverWrite({table:'lotes_esquejes',operation:'update',userId:uid,record:{stock_actual:Math.max(0,l.stock-cant)},filters:{id:loteId}});}
+      else if(tipo==='pm'){const l=LM.pm.find(x=>x.v===loteId);if(l)await serverWrite({table:'lotes_plantas_madre',operation:'update',userId:uid,record:{cantidad_actual:Math.max(0,l.stock-cant)},filters:{id:loteId}});}
+    }catch(e){
+      if(bajaId)await sb.from('bajas_material').delete().eq('id',bajaId);
+      alert('Error al actualizar el stock. La baja fue revertida.\n'+e.message);return;
+    }
+    alert('¡Baja registrada exitosamente!');
+    if(cantEl)cantEl.value='';document.getElementById('b-fecha').value='';document.getElementById('b-motivo').value='';sel.value='';
+    document.getElementById('bn').style.display='none';document.getElementById('bs').style.display='none';
+    await cargarMaterial();rebuildSearchIndex();calcularAlertas();
+  }finally{_g.baja=false;}
 }
 
 /* ── NUEVO MATERIAL ── */
@@ -3988,6 +4027,8 @@ async function subirDocsMB(){
 }
 
 async function guardarMaterial(){
+  if(_g.mat)return; _g.mat=true;
+  try{
   const nombre=document.getElementById('nm-nombre').value.trim();
   const fecha=document.getElementById('nm-fecha').value;
   const origen=document.getElementById('nm-origen').value;
@@ -4050,7 +4091,7 @@ async function guardarMaterial(){
     }
   }
 
-  logActividad('nuevo_material', nombre+' — nuevo lote de '+({semillas:'Semillas',esquejes:'Esquejes',pm:'Plantas Madre'}[TIPO_NM]||TIPO_NM));
+  logActividad('nuevo_material', nombre+' — nuevo lote de '+({semillas:'Semillas',esquejes:'Esquejes',pm:'Plantas Madre'}[TIPO_NM]||TIPO_NM)).catch(()=>{});
   formDirty=false;alert('¡Lote de material básico creado exitosamente!');
   ['nm-nombre','nm-fecha','nm-variedad','nm-stock','nm-notas'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   const pEl=document.getElementById('nm-proveedor');if(pEl)pEl.value='';
@@ -4063,6 +4104,7 @@ async function guardarMaterial(){
   TIPO_NM=null;
   cargarEstablecimientosSelect('nm-establ');
   await cargarMaterial();rebuildSearchIndex();calcularAlertas();sv('stock');
+  }finally{_g.mat=false;}
 }
 
 /* ── SUBLOTES ── */
@@ -4116,6 +4158,8 @@ function calcRestantesSublote(){
   el.className='restantes-calc';
 }
 async function crearSublote(){
+  if(_g.sub)return; _g.sub=true;
+  try{
   const nombreCompleto=document.getElementById('msub-nombre').value.trim();
   const plantasVal=parseInt(document.getElementById('msub-plantas').value)||0;
   const fecha=document.getElementById('msub-fecha').value;
@@ -4160,10 +4204,11 @@ async function crearSublote(){
     const inputEl=document.getElementById(inputId);
     if(inputEl)inputEl.value=nuevaCant;
   }
-  logActividad('sublote', nombreFinal+' — sublote creado', LOTE_ACTIVO.id);
+  logActividad('sublote', nombreFinal+' — sublote creado', LOTE_ACTIVO.id).catch(()=>{});
   cerrarModalSublote();
   await cargarLotes();rebuildSearchIndex();actualizarMetricasDash();calcularAlertas();
   alert('Sublote "'+nombreFinal+'" creado correctamente.\nLote origen actualizado a '+nuevaCant+' plantas.');
+  }finally{_g.sub=false;}
 }
 
 /* ── ALERTAS ── */

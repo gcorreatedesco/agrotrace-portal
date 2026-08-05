@@ -1291,14 +1291,17 @@ async function crearONG() {
     errEl.style.display = 'block'; return;
   }
 
+  const btn = document.getElementById('btn-invitar-ong');
+  if (btn.disabled) return; // guard doble-submit
+  btn.textContent = 'Creando...'; btn.disabled = true; btn.style.opacity = '0.7';
+
   const { data: dupONG } = await sb.from('organizaciones').select('id').eq('nombre', nombre_org).maybeSingle();
   if (dupONG) {
     errEl.textContent = `Ya existe una organización con el nombre "${nombre_org}". Usá un nombre diferente.`;
-    errEl.style.display = 'block'; return;
+    errEl.style.display = 'block';
+    btn.textContent = 'Crear ONG'; btn.disabled = false; btn.style.opacity = '';
+    return;
   }
-
-  const btn = document.getElementById('btn-invitar-ong');
-  btn.textContent = 'Creando...'; btn.disabled = true; btn.style.opacity = '0.7';
 
   try {
     const { data: { session } } = await sb.auth.getSession();

@@ -946,8 +946,12 @@ function cerrarModalONG() {
   MODAL_ONG_ID = null;
 }
 
+let _gRT = {}; // guards doble-submit portal RT
+
 async function guardarCambiosONG() {
   if (!MODAL_ONG_ID) return;
+  if (_gRT.cambios) return; _gRT.cambios = true;
+  try {
   const { data: { session } } = await sb.auth.getSession();
   const updates = {
     nombre: document.getElementById('mod-nombre').value.trim(),
@@ -968,31 +972,38 @@ async function guardarCambiosONG() {
   if (idx >= 0) ONGS_DET[idx] = { ...ONGS_DET[idx], ...updates };
   cerrarModalONG();
   renderDetallesONGs();
+  } finally { _gRT.cambios = false; }
 }
 
 async function confirmarBajaONG(ongId, ongNombre) {
   if (!confirm(`¿Dar de baja a "${ongNombre}"?\n\nLa organización quedará inactiva pero todos sus datos se conservarán.`)) return;
-  const fechaBaja = new Date().toISOString();
-  const { data: { session } } = await sb.auth.getSession();
-  if (session) {
-    const { error } = await sb.from('organizaciones').update({ activa: false, fecha_baja: fechaBaja }).eq('id', ongId);
-    if (error) { alert('Error al dar de baja: ' + error.message); return; }
-  }
-  const idx = ONGS_DET.findIndex(o => o.id === ongId);
-  if (idx >= 0) ONGS_DET[idx] = { ...ONGS_DET[idx], activa: false, fecha_baja: fechaBaja };
-  renderDetallesONGs();
+  if (_gRT.baja) return; _gRT.baja = true;
+  try {
+    const fechaBaja = new Date().toISOString();
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) {
+      const { error } = await sb.from('organizaciones').update({ activa: false, fecha_baja: fechaBaja }).eq('id', ongId);
+      if (error) { alert('Error al dar de baja: ' + error.message); return; }
+    }
+    const idx = ONGS_DET.findIndex(o => o.id === ongId);
+    if (idx >= 0) ONGS_DET[idx] = { ...ONGS_DET[idx], activa: false, fecha_baja: fechaBaja };
+    renderDetallesONGs();
+  } finally { _gRT.baja = false; }
 }
 
 async function reactivarONG(ongId, ongNombre) {
   if (!confirm(`¿Reactivar "${ongNombre}"?`)) return;
-  const { data: { session } } = await sb.auth.getSession();
-  if (session) {
-    const { error } = await sb.from('organizaciones').update({ activa: true, fecha_baja: null }).eq('id', ongId);
-    if (error) { alert('Error al reactivar: ' + error.message); return; }
-  }
-  const idx = ONGS_DET.findIndex(o => o.id === ongId);
-  if (idx >= 0) ONGS_DET[idx] = { ...ONGS_DET[idx], activa: true, fecha_baja: null };
-  renderDetallesONGs();
+  if (_gRT.react) return; _gRT.react = true;
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) {
+      const { error } = await sb.from('organizaciones').update({ activa: true, fecha_baja: null }).eq('id', ongId);
+      if (error) { alert('Error al reactivar: ' + error.message); return; }
+    }
+    const idx = ONGS_DET.findIndex(o => o.id === ongId);
+    if (idx >= 0) ONGS_DET[idx] = { ...ONGS_DET[idx], activa: true, fecha_baja: null };
+    renderDetallesONGs();
+  } finally { _gRT.react = false; }
 }
 
 /* ── DOCUMENTOS ONG ── */
@@ -1052,7 +1063,11 @@ async function subirDocumentos() {
       descripcion: desc || null, storage_path: path,
       subido_por: session.user.id,
     });
-    if (dbErr) errores.push(file.name);
+    if (dbErr) {
+      // compensating: eliminar archivo subido si el registro en DB falla
+      await sb.storage.from('documentos-ong').remove([path]);
+      errores.push(file.name);
+    }
   }
   if (errores.length) { msg.textContent = `Error en: ${errores.join(', ')}`; }
   else { msg.textContent = 'Archivo(s) subido(s) correctamente.'; }
@@ -1065,8 +1080,10 @@ async function eliminarDocumento(docId, storagePath) {
   if (!confirm('¿Eliminar este archivo? La acción no se puede deshacer.')) return;
   const { data: { session } } = await sb.auth.getSession();
   if (!session) return;
+  // eliminar primero el registro en DB; si falla, el archivo en Storage sigue intacto
+  const { error: dbErr } = await sb.from('documentos_ong').delete().eq('id', docId);
+  if (dbErr) { alert('Error al eliminar el documento: ' + dbErr.message); return; }
   await sb.storage.from('documentos-ong').remove([storagePath]);
-  await sb.from('documentos_ong').delete().eq('id', docId);
   DOCS_ONG = DOCS_ONG.filter(d => d.id !== docId);
   renderDocumentos();
 }

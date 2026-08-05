@@ -813,10 +813,18 @@
       err.classList.add('show'); return;
     }
     err.classList.remove('show');
-    await sb.auth.resetPasswordForEmail(email, {
-      redirectTo: 'https://gcorreatedesco.github.io/agrotrace-portal/'
-    });
-    showView('view-recover-ok');
+    const btn = document.querySelector('#view-recover button[type="button"]') ||
+                document.querySelector('#view-recover button');
+    if (btn?.disabled) return;
+    if (btn) { btn.disabled = true; btn.textContent = 'Enviando...'; }
+    try {
+      await sb.auth.resetPasswordForEmail(email, {
+        redirectTo: 'https://gcorreatedesco.github.io/agrotrace-portal/'
+      });
+      showView('view-recover-ok');
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = 'Enviar enlace'; }
+    }
   }
 </script>
 </body>
