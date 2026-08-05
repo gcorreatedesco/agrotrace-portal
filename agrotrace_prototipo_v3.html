@@ -1318,6 +1318,8 @@ let PAC_EDIT_ID=null;
 let PAC_VISIBLE_RT=false;
 let PAC_ONG_ID=null;
 let _pac_ac_data=[];
+let _guardandoEntrega=false;
+let _guardandoAvance=false;
 
 async function cargarPacientes(){
   const el=document.getElementById('pac-list');
@@ -2732,44 +2734,58 @@ function cerrarFormEntrega(){
 }
 
 async function guardarEntrega(){
-  const reprocann=document.getElementById('ent-reprocann')?.value.trim()||null;
-  const fecha=document.getElementById('ent-fecha')?.value;
-  const cantStr=document.getElementById('ent-cantidad')?.value;
-  const entregador=document.getElementById('ent-entregador')?.value.trim()||null;
-  const notas=document.getElementById('ent-notas')?.value.trim()||null;
-  if(!fecha){alert('La fecha de entrega es obligatoria.');return;}
-  if(!entregador){alert('El nombre de quien entrega es obligatorio.');return;}
-  const cantidad=parseFloat(cantStr);
-  if(!cantidad||cantidad<=0){alert('La cantidad debe ser mayor a 0.');return;}
-  const wF=warnFechaFutura(fecha);
-  if(wF&&!confirm(wF+'\n\n¿Confirmar igual?'))return;
-  const stockActual=HIST_DATA.flores?.stock_actual||0;
-  if(cantidad>stockActual){
-    const diff=(cantidad-stockActual).toFixed(1);
-    alert(`No es posible registrar la entrega.\nLa cantidad ingresada (${cantidad} g) supera el stock disponible (${stockActual} g).\nDiferencia en exceso: ${diff} g.\n\nCorregí la cantidad antes de continuar.`);
-    return;
+  if(_guardandoEntrega)return;
+  _guardandoEntrega=true;
+  try{
+    const reprocann=document.getElementById('ent-reprocann')?.value.trim()||null;
+    const fecha=document.getElementById('ent-fecha')?.value;
+    const cantStr=document.getElementById('ent-cantidad')?.value;
+    const entregador=document.getElementById('ent-entregador')?.value.trim()||null;
+    const notas=document.getElementById('ent-notas')?.value.trim()||null;
+    if(!fecha){alert('La fecha de entrega es obligatoria.');return;}
+    if(!entregador){alert('El nombre de quien entrega es obligatorio.');return;}
+    const cantidad=parseFloat(cantStr);
+    if(!cantidad||cantidad<=0){alert('La cantidad debe ser mayor a 0.');return;}
+    const wF=warnFechaFutura(fecha);
+    if(wF&&!confirm(wF+'\n\n¿Confirmar igual?'))return;
+    const floresId=HIST_DATA.flores?.id;
+    if(!floresId){alert('Error: no se encontró el registro de flores cosechadas.');return;}
+    // leer stock fresco de DB — evita usar HIST_DATA desactualizado
+    const{data:floresFresh,error:stockReadErr}=await sb.from('flores_cosechadas').select('stock_actual').eq('id',floresId).single();
+    if(stockReadErr){alert('Error leyendo el stock actual: '+stockReadErr.message);return;}
+    const stockActual=floresFresh?.stock_actual||0;
+    if(cantidad>stockActual){
+      const diff=(cantidad-stockActual).toFixed(1);
+      alert(`No es posible registrar la entrega.\nLa cantidad ingresada (${cantidad} g) supera el stock disponible (${stockActual} g).\nDiferencia en exceso: ${diff} g.\n\nCorregí la cantidad antes de continuar.`);
+      return;
+    }
+    const{data:entData,error:entErr}=await sb.from('entregas').insert({
+      flores_id:floresId,
+      nro_reprocann:reprocann,
+      fecha_entrega:fecha,
+      cantidad_otorgada:cantidad,
+      registrado_por:entregador||null,
+      notas:notas||null
+    }).select('id').single();
+    if(entErr){alert('Error al registrar la entrega: '+entErr.message);return;}
+    const nuevoStock=Math.round((stockActual-cantidad)*100)/100;
+    const{error:stockErr}=await sb.from('flores_cosechadas').update({stock_actual:nuevoStock}).eq('id',floresId);
+    if(stockErr){
+      // compensating: revertir la entrega recién insertada para mantener consistencia
+      await sb.from('entregas').delete().eq('id',entData.id);
+      alert('Error al actualizar el stock. La entrega fue revertida automáticamente.\nIntentá de nuevo.');
+      return;
+    }
+    HIST_DATA.flores.stock_actual=nuevoStock;
+    logActividad('entrega', LOTE_ACTIVO?.n+' — entrega '+cantidad+' g', LOTE_ACTIVO?.id, {cantidad, reprocann}).catch(()=>{});
+    cerrarFormEntrega();
+    const el=document.getElementById('det-panel');
+    if(el)el.innerHTML=panelFlores();
+    actualizarMetricasDash();calcularAlertas();
+    alert(`Entrega registrada correctamente.\nStock restante: ${nuevoStock} g`);
+  }finally{
+    _guardandoEntrega=false;
   }
-  const floresId=HIST_DATA.flores?.id;
-  if(!floresId){alert('Error: no se encontró el registro de flores cosechadas.');return;}
-  const{error:entErr}=await sb.from('entregas').insert({
-    flores_id:floresId,
-    nro_reprocann:reprocann,
-    fecha_entrega:fecha,
-    cantidad_otorgada:cantidad,
-    registrado_por:entregador||null,
-    notas:notas||null
-  });
-  if(entErr){alert('Error al registrar la entrega: '+entErr.message);return;}
-  logActividad('entrega', LOTE_ACTIVO?.n+' — entrega '+cantidad+' g', LOTE_ACTIVO?.id, {cantidad, reprocann});
-  const nuevoStock=Math.round((stockActual-cantidad)*100)/100;
-  const{error:stockErr}=await sb.from('flores_cosechadas').update({stock_actual:nuevoStock}).eq('id',floresId);
-  if(stockErr){alert('Error al actualizar el stock: '+stockErr.message);return;}
-  HIST_DATA.flores.stock_actual=nuevoStock;
-  cerrarFormEntrega();
-  const el=document.getElementById('det-panel');
-  if(el)el.innerHTML=panelFlores();
-  actualizarMetricasDash();calcularAlertas();
-  alert(`Entrega registrada correctamente.\nStock restante: ${nuevoStock} g`);
 }
 
 /* ── VARIEDAD ── */
@@ -3028,6 +3044,9 @@ async function guardarBorrador(){
 
 async function guardarAvanzar(){
   if(!LOTE_ACTIVO)return;
+  if(_guardandoAvance)return;
+  _guardandoAvance=true;
+  try{
   const et=LOTE_ACTIVO.etapaRaw;
   const vbox=document.getElementById('det-validacion');
   function showErr(msg){vbox.style.display='block';vbox.textContent=msg;}
@@ -3054,7 +3073,7 @@ async function guardarAvanzar(){
     ({error:dbErr}=await sb.from('lotes_produccion').update({etapa_actual:'vegetativa'}).eq('id',loteId));
     if(dbErr)return showErr('Error actualizando etapa: '+dbErr.message);
     await cargarLotes();rebuildSearchIndex();actualizarMetricasDash();calcularAlertas();
-    logActividad('avance_etapa', LOTE_ACTIVO.n+' — avanzó a Vegetativa', loteId, {de:'nursery',a:'vegetativa'});
+    logActividad('avance_etapa', LOTE_ACTIVO.n+' — avanzó a Vegetativa', loteId, {de:'nursery',a:'vegetativa'}).catch(()=>{});
     formDirty=false;alert('¡Nursery cerrada! El lote avanzó a Vegetativa.');
     await openLote(loteId);
 
@@ -3078,7 +3097,7 @@ async function guardarAvanzar(){
     ({error:dbErr}=await sb.from('lotes_produccion').update({etapa_actual:'floracion'}).eq('id',loteId));
     if(dbErr)return showErr('Error actualizando etapa: '+dbErr.message);
     await cargarLotes();rebuildSearchIndex();actualizarMetricasDash();calcularAlertas();
-    logActividad('avance_etapa', LOTE_ACTIVO.n+' — avanzó a Floración', loteId, {de:'vegetativa',a:'floracion'});
+    logActividad('avance_etapa', LOTE_ACTIVO.n+' — avanzó a Floración', loteId, {de:'vegetativa',a:'floracion'}).catch(()=>{});
     formDirty=false;alert('¡Vegetativa cerrada! El lote avanzó a Floración.');
     await openLote(loteId);
 
@@ -3102,7 +3121,7 @@ async function guardarAvanzar(){
     ({error:dbErr}=await sb.from('lotes_produccion').update({etapa_actual:'cosecha'}).eq('id',loteId));
     if(dbErr)return showErr('Error actualizando etapa: '+dbErr.message);
     await cargarLotes();rebuildSearchIndex();actualizarMetricasDash();calcularAlertas();
-    logActividad('avance_etapa', LOTE_ACTIVO.n+' — avanzó a Cosecha', loteId, {de:'floracion',a:'cosecha'});
+    logActividad('avance_etapa', LOTE_ACTIVO.n+' — avanzó a Cosecha', loteId, {de:'floracion',a:'cosecha'}).catch(()=>{});
     formDirty=false;alert('¡Floración cerrada! El lote avanzó a Cosecha.');
     await openLote(loteId);
 
@@ -3126,7 +3145,7 @@ async function guardarAvanzar(){
     ({error:dbErr}=await sb.from('lotes_produccion').update({etapa_actual:'curado_secado'}).eq('id',loteId));
     if(dbErr)return showErr('Error actualizando etapa: '+dbErr.message);
     await cargarLotes();rebuildSearchIndex();actualizarMetricasDash();calcularAlertas();
-    logActividad('avance_etapa', LOTE_ACTIVO.n+' — avanzó a Curado/Secado', loteId, {de:'cosecha',a:'curado_secado'});
+    logActividad('avance_etapa', LOTE_ACTIVO.n+' — avanzó a Curado/Secado', loteId, {de:'cosecha',a:'curado_secado'}).catch(()=>{});
     formDirty=false;alert('Cosecha registrada. El lote avanzó a Curado/Secado.');
     await openLote(loteId);
   } else if(et==='curado_secado'){
@@ -3163,10 +3182,11 @@ async function guardarAvanzar(){
     ({error:dbErr}=await sb.from('lotes_produccion').update({etapa_actual:'flores'}).eq('id',loteId));
     if(dbErr)return showErr('Error actualizando etapa: '+dbErr.message);
     await cargarLotes();rebuildSearchIndex();actualizarMetricasDash();calcularAlertas();
-    logActividad('avance_etapa', LOTE_ACTIVO.n+' — flores cosechadas', loteId, {de:'curado_secado',a:'flores'});
+    logActividad('avance_etapa', LOTE_ACTIVO.n+' — flores cosechadas', loteId, {de:'curado_secado',a:'flores'}).catch(()=>{});
     formDirty=false;alert('Curado/Secado registrado. El lote avanzó a Flores Cosechadas.');
     await openLote(loteId);
   }
+  }finally{_guardandoAvance=false;}
 }
 
 /* ── ESTABLECIMIENTOS SELECT ── */
