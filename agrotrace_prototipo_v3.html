@@ -1316,15 +1316,14 @@ async function cargarPacientes(){
   const uid=await ensureActiveOngUserContext();
   if(!uid){if(el)el.innerHTML='<div class="pac-empty">No se pudo identificar la ONG.</div>';return;}
 
-  // Leer ong_id para el toggle visible_rt
+  // Siempre resolver PAC_ONG_ID fresco — nunca cachear entre ONGs
   const rolActivo=sessionStorage.getItem('agrotrace_role');
   const ongSupId=sessionStorage.getItem('agrotrace_supervisando_ong_id');
-  if(!PAC_ONG_ID){
-    if(ongSupId){PAC_ONG_ID=ongSupId;}
-    else{
-      const{data:pf}=await sb.from('perfiles').select('ong_id').eq('id',CURRENT_USER.id).single();
-      PAC_ONG_ID=pf?.ong_id||null;
-    }
+  if(ongSupId){
+    PAC_ONG_ID=ongSupId;
+  } else {
+    const{data:pf}=await sb.from('perfiles').select('ong_id').eq('id',CURRENT_USER.id).single();
+    PAC_ONG_ID=pf?.ong_id||null;
   }
   if(PAC_ONG_ID){
     const{data:orgD}=await sb.from('organizaciones').select('pacientes_visibles_rt').eq('id',PAC_ONG_ID).single();
@@ -1430,9 +1429,12 @@ async function toggleVisibleRT(val){
   }
 }
 
-function abrirNuevoPac(){
-  const maxNum=PAC_DATA.length?Math.max(...PAC_DATA.map(p=>p.numero)):0;
-  const next=maxNum+1;
+async function abrirNuevoPac(){
+  const uid=await ensureActiveOngUserContext();
+  if(!uid)return;
+  // Consultar el máximo desde DB para evitar colisiones si el cache está desactualizado
+  const{data:maxRow}=await sb.from('pacientes').select('numero').eq('usuario_id',uid).order('numero',{ascending:false}).limit(1).maybeSingle();
+  const next=(maxRow?.numero||0)+1;
   document.getElementById('np-num-display').textContent='#'+String(next).padStart(3,'0');
   document.getElementById('np-num-val').value=next;
   ['np-nombre','np-apellido','np-repro','np-tel'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
@@ -1455,7 +1457,6 @@ async function guardarNuevoPac(){
   const{error}=await sb.from('pacientes').insert({usuario_id:uid,numero,nombre,apellido,nro_reprocann:repro,tel_contacto:tel});
   if(error){errEl.textContent='Error al guardar: '+error.message;errEl.style.display='block';return;}
   cerrarNuevoPac();
-  PAC_ONG_ID=null;
   await cargarPacientes();
   document.querySelectorAll('.pac-tab')[0]?.click();
 }
