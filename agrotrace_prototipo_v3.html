@@ -413,6 +413,41 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
 .mb-doc-add-btn:hover{border-color:var(--accent);background:var(--dew);}
 .mb-doc-add-form{margin-top:10px;padding:14px;background:var(--dew);border-radius:var(--radius);border:1px solid var(--mist);}
 .mb-doc-add-actions{display:flex;gap:8px;margin-top:12px;}
+/* ── TOGGLE SWITCH ── */
+.sw{position:relative;display:inline-block;width:34px;height:18px;flex-shrink:0;}
+.sw input{opacity:0;width:0;height:0;}
+.sw-track{position:absolute;cursor:pointer;inset:0;background:#ccc;border-radius:18px;transition:.2s;}
+.sw-track:before{position:absolute;content:"";height:12px;width:12px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.2s;box-shadow:0 1px 2px rgba(0,0,0,0.2);}
+.sw input:checked+.sw-track{background:var(--accent);}
+.sw input:checked+.sw-track:before{transform:translateX(16px);}
+.sw input:disabled+.sw-track{opacity:0.45;cursor:default;}
+.toggle-lbl{font-size:0.7rem;min-width:18px;color:var(--sage);}
+.toggle-lbl.on{color:var(--accent);font-weight:500;}
+/* ── PACIENTES ── */
+.pac-header-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px;}
+.pac-rt-toggle{display:flex;align-items:center;gap:7px;font-size:0.75rem;color:var(--sage);white-space:nowrap;}
+.pac-rt-banner{background:var(--dew);border:1px solid var(--mist);border-radius:var(--radius);padding:20px;text-align:center;color:var(--sage);font-size:0.8rem;}
+.pac-cnt{font-size:0.72rem;color:var(--sage);margin-bottom:10px;}
+.pac-table-wrap{background:var(--white);border-radius:var(--radius-lg);border:1px solid rgba(0,0,0,0.07);overflow:hidden;}
+.pac-table{width:100%;border-collapse:collapse;}
+.pac-table th{font-size:0.65rem;font-weight:500;color:var(--sage);text-transform:uppercase;letter-spacing:0.07em;padding:9px 12px;text-align:left;border-bottom:1px solid var(--mist);background:var(--cream);}
+.pac-table td{padding:11px 12px;border-bottom:1px solid rgba(0,0,0,0.05);font-size:0.8rem;vertical-align:middle;}
+.pac-table tr:last-child td{border-bottom:none;}
+.pac-table tbody tr:hover td{background:rgba(237,242,232,0.4);}
+.pac-num{font-weight:600;color:var(--accent);}
+.pac-num.g{color:var(--sage);}
+.pac-name{font-weight:500;color:var(--soil);}
+.pac-name.g{color:var(--sage);}
+.pac-actions{display:flex;align-items:center;gap:5px;justify-content:flex-end;}
+.pac-empty{text-align:center;padding:40px 20px;color:var(--sage);font-size:0.82rem;}
+.pac-num-badge{background:var(--dew);border-radius:var(--radius);padding:10px 14px;margin-bottom:16px;display:flex;align-items:center;gap:10px;}
+.pac-num-badge-lbl{font-size:0.72rem;color:var(--sage);}
+.pac-num-badge-val{font-weight:700;color:var(--accent);font-size:1.1rem;margin-left:auto;}
+.pac-entr-table{width:100%;border-collapse:collapse;}
+.pac-entr-table th{font-size:0.65rem;font-weight:500;color:var(--sage);text-transform:uppercase;letter-spacing:0.06em;padding:7px 10px;text-align:left;border-bottom:1px solid var(--mist);}
+.pac-entr-table td{padding:9px 10px;font-size:0.79rem;border-bottom:1px solid rgba(0,0,0,0.05);}
+.pac-entr-table tr:last-child td{border-bottom:none;}
+.pac-entr-total{font-size:0.72rem;color:var(--sage);margin-top:10px;text-align:right;}
 .mb-doc-view a:hover{text-decoration:underline;}
 /* ── BANNER SUPERVISIÓN RT ── */
 .rt-supervision-bar{background:#1a2f1a;border-bottom:1px solid rgba(142,170,123,0.25);padding:7px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;}
@@ -570,7 +605,12 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
       + Nuevo lote de material básico
     </div>
 
-    <div class="nav-sec">Establecimientos</div>
+    <div class="nav-sec">Mi ONG</div>
+    <div class="nav-it" id="nav-pacientes" onclick="sv('pacientes')">
+      <svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+      Pacientes
+      <span class="nav-badge" id="nav-pac-cnt" style="display:none;">0</span>
+    </div>
     <div class="nav-it" id="nav-establecimientos" onclick="sv('establecimientos')">
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
       Mis establecimientos
@@ -1015,6 +1055,30 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
   <div id="search-results-container"></div>
 </div>
 
+<!-- PACIENTES -->
+<div class="view" id="view-pacientes">
+  <div class="pac-header-row">
+    <div class="sec-tabs">
+      <div class="sec-tab active pac-tab" onclick="switchPacTab('activos',this)">
+        Activos <span class="pac-tab-cnt" id="pac-cnt-act">0</span>
+      </div>
+      <div class="sec-tab pac-tab" onclick="switchPacTab('inactivos',this)">
+        Inactivos <span class="pac-tab-cnt" id="pac-cnt-inact">0</span>
+      </div>
+    </div>
+    <div class="pac-rt-toggle" id="pac-rt-toggle-wrap">
+      <span>Visible al RT</span>
+      <label class="sw">
+        <input type="checkbox" id="pac-visible-rt-input" onchange="toggleVisibleRT(this.checked)">
+        <span class="sw-track"></span>
+      </label>
+      <span class="toggle-lbl" id="pac-visible-rt-lbl">No</span>
+    </div>
+  </div>
+  <div class="pac-cnt" id="pac-list-count"></div>
+  <div id="pac-list"></div>
+</div>
+
 <!-- ESTABLECIMIENTOS -->
 <div class="view" id="view-establecimientos">
   <div id="establ-list-container"><div class="establ-empty">Cargando establecimientos...</div></div>
@@ -1238,6 +1302,232 @@ function volverPortalRT(){
   const retorno = sessionStorage.getItem('agrotrace_rt_return_url') || 'portal_rt.html';
   window.location.href = retorno;
 }
+
+/* ── PACIENTES ── */
+let PAC_DATA=[];
+let PAC_TAB='activos';
+let PAC_EDIT_ID=null;
+let PAC_VISIBLE_RT=false;
+let PAC_ONG_ID=null;
+
+async function cargarPacientes(){
+  const el=document.getElementById('pac-list');
+  if(el)el.innerHTML='<div class="pac-empty">Cargando...</div>';
+  const uid=await ensureActiveOngUserContext();
+  if(!uid){if(el)el.innerHTML='<div class="pac-empty">No se pudo identificar la ONG.</div>';return;}
+
+  // Leer ong_id para el toggle visible_rt
+  const rolActivo=sessionStorage.getItem('agrotrace_role');
+  const ongSupId=sessionStorage.getItem('agrotrace_supervisando_ong_id');
+  if(!PAC_ONG_ID){
+    if(ongSupId){PAC_ONG_ID=ongSupId;}
+    else{
+      const{data:pf}=await sb.from('perfiles').select('ong_id').eq('id',CURRENT_USER.id).single();
+      PAC_ONG_ID=pf?.ong_id||null;
+    }
+  }
+  if(PAC_ONG_ID){
+    const{data:orgD}=await sb.from('organizaciones').select('pacientes_visibles_rt').eq('id',PAC_ONG_ID).single();
+    PAC_VISIBLE_RT=orgD?.pacientes_visibles_rt||false;
+  }
+
+  // RT/SA supervisando y no habilitado → no cargar datos
+  const esONG=rolActivo==='ong';
+  if(!esONG&&!PAC_VISIBLE_RT){
+    _renderPacNoAcceso();return;
+  }
+
+  const{data,error}=await sb.from('pacientes').select('*').eq('usuario_id',uid).order('numero',{ascending:true});
+  if(error){console.error('Error cargando pacientes:',error);PAC_DATA=[];}
+  else{PAC_DATA=data||[];}
+  renderPacientes();
+  _actualizarNavPacCnt();
+}
+
+function _actualizarNavPacCnt(){
+  const cnt=PAC_DATA.filter(p=>p.activo).length;
+  const el=document.getElementById('nav-pac-cnt');
+  if(el){el.textContent=cnt;el.style.display=cnt>0?'':'none';}
+}
+
+function _renderPacNoAcceso(){
+  const el=document.getElementById('pac-list');
+  if(el)el.innerHTML='<div class="pac-rt-banner">La ONG no habilitó la visibilidad de pacientes para el RT.</div>';
+  const tog=document.getElementById('pac-rt-toggle-wrap');
+  if(tog)tog.style.display='none';
+}
+
+function renderPacientes(){
+  // toggle visible RT
+  const rolActivo=sessionStorage.getItem('agrotrace_role');
+  const esONG=rolActivo==='ong';
+  const togWrap=document.getElementById('pac-rt-toggle-wrap');
+  if(togWrap)togWrap.style.display='flex';
+  const togInp=document.getElementById('pac-visible-rt-input');
+  const togLbl=document.getElementById('pac-visible-rt-lbl');
+  if(togInp){togInp.checked=PAC_VISIBLE_RT;togInp.disabled=!esONG;}
+  if(togLbl){togLbl.textContent=PAC_VISIBLE_RT?'Sí':'No';togLbl.className='toggle-lbl'+(PAC_VISIBLE_RT?' on':'');}
+
+  const activos=PAC_DATA.filter(p=>p.activo);
+  const inactivos=PAC_DATA.filter(p=>!p.activo);
+  const cntActEl=document.getElementById('pac-cnt-act');
+  const cntInEl=document.getElementById('pac-cnt-inact');
+  if(cntActEl)cntActEl.textContent=activos.length;
+  if(cntInEl)cntInEl.textContent=inactivos.length;
+
+  const lista=PAC_TAB==='activos'?activos:inactivos;
+  const cntLbl=document.getElementById('pac-list-count');
+  const tipo=PAC_TAB==='activos'?'activo':'inactivo';
+  if(cntLbl)cntLbl.textContent=`${lista.length} paciente${lista.length!==1?'s':''} ${tipo}${lista.length!==1?'s':''}`;
+
+  const el=document.getElementById('pac-list');
+  if(!el)return;
+  if(!lista.length){
+    el.innerHTML=`<div class="pac-empty">${PAC_TAB==='activos'?'No hay pacientes activos. Usá el botón "+ Nuevo Paciente" para agregar uno.':'No hay pacientes inactivos.'}</div>`;
+    return;
+  }
+  el.innerHTML=`<div class="pac-table-wrap"><table class="pac-table">
+    <thead><tr>
+      <th>N° Pac.</th><th>Nombre y Apellido</th><th>N° REPROCANN</th><th>Tel. contacto</th>
+      <th style="text-align:right;padding-right:16px;">Acciones</th>
+    </tr></thead>
+    <tbody>${lista.map(p=>_pacRow(p)).join('')}</tbody>
+  </table></div>`;
+}
+
+function _pacRow(p){
+  const a=p.activo;
+  const btnEstado=a
+    ?`<button class="btn btn-sm" style="background:#fff;color:var(--error);border:1px solid rgba(185,74,58,0.25);" onclick="toggleEstadoPac('${p.id}')">Desactivar</button>`
+    :`<button class="btn btn-sm" style="background:#fff;color:var(--accent);border:1px solid rgba(78,124,63,0.3);" onclick="toggleEstadoPac('${p.id}')">Activar</button>`;
+  return`<tr${a?'':' style="opacity:0.6"'}>
+    <td><span class="pac-num${a?'':' g'}">#${String(p.numero).padStart(3,'0')}</span></td>
+    <td><span class="pac-name${a?'':' g'}">${esc(p.apellido)}, ${esc(p.nombre)}</span></td>
+    <td><span style="font-family:monospace;font-size:0.77rem;">${esc(p.nro_reprocann)}</span></td>
+    <td><span style="font-size:0.77rem;color:var(--sage);">${esc(p.tel_contacto||'—')}</span></td>
+    <td><div class="pac-actions">
+      <button class="btn btn-secondary btn-sm" onclick="abrirEditarPac('${p.id}')">✏ Editar</button>
+      <button class="icon-btn" title="Ver entregas" onclick="abrirEntregasPac('${p.id}')">
+        <svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:var(--sage)"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg>
+      </button>
+      ${btnEstado}
+    </div></td>
+  </tr>`;
+}
+
+function switchPacTab(tab,el){
+  PAC_TAB=tab;
+  document.querySelectorAll('.pac-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  renderPacientes();
+}
+
+async function toggleVisibleRT(val){
+  PAC_VISIBLE_RT=val;
+  const lbl=document.getElementById('pac-visible-rt-lbl');
+  if(lbl){lbl.textContent=val?'Sí':'No';lbl.className='toggle-lbl'+(val?' on':'');}
+  if(PAC_ONG_ID){
+    const{error}=await sb.from('organizaciones').update({pacientes_visibles_rt:val}).eq('id',PAC_ONG_ID);
+    if(error)console.warn('No se pudo guardar visible_rt:',error.message);
+  }
+}
+
+function abrirNuevoPac(){
+  const maxNum=PAC_DATA.length?Math.max(...PAC_DATA.map(p=>p.numero)):0;
+  const next=maxNum+1;
+  document.getElementById('np-num-display').textContent='#'+String(next).padStart(3,'0');
+  document.getElementById('np-num-val').value=next;
+  ['np-nombre','np-apellido','np-repro','np-tel'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('np-error').style.display='none';
+  document.getElementById('modal-nuevo-pac').style.display='flex';
+}
+function cerrarNuevoPac(){document.getElementById('modal-nuevo-pac').style.display='none';}
+
+async function guardarNuevoPac(){
+  const nombre  =document.getElementById('np-nombre').value.trim();
+  const apellido=document.getElementById('np-apellido').value.trim();
+  const repro   =document.getElementById('np-repro').value.trim();
+  const tel     =document.getElementById('np-tel').value.trim()||null;
+  const numero  =parseInt(document.getElementById('np-num-val').value);
+  const errEl   =document.getElementById('np-error');
+  if(!nombre||!apellido||!repro){errEl.textContent='Completá los campos obligatorios.';errEl.style.display='block';return;}
+  errEl.style.display='none';
+  const uid=await ensureActiveOngUserContext();
+  if(!uid)return;
+  const{error}=await sb.from('pacientes').insert({usuario_id:uid,numero,nombre,apellido,nro_reprocann:repro,tel_contacto:tel});
+  if(error){errEl.textContent='Error al guardar: '+error.message;errEl.style.display='block';return;}
+  cerrarNuevoPac();
+  PAC_ONG_ID=null;
+  await cargarPacientes();
+  document.querySelectorAll('.pac-tab')[0]?.click();
+}
+
+function abrirEditarPac(id){
+  const p=PAC_DATA.find(x=>x.id===id);
+  if(!p)return;
+  PAC_EDIT_ID=id;
+  document.getElementById('ep-sub').textContent=`Paciente #${String(p.numero).padStart(3,'0')}`;
+  document.getElementById('ep-nombre').value  =p.nombre;
+  document.getElementById('ep-apellido').value=p.apellido;
+  document.getElementById('ep-repro').value   =p.nro_reprocann;
+  document.getElementById('ep-tel').value     =p.tel_contacto||'';
+  document.getElementById('ep-error').style.display='none';
+  document.getElementById('modal-editar-pac').style.display='flex';
+}
+function cerrarEditarPac(){document.getElementById('modal-editar-pac').style.display='none';}
+
+async function guardarEditarPac(){
+  const nombre  =document.getElementById('ep-nombre').value.trim();
+  const apellido=document.getElementById('ep-apellido').value.trim();
+  const repro   =document.getElementById('ep-repro').value.trim();
+  const tel     =document.getElementById('ep-tel').value.trim()||null;
+  const errEl   =document.getElementById('ep-error');
+  if(!nombre||!apellido||!repro){errEl.textContent='Completá los campos obligatorios.';errEl.style.display='block';return;}
+  errEl.style.display='none';
+  const{error}=await sb.from('pacientes').update({nombre,apellido,nro_reprocann:repro,tel_contacto:tel}).eq('id',PAC_EDIT_ID);
+  if(error){errEl.textContent='Error al guardar: '+error.message;errEl.style.display='block';return;}
+  cerrarEditarPac();
+  await cargarPacientes();
+}
+
+async function toggleEstadoPac(id){
+  const p=PAC_DATA.find(x=>x.id===id);
+  if(!p)return;
+  const accion=p.activo?'desactivar':'activar';
+  if(!confirm(`¿Confirmás ${accion} a ${p.nombre} ${p.apellido}?`))return;
+  const{error}=await sb.from('pacientes').update({activo:!p.activo}).eq('id',id);
+  if(error){alert('Error: '+error.message);return;}
+  await cargarPacientes();
+}
+
+async function abrirEntregasPac(id){
+  const p=PAC_DATA.find(x=>x.id===id);
+  if(!p)return;
+  document.getElementById('entr-pac-sub').textContent=`${esc(p.apellido)}, ${esc(p.nombre)} — #${String(p.numero).padStart(3,'0')}`;
+  document.getElementById('entr-pac-body').innerHTML='<div class="pac-empty" style="padding:16px">Cargando...</div>';
+  document.getElementById('modal-entregas-pac').style.display='flex';
+  const{data,error}=await sb.from('entregas')
+    .select('fecha_entrega,cantidad_entregada,nro_reprocann,flores_cosechadas!inner(lotes_produccion!inner(nombre_base))')
+    .eq('paciente_id',id)
+    .order('fecha_entrega',{ascending:false});
+  const body=document.getElementById('entr-pac-body');
+  if(error||!data?.length){
+    body.innerHTML='<div class="pac-empty" style="padding:20px 0">Sin entregas registradas para este paciente.</div>';return;
+  }
+  const fmt=dt=>dt?new Date(dt).toLocaleDateString('es-AR',{day:'numeric',month:'short',year:'numeric'}):'—';
+  const total=data.reduce((s,e)=>s+(parseFloat(e.cantidad_entregada)||0),0);
+  body.innerHTML=`<table class="pac-entr-table">
+    <thead><tr><th>Fecha</th><th>Lote</th><th>N° REPROCANN entrega</th><th style="text-align:right">Cantidad</th></tr></thead>
+    <tbody>${data.map(e=>`<tr>
+      <td>${fmt(e.fecha_entrega)}</td>
+      <td>${esc(e.flores_cosechadas?.lotes_produccion?.nombre_base||'—')}</td>
+      <td style="font-family:monospace;font-size:0.75rem">${esc(e.nro_reprocann||'—')}</td>
+      <td style="text-align:right;color:var(--accent);font-weight:500">${e.cantidad_entregada} g</td>
+    </tr>`).join('')}</tbody>
+  </table>
+  <div class="pac-entr-total">Total entregado: <strong>${total} g</strong></div>`;
+}
+function cerrarEntregasPac(){document.getElementById('modal-entregas-pac').style.display='none';}
 
 /* ── CARGA LOTES ── */
 async function cargarLotes(){
@@ -2595,7 +2885,7 @@ function closeSidebar(){
 }
 let PREV_VIEW='lotes';
 let formDirty=false;
-const SAFE_VIEWS=['dashboard','lotes','stock','busqueda','organizaciones','establecimientos'];
+const SAFE_VIEWS=['dashboard','lotes','stock','busqueda','organizaciones','establecimientos','pacientes'];
 function sv(id){
   closeSidebar();
   if(SAFE_VIEWS.includes(id))formDirty=false;
@@ -2611,7 +2901,8 @@ function sv(id){
     stock:['Stock de material básico','Semillas · Esquejes · Plantas Madre','<button class="btn btn-primary" onclick="sv(\'nuevo-material\')">+ Nuevo lote de material básico</button>'],
     'nuevo-material':['Nuevo lote de material básico','Registrar ingreso de material',''],
     busqueda:['Búsqueda de lotes','Resultados de búsqueda por nombre',''],
-establecimientos:['Mis establecimientos','Sedes de producción registradas','<button class="btn btn-primary" onclick="abrirFormEstabl(null)">+ Nuevo establecimiento</button>'],
+    pacientes:['Pacientes','Registro de pacientes REPROCANN','<button class="btn btn-primary" onclick="abrirNuevoPac()">+ Nuevo Paciente</button>'],
+    establecimientos:['Mis establecimientos','Sedes de producción registradas','<button class="btn btn-primary" onclick="abrirFormEstabl(null)">+ Nuevo establecimiento</button>'],
     'establ-form':['','',''],
   };
   if(mp[id]){document.getElementById('tt').textContent=mp[id][0];document.getElementById('ts').textContent=mp[id][1];document.getElementById('ta').innerHTML=mp[id][2];}
@@ -2628,7 +2919,8 @@ establecimientos:['Mis establecimientos','Sedes de producción registradas','<bu
   if(id==='lotes'){rAll('lotes-list','todos');}
   if(id==='dashboard')rAll('dash-lotes','todos');
   if(id==='stock')renderStock();
-if(id==='establecimientos')cargarEstablecimientos();
+  if(id==='pacientes')cargarPacientes();
+  if(id==='establecimientos')cargarEstablecimientos();
   if(id==='nuevo-material')cargarEstablecimientosSelect('nm-establ');
   if(id==='nuevo-lote')rW();
 }
@@ -3968,6 +4260,65 @@ initApp();
     <div class="ab" style="margin-top:16px;">
       <button class="btn btn-secondary" onclick="cerrarModalSublote()">Cancelar</button>
       <button class="btn btn-primary" onclick="crearSublote()">Crear sublote →</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL NUEVO PACIENTE -->
+<div id="modal-nuevo-pac" class="modal-overlay" style="display:none;" onclick="if(event.target===this)cerrarNuevoPac()">
+  <div class="modal-box" style="max-width:460px;">
+    <div class="modal-title">Nuevo Paciente</div>
+    <div class="modal-sub">Los campos marcados con * son obligatorios</div>
+    <div class="pac-num-badge">
+      <span class="pac-num-badge-lbl">Número asignado automáticamente:</span>
+      <span class="pac-num-badge-val" id="np-num-display">#001</span>
+      <input type="hidden" id="np-num-val"/>
+    </div>
+    <div style="display:grid;gap:12px;">
+      <div class="g2">
+        <div class="field"><label>Nombre<span class="req">*</span></label><input type="text" id="np-nombre" placeholder="Ej: María"/></div>
+        <div class="field"><label>Apellido<span class="req">*</span></label><input type="text" id="np-apellido" placeholder="Ej: González"/></div>
+      </div>
+      <div class="field"><label>N° REPROCANN<span class="req">*</span></label><input type="text" id="np-repro" placeholder="Ej: REP-2024-00456"/></div>
+      <div class="field"><label>Teléfono de contacto<span class="opt">opcional</span></label><input type="tel" id="np-tel" placeholder="Ej: +54 11 1234-5678"/></div>
+    </div>
+    <div class="erb" id="np-error" style="display:none;margin-top:8px;"></div>
+    <div class="ab" style="margin-top:18px;">
+      <button class="btn btn-secondary" onclick="cerrarNuevoPac()">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarNuevoPac()">Guardar paciente</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EDITAR PACIENTE -->
+<div id="modal-editar-pac" class="modal-overlay" style="display:none;" onclick="if(event.target===this)cerrarEditarPac()">
+  <div class="modal-box" style="max-width:460px;">
+    <div class="modal-title">Editar Paciente</div>
+    <div class="modal-sub" id="ep-sub"></div>
+    <div style="display:grid;gap:12px;">
+      <div class="g2">
+        <div class="field"><label>Nombre<span class="req">*</span></label><input type="text" id="ep-nombre"/></div>
+        <div class="field"><label>Apellido<span class="req">*</span></label><input type="text" id="ep-apellido"/></div>
+      </div>
+      <div class="field"><label>N° REPROCANN<span class="req">*</span></label><input type="text" id="ep-repro"/></div>
+      <div class="field"><label>Teléfono de contacto<span class="opt">opcional</span></label><input type="tel" id="ep-tel"/></div>
+    </div>
+    <div class="erb" id="ep-error" style="display:none;margin-top:8px;"></div>
+    <div class="ab" style="margin-top:18px;">
+      <button class="btn btn-secondary" onclick="cerrarEditarPac()">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarEditarPac()">Guardar cambios</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ENTREGAS PACIENTE -->
+<div id="modal-entregas-pac" class="modal-overlay" style="display:none;" onclick="if(event.target===this)cerrarEntregasPac()">
+  <div class="modal-box" style="max-width:560px;">
+    <div class="modal-title">Historial de entregas</div>
+    <div class="modal-sub" id="entr-pac-sub"></div>
+    <div id="entr-pac-body"></div>
+    <div class="ab" style="margin-top:16px;">
+      <button class="btn btn-secondary" onclick="cerrarEntregasPac()">Cerrar</button>
     </div>
   </div>
 </div>
