@@ -449,6 +449,14 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
 .pac-entr-table tr:last-child td{border-bottom:none;}
 .pac-entr-total{font-size:0.72rem;color:var(--sage);margin-top:10px;text-align:right;}
 .mb-doc-view a:hover{text-decoration:underline;}
+.ac-wrap{position:relative;}
+.ac-list{position:absolute;z-index:220;left:0;right:0;top:calc(100% + 2px);background:#fff;border:1px solid var(--mist);border-radius:var(--radius);box-shadow:0 4px 14px rgba(0,0,0,.1);max-height:196px;overflow-y:auto;margin:0;padding:4px 0;list-style:none;display:none;}
+.ac-list.open{display:block;}
+.ac-list li{padding:7px 11px;cursor:pointer;font-size:0.79rem;display:flex;align-items:center;gap:9px;}
+.ac-list li:hover,.ac-list li.ac-on{background:var(--dew);}
+.ac-repro{font-family:monospace;font-size:0.74rem;color:var(--accent);font-weight:500;flex-shrink:0;}
+.ac-pname{color:var(--soil);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ac-pnum{font-size:0.7rem;color:var(--sage);flex-shrink:0;}
 /* ── BANNER SUPERVISIÓN RT ── */
 .rt-supervision-bar{background:#1a2f1a;border-bottom:1px solid rgba(142,170,123,0.25);padding:7px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;}
 .rt-supervision-bar-left{display:flex;align-items:center;gap:8px;font-size:0.75rem;color:var(--mist);}
@@ -1309,6 +1317,7 @@ let PAC_TAB='activos';
 let PAC_EDIT_ID=null;
 let PAC_VISIBLE_RT=false;
 let PAC_ONG_ID=null;
+let _pac_ac_data=[];
 
 async function cargarPacientes(){
   const el=document.getElementById('pac-list');
@@ -2363,7 +2372,7 @@ function panelFlores(){
         <div class="field"><label>Cantidad (gramos)<span class="req">*</span></label><input type="number" id="ent-cantidad" placeholder="0" min="0.1" step="0.1"/></div>
       </div>
       <div class="field"><label>Nombre de quien entrega<span class="req">*</span></label><input type="text" id="ent-entregador" placeholder="Nombre del responsable de la entrega"/></div>
-      <div class="field"><label>Nro. REPROCANN del paciente<span class="opt">opcional</span></label><input type="text" id="ent-reprocann" placeholder="Ej: 0001-2024-RPC"/></div>
+      <div class="field"><label>Nro. REPROCANN del paciente<span class="opt">opcional</span></label><div class="ac-wrap"><input type="text" id="ent-reprocann" placeholder="Ej: 0001-2024-RPC" autocomplete="off" oninput="acRepro(this)" onfocus="acRepro(this)" onkeydown="acReproKey(event)" onblur="setTimeout(()=>{const l=document.getElementById('ent-reprocann-list');if(l){l.innerHTML='';l.classList.remove('open');}},160)"/><ul class="ac-list" id="ent-reprocann-list"></ul></div></div>
       <div class="field"><label>Notas<span class="opt">opcional</span></label><input type="text" id="ent-notas" placeholder="Observaciones..."/></div>
       <div class="ib" style="margin-bottom:10px;">Stock disponible: <strong id="ent-stock-disp">—</strong> g</div>
       <div class="ab">
@@ -2662,6 +2671,37 @@ async function guardarCorreccion(entregaId,fcId){
   actualizarMetricasDash();calcularAlertas();
 }
 
+async function _loadPacAc(){
+  const uid=await ensureActiveOngUserContext();
+  if(!uid){_pac_ac_data=[];return;}
+  const{data}=await sb.from('pacientes').select('id,numero,nombre,apellido,nro_reprocann,activo').eq('usuario_id',uid).order('numero',{ascending:true});
+  _pac_ac_data=(data||[]).filter(p=>p.activo!==false);
+}
+function acRepro(input){
+  const q=(input.value||'').trim().toLowerCase();
+  const list=document.getElementById('ent-reprocann-list');
+  if(!list)return;
+  const matches=q
+    ?_pac_ac_data.filter(p=>(p.nro_reprocann||'').toLowerCase().includes(q)||(p.nombre||'').toLowerCase().includes(q)||(p.apellido||'').toLowerCase().includes(q))
+    :_pac_ac_data.slice(0,8);
+  if(!matches.length){list.innerHTML='';list.classList.remove('open');return;}
+  list.innerHTML=matches.slice(0,8).map(p=>`<li data-v="${esc(p.nro_reprocann)}" onclick="acReproSel(this.dataset.v)"><span class="ac-pnum">#${String(p.numero).padStart(3,'0')}</span><span class="ac-repro">${esc(p.nro_reprocann)}</span><span class="ac-pname">${esc(p.nombre)} ${esc(p.apellido)}</span></li>`).join('');
+  list.classList.add('open');
+}
+function acReproSel(v){
+  const el=document.getElementById('ent-reprocann');if(el)el.value=v;
+  const list=document.getElementById('ent-reprocann-list');if(list){list.innerHTML='';list.classList.remove('open');}
+}
+function acReproKey(e){
+  const list=document.getElementById('ent-reprocann-list');
+  if(!list||!list.classList.contains('open'))return;
+  const items=[...list.querySelectorAll('li')];
+  const cur=list.querySelector('li.ac-on');
+  if(e.key==='ArrowDown'){e.preventDefault();const nx=cur?items[items.indexOf(cur)+1]:items[0];if(cur)cur.classList.remove('ac-on');if(nx)nx.classList.add('ac-on');}
+  else if(e.key==='ArrowUp'){e.preventDefault();const pv=cur?items[items.indexOf(cur)-1]:items[items.length-1];if(cur)cur.classList.remove('ac-on');if(pv)pv.classList.add('ac-on');}
+  else if(e.key==='Enter'&&cur){e.preventDefault();cur.click();}
+  else if(e.key==='Escape'){list.innerHTML='';list.classList.remove('open');}
+}
 function abrirFormEntrega(){
   const btn=document.getElementById('btn-abrir-entrega');
   if(btn){btn.style.background='var(--mist)';btn.style.color='var(--accent)';btn.style.borderColor='var(--accent)';}
@@ -2679,6 +2719,7 @@ function abrirFormEntrega(){
   const fechaEl=document.getElementById('ent-fecha');
   if(fechaEl)fechaEl.value=new Date().toISOString().split('T')[0];
   document.getElementById('ent-entregador')?.focus();
+  _loadPacAc();
 }
 
 function cerrarFormEntrega(){
@@ -2687,6 +2728,7 @@ function cerrarFormEntrega(){
   const form=document.getElementById('form-entrega');
   if(form)form.style.display='none';
   ['ent-reprocann','ent-fecha','ent-cantidad','ent-entregador','ent-notas'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  const acL=document.getElementById('ent-reprocann-list');if(acL){acL.innerHTML='';acL.classList.remove('open');}
 }
 
 async function guardarEntrega(){
