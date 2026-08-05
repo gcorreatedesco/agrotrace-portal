@@ -171,6 +171,26 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);c
   .rt-metrics{grid-template-columns:1fr 1fr;}
   .rt-grid{grid-template-columns:1fr;}
 }
+
+/* ── DIAGNÓSTICO ── */
+.diag-grid{display:flex;flex-direction:column;gap:10px;max-width:640px;}
+.diag-card{background:var(--white);border:1px solid rgba(0,0,0,0.07);border-radius:var(--radius-lg);padding:16px 18px;display:flex;align-items:flex-start;gap:14px;transition:border-color var(--trans);}
+.diag-card.ok{border-color:rgba(78,124,63,0.35);}
+.diag-card.warn{border-color:var(--amber-light);}
+.diag-card.err{border-color:rgba(185,74,58,0.4);}
+.diag-status{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;background:rgba(0,0,0,0.04);font-weight:500;}
+.diag-status.ok{background:var(--dew);color:var(--accent);}
+.diag-status.warn{background:var(--amber-bg);color:var(--amber);}
+.diag-status.err{background:var(--error-bg);color:var(--error);}
+.diag-info{flex:1;}
+.diag-name{font-size:0.85rem;font-weight:500;color:var(--soil);margin-bottom:3px;}
+.diag-name code{font-family:monospace;font-size:0.78rem;background:rgba(0,0,0,0.06);padding:1px 6px;border-radius:3px;}
+.diag-msg{font-size:0.75rem;color:var(--sage);}
+.diag-msg.ok{color:var(--accent);}
+.diag-msg.err{color:var(--error);}
+.diag-msg.warn{color:var(--amber);}
+.diag-fix{font-size:0.72rem;color:var(--bark);margin-top:8px;line-height:1.65;background:var(--amber-bg);padding:8px 10px;border-radius:var(--radius);border-left:3px solid var(--amber-light);}
+.diag-fix code{font-family:monospace;font-size:0.7rem;background:rgba(0,0,0,0.08);padding:1px 5px;border-radius:3px;}
 </style>
 </head>
 <body>
@@ -219,6 +239,10 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);c
       <div class="nav-it" id="nav-variedades" onclick="showView('view-variedades',this)">
         <svg viewBox="0 0 24 24"><path d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z"/></svg>
         Variedades RNC
+      </div>
+      <div class="nav-it" id="nav-diagnostico" onclick="showView('view-diagnostico',this)">
+        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+        Diagnóstico
       </div>
     </div>
 
@@ -382,6 +406,43 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);c
               <tr><td colspan="5" style="color:var(--sage);text-align:center;padding:24px;">Cargando...</td></tr>
             </tbody>
           </table>
+        </div>
+      </div>
+
+      <!-- ── VIEW: DIAGNÓSTICO ── -->
+      <div class="view" id="view-diagnostico">
+        <div class="sec-header">
+          <div>
+            <span class="sec-title">Diagnóstico del sistema</span>
+          </div>
+          <button class="btn-primary" id="btn-diag" onclick="runDiag()">
+            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+            Ejecutar diagnóstico
+          </button>
+        </div>
+        <p style="font-size:0.82rem;color:var(--sage);margin-bottom:20px;line-height:1.6;">Verifica que los componentes críticos del sistema estén respondiendo. No crea ni modifica datos.</p>
+        <div class="diag-grid">
+          <div class="diag-card" id="diag-card-db">
+            <div class="diag-status" id="diag-st-db">—</div>
+            <div class="diag-info">
+              <div class="diag-name">Base de datos (Supabase)</div>
+              <div class="diag-msg" id="diag-msg-db">Sin verificar — presionar "Ejecutar diagnóstico"</div>
+            </div>
+          </div>
+          <div class="diag-card" id="diag-card-ong">
+            <div class="diag-status" id="diag-st-ong">—</div>
+            <div class="diag-info">
+              <div class="diag-name">Edge Function <code>crear-ong</code></div>
+              <div class="diag-msg" id="diag-msg-ong">Sin verificar</div>
+            </div>
+          </div>
+          <div class="diag-card" id="diag-card-rt">
+            <div class="diag-status" id="diag-st-rt">—</div>
+            <div class="diag-info">
+              <div class="diag-name">Edge Function <code>crear-rt</code></div>
+              <div class="diag-msg" id="diag-msg-rt">Sin verificar</div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -831,7 +892,8 @@ function showView(viewId, navEl) {
     'view-dashboard':  ['Dashboard',               'Vista global del sistema'],
     'view-rts':        ['Responsables Técnicos',    'Usuarios con rol de supervisión'],
     'view-ongs':       ['Asociaciones Civiles',     'Organizaciones registradas en el sistema'],
-    'view-variedades': ['Variedades RNC',            'Catálogo INASE de cultivares registrados'],
+    'view-variedades':   ['Variedades RNC',             'Catálogo INASE de cultivares registrados'],
+    'view-diagnostico':  ['Diagnóstico del sistema',   'Verificación de conectividad y servicios'],
   };
   const t = titles[viewId];
   if (t) {
@@ -1233,6 +1295,7 @@ async function crearRT() {
       body: JSON.stringify({ nombre, email, password }),
     });
 
+    if (res.status === 404) throw new Error('Función crear-rt no encontrada (404). Requiere re-deploy en Supabase Dashboard. Usar sección Diagnóstico para más detalles.');
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Error al crear RT');
 
@@ -1241,7 +1304,9 @@ async function crearRT() {
     await cargarRTs();
     actualizarMetricas();
   } catch (e) {
-    errEl.textContent = e.message;
+    let msg = e.message;
+    if (e instanceof TypeError) msg = 'Error de red al conectar con crear-rt (probable bloqueo CORS/JWT). Usar sección Diagnóstico del sistema para más detalles.';
+    errEl.textContent = msg;
     errEl.style.display = 'block';
   } finally {
     btn.innerHTML = '<svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:currentColor;"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg> Crear RT';
@@ -1326,6 +1391,7 @@ async function crearONG() {
       }),
     });
 
+    if (res.status === 404) throw new Error('Función crear-ong no encontrada (404). Usar sección Diagnóstico para más detalles.');
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Error al crear ONG');
 
@@ -1334,7 +1400,9 @@ async function crearONG() {
     await cargarONGs();
     actualizarMetricas();
   } catch (e) {
-    errEl.textContent = e.message;
+    let msg = e.message;
+    if (e instanceof TypeError) msg = 'Error de red al conectar con crear-ong (probable bloqueo CORS/JWT). Usar sección Diagnóstico del sistema para más detalles.';
+    errEl.textContent = msg;
     errEl.style.display = 'block';
   } finally {
     btn.innerHTML = '<svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:currentColor;"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg> Crear ONG';
@@ -1579,6 +1647,84 @@ async function guardarDatosRT() {
     const btn2 = document.getElementById('btn-guardar-drt');
     if (btn2) { btn2.textContent = 'Guardar datos'; btn2.disabled = false; }
   }
+}
+
+/* ── DIAGNÓSTICO DE CONECTIVIDAD ── */
+async function runDiag() {
+  const btn = document.getElementById('btn-diag');
+  btn.textContent = 'Verificando...'; btn.disabled = true;
+
+  function setDiag(prefix, cls, icon, msg, fix) {
+    const card  = document.getElementById('diag-card-' + prefix);
+    const st    = document.getElementById('diag-st-'   + prefix);
+    const msgEl = document.getElementById('diag-msg-'  + prefix);
+    card.className  = 'diag-card ' + cls;
+    st.className    = 'diag-status ' + cls;
+    st.textContent  = icon;
+    msgEl.className = 'diag-msg ' + cls;
+    msgEl.textContent = msg;
+    const old = card.querySelector('.diag-fix');
+    if (old) old.remove();
+    if (fix) {
+      const fixEl = document.createElement('div');
+      fixEl.className = 'diag-fix';
+      fixEl.innerHTML = fix;
+      card.querySelector('.diag-info').appendChild(fixEl);
+    }
+  }
+
+  async function testEdgeFn(fnName, prefix) {
+    setDiag(prefix, '', '…', 'Verificando...');
+    try {
+      const { data: { session } } = await sb.auth.getSession();
+      const token = session?.access_token || SUPABASE_ANON;
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/${fnName}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'apikey': SUPABASE_ANON,
+        },
+        body: JSON.stringify({}),
+      });
+      if (res.status === 400 || res.status === 403 || res.status === 200) {
+        setDiag(prefix, 'ok', '✓', 'Función alcanzable y respondiendo correctamente.');
+      } else if (res.status === 404) {
+        setDiag(prefix, 'err', '✗', `HTTP 404 — función no encontrada con ese nombre.`,
+          `La Edge Function <code>${fnName}</code> no está deployada con ese nombre exacto. Eliminar la existente en Supabase Dashboard → Edge Functions y re-deployar: <code>supabase functions deploy ${fnName}</code>`);
+      } else if (res.status === 401) {
+        setDiag(prefix, 'warn', '⚠', `HTTP 401 — función alcanzable pero token inválido.`);
+      } else {
+        setDiag(prefix, 'warn', '⚠', `HTTP ${res.status} — respuesta inesperada.`);
+      }
+    } catch (e) {
+      if (e instanceof TypeError) {
+        setDiag(prefix, 'err', '✗', 'Error de red — preflight CORS bloqueado.',
+          `JWT Verification está activo en el gateway de Supabase. Ir a Dashboard → Edge Functions → <code>${fnName}</code> → Settings → desactivar "Enforce JWT Verification". La verificación de rol la hace la función internamente.`);
+      } else {
+        setDiag(prefix, 'err', '✗', 'Error: ' + e.message);
+      }
+    }
+  }
+
+  // Test 1: DB
+  setDiag('db', '', '…', 'Verificando...');
+  try {
+    const { error } = await sb.from('organizaciones').select('id', { count: 'exact', head: true });
+    if (error) throw error;
+    setDiag('db', 'ok', '✓', 'Conexión a la base de datos activa y respondiendo.');
+  } catch (e) {
+    setDiag('db', 'err', '✗', 'Error de conexión: ' + e.message);
+  }
+
+  // Test 2 & 3: Edge Functions en paralelo
+  await Promise.all([
+    testEdgeFn('crear-ong', 'ong'),
+    testEdgeFn('crear-rt',  'rt'),
+  ]);
+
+  btn.innerHTML = '<svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:currentColor;"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg> Ejecutar diagnóstico';
+  btn.disabled = false;
 }
 
 /* ── CERRAR SESIÓN ── */
