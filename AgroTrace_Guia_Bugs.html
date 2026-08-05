@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AgroTrace — Guía de Bugs: Concurrencia y Estado</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --soil:#2C1F0E;--bark:#4A3520;--sage:#6B7F5E;--leaf:#8EAA7B;--mist:#C8D9BC;
+  --dew:#EDF2E8;--cream:#F7F4EF;--white:#FFFFFF;--accent:#4E7C3F;
+  --amber:#854F0B;--amber-bg:#FAEEDA;--amber-light:#FAC775;
+  --purple:#534AB7;--purple-bg:#EEEDFE;
+  --error:#B94A3A;--error-bg:#FAECE7;
+  --radius:6px;--radius-lg:10px;
+}
+body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--soil);font-size:15px;line-height:1.7;}
+
+/* ── HEADER ── */
+.doc-header{background:var(--soil);padding:48px 0 40px;text-align:center;}
+.doc-header-inner{max-width:760px;margin:0 auto;padding:0 24px;}
+.doc-brand{font-size:0.72rem;font-weight:500;letter-spacing:0.18em;text-transform:uppercase;color:var(--leaf);margin-bottom:12px;}
+.doc-title{font-family:'DM Serif Display',serif;font-size:2.2rem;color:var(--white);line-height:1.2;margin-bottom:12px;}
+.doc-subtitle{font-size:0.9rem;color:var(--mist);font-weight:300;max-width:520px;margin:0 auto;}
+.doc-meta{margin-top:20px;font-size:0.72rem;color:rgba(255,255,255,0.3);letter-spacing:0.05em;}
+
+/* ── LAYOUT ── */
+.doc-body{max-width:760px;margin:0 auto;padding:48px 24px;}
+
+/* ── TOC ── */
+.toc{background:var(--white);border:1px solid rgba(0,0,0,0.07);border-radius:var(--radius-lg);padding:24px 28px;margin-bottom:48px;}
+.toc-title{font-family:'DM Serif Display',serif;font-size:1rem;color:var(--soil);margin-bottom:14px;}
+.toc-list{list-style:none;display:flex;flex-direction:column;gap:6px;}
+.toc-list li a{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--bark);font-size:0.85rem;transition:color 0.15s;}
+.toc-list li a:hover{color:var(--accent);}
+.toc-badge{font-size:0.65rem;font-weight:500;padding:2px 8px;border-radius:10px;flex-shrink:0;}
+.alta{background:var(--error-bg);color:var(--error);}
+.media{background:var(--amber-bg);color:var(--amber);}
+.baja{background:var(--dew);color:var(--accent);}
+.sql{background:var(--purple-bg);color:var(--purple);}
+
+/* ── SECCIONES ── */
+.intro{margin-bottom:48px;}
+.intro p{color:var(--bark);margin-bottom:14px;}
+.intro p:last-child{margin-bottom:0;}
+
+.cat{margin-bottom:56px;}
+.cat-header{display:flex;align-items:flex-start;gap:14px;margin-bottom:20px;padding-bottom:16px;border-bottom:2px solid var(--dew);}
+.cat-number{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'DM Serif Display',serif;font-size:1.1rem;color:var(--white);flex-shrink:0;}
+.n-alta{background:var(--error);}
+.n-media{background:var(--amber);}
+.n-baja{background:var(--sage);}
+.n-sql{background:var(--purple);}
+.cat-title-wrap{flex:1;}
+.cat-title{font-family:'DM Serif Display',serif;font-size:1.35rem;color:var(--soil);margin-bottom:4px;}
+.cat-english{font-size:0.72rem;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;color:var(--sage);}
+
+.cat h3{font-family:'DM Serif Display',serif;font-size:1rem;color:var(--soil);margin:24px 0 8px;}
+.cat p{color:var(--bark);margin-bottom:14px;}
+.cat ul{margin:0 0 14px 18px;color:var(--bark);}
+.cat ul li{margin-bottom:6px;}
+
+/* ── ANALOGÍA ── */
+.analogy{background:var(--dew);border-radius:var(--radius-lg);padding:16px 20px;margin:0 0 18px;border-left:3px solid var(--accent);}
+.analogy-label{font-size:0.65rem;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent);margin-bottom:5px;}
+.analogy p{color:var(--bark);font-size:0.875rem;margin:0;}
+
+/* ── CODE BLOCKS ── */
+.code-wrap{margin:16px 0 20px;}
+.code-label{font-size:0.65rem;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;color:var(--sage);margin-bottom:6px;}
+.code-label.before{color:var(--error);}
+.code-label.after{color:var(--accent);}
+pre{background:var(--soil);border-radius:var(--radius-lg);padding:18px 20px;overflow-x:auto;font-family:monospace;font-size:0.8rem;line-height:1.65;color:#d4c9b8;}
+.c-comment{color:#6b7f5e;}
+.c-kw{color:#8EAA7B;}
+.c-fn{color:#c9a96e;}
+.c-str{color:#c8d9bc;}
+.c-num{color:#b88a5a;}
+.c-err{color:#e08070;}
+.c-ok{color:#8EAA7B;}
+
+/* ── AFECTADOS ── */
+.affected{background:var(--cream);border:1px solid var(--mist);border-radius:var(--radius);padding:12px 16px;margin:14px 0 0;}
+.affected-label{font-size:0.65rem;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;color:var(--sage);margin-bottom:6px;}
+.affected-list{display:flex;flex-wrap:wrap;gap:6px;}
+.affected-item{font-size:0.75rem;background:var(--white);border:1px solid var(--mist);padding:3px 10px;border-radius:10px;color:var(--bark);font-family:monospace;}
+
+/* ── SEVERITY BLOCK ── */
+.severity{display:inline-flex;align-items:center;gap:6px;font-size:0.72rem;font-weight:500;padding:4px 12px;border-radius:10px;margin-bottom:16px;}
+.sev-alta{background:var(--error-bg);color:var(--error);}
+.sev-media{background:var(--amber-bg);color:var(--amber);}
+.sev-baja{background:var(--dew);color:var(--accent);}
+.sev-sql{background:var(--purple-bg);color:var(--purple);}
+
+/* ── RESUMEN TABLA ── */
+.summary-table{width:100%;border-collapse:collapse;margin-top:12px;}
+.summary-table th{font-size:0.68rem;font-weight:500;text-transform:uppercase;letter-spacing:0.08em;color:var(--sage);padding:8px 12px;text-align:left;border-bottom:2px solid var(--mist);background:var(--cream);}
+.summary-table td{padding:10px 12px;font-size:0.82rem;color:var(--bark);border-bottom:1px solid var(--dew);}
+.summary-table tr:last-child td{border-bottom:none;}
+.summary-table td:first-child{font-weight:500;color:var(--soil);}
+
+/* ── FOOTER ── */
+.doc-footer{background:var(--soil);padding:32px 24px;text-align:center;color:rgba(255,255,255,0.3);font-size:0.75rem;margin-top:64px;}
+</style>
+</head>
+<body>
+
+<div class="doc-header">
+  <div class="doc-header-inner">
+    <div class="doc-brand">AgroTrace · Documentación técnica</div>
+    <h1 class="doc-title">Guía de Bugs:<br>Concurrencia y Estado</h1>
+    <p class="doc-subtitle">Las 7 categorías de errores encontrados en la auditoría de agosto 2026 — explicadas en lenguaje claro, con ejemplos reales del código.</p>
+    <div class="doc-meta">Auditoría realizada: 2026-08-04 · 18 bugs corregidos en 5 archivos</div>
+  </div>
+</div>
+
+<div class="doc-body">
+
+  <!-- ── INTRO ── -->
+  <div class="intro">
+    <h2 style="font-family:'DM Serif Display',serif;font-size:1.4rem;margin-bottom:16px;">¿Qué es una auditoría de concurrencia?</h2>
+    <p>En un sistema web, muchas cosas pueden pasar al mismo tiempo: dos clicks seguidos en el mismo botón, dos personas usando la app, una operación que tarda y el usuario que no espera. Los bugs de <strong>concurrencia</strong> son los que aparecen en esos momentos — no cuando todo va bien, sino cuando el tiempo importa.</p>
+    <p>Los bugs de <strong>sincronización de estado</strong> son los primos cercanos: ocurren cuando el programa "recuerda" algo que ya no es verdad. Usás un dato viejo sin saber que cambió.</p>
+    <p>Esta guía clasifica los 18 bugs encontrados en AgroTrace en 7 categorías. Para cada una: qué es, por qué ocurre, cómo se veía antes y cómo quedó después de la corrección.</p>
+  </div>
+
+  <!-- ── TOC ── -->
+  <div class="toc">
+    <div class="toc-title">Contenido</div>
+    <ul class="toc-list">
+      <li><a href="#cat-a"><span class="toc-badge alta">Alta</span> A — Doble submit: el mismo botón ejecutado dos veces</a></li>
+      <li><a href="#cat-b"><span class="toc-badge alta">Alta</span> B — Stale state: datos desactualizados en memoria</a></li>
+      <li><a href="#cat-c"><span class="toc-badge media">Media</span> C — Constraint faltante: la base de datos sin red de seguridad</a></li>
+      <li><a href="#cat-d"><span class="toc-badge alta">Alta</span> D — Transacción incompleta: operaciones a medias</a></li>
+      <li><a href="#cat-e"><span class="toc-badge media">Media</span> E — Contaminación entre organizaciones: globals que no se resetean</a></li>
+      <li><a href="#cat-f"><span class="toc-badge baja">Baja</span> F — Fire-and-forget: tareas secundarias sin vigilancia</a></li>
+      <li><a href="#cat-g"><span class="toc-badge sql">SQL</span> G — RLS incorrecto: seguridad de base de datos mal configurada</a></li>
+    </ul>
+  </div>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <!-- CAT A -->
+  <!-- ══════════════════════════════════════════════ -->
+  <div class="cat" id="cat-a">
+    <div class="cat-header">
+      <div class="cat-number n-alta">A</div>
+      <div class="cat-title-wrap">
+        <div class="cat-title">Doble submit</div>
+        <div class="cat-english">Race condition · Double-submit · Missing guard flag</div>
+      </div>
+    </div>
+
+    <span class="severity sev-alta">● Severidad Alta — corrupción de datos</span>
+
+    <div class="analogy">
+      <div class="analogy-label">En palabras simples</div>
+      <p>Apretás "Guardar" y la pantalla no responde inmediatamente porque está esperando respuesta del servidor. Lo apretás de nuevo. El formulario se envía dos veces. Resultado: dos registros idénticos en la base de datos, o el stock descontado dos veces.</p>
+    </div>
+
+    <h3>Por qué ocurre en AgroTrace</h3>
+    <p>Las funciones que guardan datos necesitan comunicarse con Supabase, lo que lleva tiempo (entre 200ms y 2 segundos). Ese tiempo entre que apretás el botón y que la pantalla confirma es la ventana de riesgo. Si el botón sigue activo durante esa espera, un segundo click lanza una segunda ejecución en paralelo.</p>
+
+    <h3>Cómo se veía antes</h3>
+    <div class="code-wrap">
+      <div class="code-label before">Antes — sin protección</div>
+      <pre><span class="c-kw">async function</span> <span class="c-fn">guardarEntrega</span>() {
+  <span class="c-comment">// El botón sigue activo. Si el usuario hace click dos veces,</span>
+  <span class="c-comment">// esta función corre dos veces en paralelo.</span>
+  <span class="c-kw">const</span> res = <span class="c-kw">await</span> sb.from(<span class="c-str">'entregas'</span>).insert({ ... })
+  <span class="c-kw">await</span> sb.from(<span class="c-str">'flores_cosechadas'</span>).update({ stock: nuevoStock })
+}</pre>
+    </div>
+
+    <div class="code-wrap">
+      <div class="code-label after">Después — con guard flag</div>
+      <pre><span class="c-kw">let</span> _guardandoEntrega = <span class="c-num">false</span>;
+
+<span class="c-kw">async function</span> <span class="c-fn">guardarEntrega</span>() {
+  <span class="c-kw">if</span> (_guardandoEntrega) <span class="c-kw">return</span>; <span class="c-comment">// segundo click → sale inmediatamente</span>
+  _guardandoEntrega = <span class="c-num">true</span>;
+  <span class="c-kw">try</span> {
+    <span class="c-kw">const</span> res = <span class="c-kw">await</span> sb.from(<span class="c-str">'entregas'</span>).insert({ ... })
+    <span class="c-kw">await</span> sb.from(<span class="c-str">'flores_cosechadas'</span>).update({ stock: nuevoStock })
+  } <span class="c-kw">finally</span> {
+    _guardandoEntrega = <span class="c-num">false</span>; <span class="c-comment">// siempre se libera, incluso si hay error</span>
+  }
+}</pre>
+    </div>
+
+    <p>Para botones visibles, la variante es deshabilitar el botón (mejor experiencia de usuario): <code>btn.disabled = true</code> antes del primer <code>await</code>, y <code>btn.disabled = false</code> en el bloque <code>finally</code>.</p>
+
+    <div class="affected">
+      <div class="affected-label">Funciones corregidas en AgroTrace</div>
+      <div class="affected-list">
+        <span class="affected-item">guardarEntrega</span>
+        <span class="affected-item">guardarAvanzar</span>
+        <span class="affected-item">guardarNuevoPac</span>
+        <span class="affected-item">guardarEditarPac</span>
+        <span class="affected-item">guardarEdicionMaterial</span>
+        <span class="affected-item">guardarAnalisis</span>
+        <span class="affected-item">guardarCorreccion</span>
+        <span class="affected-item">guardarEtapaHist</span>
+        <span class="affected-item">guardarBorrador</span>
+        <span class="affected-item">guardarBaja</span>
+        <span class="affected-item">guardarMaterial</span>
+        <span class="affected-item">crearSublote</span>
+        <span class="affected-item">crearONG</span>
+        <span class="affected-item">crearRT</span>
+        <span class="affected-item">doRecover</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <!-- CAT B -->
+  <!-- ══════════════════════════════════════════════ -->
+  <div class="cat" id="cat-b">
+    <div class="cat-header">
+      <div class="cat-number n-alta">B</div>
+      <div class="cat-title-wrap">
+        <div class="cat-title">Stale state — datos desactualizados</div>
+        <div class="cat-english">Stale cache · Stale closure · TOCTOU (Time-of-Check vs Time-of-Use)</div>
+      </div>
+    </div>
+
+    <span class="severity sev-alta">● Severidad Alta — stock incorrecto, datos de lote erróneo</span>
+
+    <div class="analogy">
+      <div class="analogy-label">En palabras simples</div>
+      <p>Anotás el stock disponible en un papelito cuando abrís el formulario. Cinco minutos después, otro usuario ya usó parte de ese stock. Vos seguís calculando con el número del papelito. El resultado: el stock queda negativo o incorrecto.</p>
+    </div>
+
+    <h3>Variante B-1: caché obsoleto (Stale cache)</h3>
+    <p>En AgroTrace, cuando abrís un lote, los datos se cargan en la variable global <code>HIST_DATA</code>. Funciones como <code>guardarEntrega()</code> usaban ese número para calcular cuánto descontar del stock. Pero si pasó tiempo desde que abriste el lote, ese número puede estar desactualizado.</p>
+
+    <div class="code-wrap">
+      <div class="code-label before">Antes — usando el caché</div>
+      <pre><span class="c-comment">// Stock leído al abrir el lote, hace minutos</span>
+<span class="c-kw">const</span> stockActual = HIST_DATA.flores?.stock_actual ?? <span class="c-num">0</span>;
+<span class="c-kw">const</span> nuevoStock = stockActual - cantidadEntregada;
+<span class="c-kw">await</span> sb.from(<span class="c-str">'flores_cosechadas'</span>).update({ stock_actual: nuevoStock })</pre>
+    </div>
+
+    <div class="code-wrap">
+      <div class="code-label after">Después — lectura fresca antes de usar</div>
+      <pre><span class="c-comment">// Leer el stock real justo antes de modificarlo</span>
+<span class="c-kw">const</span> { data: flores } = <span class="c-kw">await</span> sb
+  .from(<span class="c-str">'flores_cosechadas'</span>)
+  .select(<span class="c-str">'stock_actual'</span>)
+  .eq(<span class="c-str">'id'</span>, floresId)
+  .single();
+<span class="c-kw">const</span> nuevoStock = flores.stock_actual - cantidadEntregada;
+<span class="c-kw">await</span> sb.from(<span class="c-str">'flores_cosechadas'</span>).update({ stock_actual: nuevoStock })</pre>
+    </div>
+
+    <h3>Variante B-2: closure obsoleto (Stale closure)</h3>
+    <p>La función <code>openLote(id)</code> hace varias consultas en paralelo. Si el usuario, mientras espera, hace click en otro lote, la variable <code>LOTE_ACTIVO</code> ya apunta al nuevo lote. Pero el código del lote anterior sigue corriendo y al terminar pisa los datos del nuevo.</p>
+
+    <div class="code-wrap">
+      <div class="code-label after">Después — verificar que el contexto no cambió</div>
+      <pre><span class="c-kw">async function</span> <span class="c-fn">openLote</span>(id) {
+  <span class="c-kw">const</span> capturedId = id; <span class="c-comment">// guardar el ID antes de cualquier await</span>
+  <span class="c-kw">const</span> [loteData, histData] = <span class="c-kw">await</span> Promise.all([...]);
+  <span class="c-comment">// Verificar que el usuario no navegó a otro lote mientras esperábamos</span>
+  <span class="c-kw">if</span> (LOTE_ACTIVO?.id !== capturedId) <span class="c-kw">return</span>;
+  <span class="c-comment">// Recién acá es seguro usar los datos</span>
+  HIST_DATA = histData;
+}</pre>
+    </div>
+
+    <div class="affected">
+      <div class="affected-label">Corregido en</div>
+      <div class="affected-list">
+        <span class="affected-item">guardarEntrega (B-1)</span>
+        <span class="affected-item">guardarCorreccion (B-1)</span>
+        <span class="affected-item">openLote (B-2)</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <!-- CAT C -->
+  <!-- ══════════════════════════════════════════════ -->
+  <div class="cat" id="cat-c">
+    <div class="cat-header">
+      <div class="cat-number n-media">C</div>
+      <div class="cat-title-wrap">
+        <div class="cat-title">Constraint de unicidad faltante</div>
+        <div class="cat-english">Missing unique constraint · DB-level integrity</div>
+      </div>
+    </div>
+
+    <span class="severity sev-media">● Severidad Media — duplicados en base de datos</span>
+
+    <div class="analogy">
+      <div class="analogy-label">En palabras simples</div>
+      <p>Si dos personas intentan registrar el mismo paciente al mismo tiempo, el código de validación en JavaScript puede no alcanzar a detectar que ya existe — ambas consultas llegan a la base de datos antes de que ninguna vea la otra. La base de datos, sin una regla explícita, acepta los dos registros.</p>
+    </div>
+
+    <h3>Por qué la validación en JavaScript no alcanza</h3>
+    <p>El código hace primero una consulta de verificación (<em>"¿ya existe este paciente?"</em>) y luego el insert. Entre esas dos operaciones, otra ejecución puede insertar el mismo registro. Este problema se llama <strong>TOCTOU: Time Of Check vs Time Of Use</strong>. La única solución real está en la base de datos.</p>
+
+    <div class="code-wrap">
+      <div class="code-label after">Fix — constraint a nivel de base de datos</div>
+      <pre><span class="c-comment">-- Ejecutar en Supabase SQL Editor</span>
+<span class="c-kw">ALTER TABLE</span> public.pacientes
+  <span class="c-kw">ADD CONSTRAINT</span> pacientes_usuario_numero_unique
+  <span class="c-kw">UNIQUE</span> (usuario_id, numero);</pre>
+    </div>
+
+    <p>Con este constraint, si dos inserts idénticos llegan al mismo tiempo, la base de datos rechaza el segundo con un error claro. El código JavaScript puede capturar ese error y mostrar un mensaje al usuario.</p>
+
+    <div class="affected">
+      <div class="affected-label">Estado</div>
+      <div class="affected-list">
+        <span class="affected-item">pacientes (usuario_id, numero) — constraint ya existía ✓</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <!-- CAT D -->
+  <!-- ══════════════════════════════════════════════ -->
+  <div class="cat" id="cat-d">
+    <div class="cat-header">
+      <div class="cat-number n-alta">D</div>
+      <div class="cat-title-wrap">
+        <div class="cat-title">Transacción incompleta</div>
+        <div class="cat-english">Non-atomic multi-step operation · Compensating transaction · Orphaned record</div>
+      </div>
+    </div>
+
+    <span class="severity sev-alta">● Severidad Alta — datos huérfanos, inconsistencia de stock</span>
+
+    <div class="analogy">
+      <div class="analogy-label">En palabras simples</div>
+      <p>Registrar una entrega son dos pasos: (1) guardar la entrega, (2) actualizar el stock disponible. Si el paso 1 funciona pero el paso 2 falla por un error de conexión, quedás con una entrega registrada pero el stock sin descontar. Los números no cierran.</p>
+    </div>
+
+    <h3>El problema de fondo: no hay transacciones reales</h3>
+    <p>En bases de datos relacionales existe el concepto de <strong>transacción atómica</strong>: un conjunto de operaciones que se ejecutan todas juntas o ninguna. Si el cliente de Supabase en JavaScript lo soportara, el fix sería simple. Pero desde el frontend, no hay esa garantía.</p>
+    <p>La solución práctica es la <strong>transacción compensatoria</strong>: si el segundo paso falla, deshacés el primero manualmente con un DELETE.</p>
+
+    <div class="code-wrap">
+      <div class="code-label before">Antes — sin compensación</div>
+      <pre><span class="c-kw">await</span> sb.from(<span class="c-str">'entregas'</span>).insert({ cantidad, flores_id })
+<span class="c-comment">// Si esto falla, la entrega quedó registrada pero el stock no se movió</span>
+<span class="c-kw">await</span> sb.from(<span class="c-str">'flores_cosechadas'</span>).update({ stock_actual: nuevoStock })</pre>
+    </div>
+
+    <div class="code-wrap">
+      <div class="code-label after">Después — con transacción compensatoria</div>
+      <pre><span class="c-comment">// Paso 1: insertar y capturar el ID del nuevo registro</span>
+<span class="c-kw">const</span> { data: entrega } = <span class="c-kw">await</span> serverWrite(<span class="c-str">'entregas'</span>, { cantidad, flores_id });
+<span class="c-kw">const</span> entregaId = entrega.id;
+
+<span class="c-comment">// Paso 2: actualizar stock. Si falla, deshacemos el paso 1.</span>
+<span class="c-kw">try</span> {
+  <span class="c-kw">await</span> serverWrite(<span class="c-str">'flores_cosechadas'</span>, { stock_actual: nuevoStock }, <span class="c-str">'update'</span>, filtro);
+} <span class="c-kw">catch</span> (e) {
+  <span class="c-comment">// Rollback: borrar la entrega recién creada</span>
+  <span class="c-kw">await</span> sb.from(<span class="c-str">'entregas'</span>).delete().eq(<span class="c-str">'id'</span>, entregaId);
+  <span class="c-kw">throw</span> e; <span class="c-comment">// propagar el error para que el usuario lo vea</span>
+}</pre>
+    </div>
+
+    <div class="affected">
+      <div class="affected-label">Corregido en</div>
+      <div class="affected-list">
+        <span class="affected-item">guardarEntrega</span>
+        <span class="affected-item">guardarBaja</span>
+        <span class="affected-item">eliminarTotalidadLote</span>
+        <span class="affected-item">subirDocumentos (RT)</span>
+        <span class="affected-item">eliminarDocumento (RT)</span>
+        <span class="affected-item">crear-rt Edge Function</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <!-- CAT E -->
+  <!-- ══════════════════════════════════════════════ -->
+  <div class="cat" id="cat-e">
+    <div class="cat-header">
+      <div class="cat-number n-media">E</div>
+      <div class="cat-title-wrap">
+        <div class="cat-title">Contaminación entre organizaciones</div>
+        <div class="cat-english">Tenant context leak · Stale global state · Cross-tenant data bleed</div>
+      </div>
+    </div>
+
+    <span class="severity sev-media">● Severidad Media — datos de ONG A visibles mientras se navega ONG B</span>
+
+    <div class="analogy">
+      <div class="analogy-label">En palabras simples</div>
+      <p>El Responsable Técnico abre el portal de la Asociación "Verde". Ve sus lotes. Cierra y abre el portal de la Asociación "Horizonte". Durante un segundo, el sistema podría seguir mostrando los lotes de "Verde" mientras carga los de "Horizonte". Si hay un error de timing, podría guardar datos de Horizonte con el contexto de Verde.</p>
+    </div>
+
+    <h3>Por qué ocurre</h3>
+    <p>El portal es una <strong>Single Page Application (SPA)</strong>: una sola página que no se recarga entre una ONG y otra. Las variables globales (<code>LOTE_ACTIVO</code>, <code>HIST_DATA</code>, <code>PAC_DATA</code>, etc.) persisten en memoria. Si no se resetean explícitamente cuando cambia el contexto de ONG, mezclan datos de dos organizaciones distintas.</p>
+
+    <div class="code-wrap">
+      <div class="code-label before">Antes — sin reset explícito</div>
+      <pre><span class="c-kw">async function</span> <span class="c-fn">initApp</span>() {
+  <span class="c-comment">// Variables globales con valores de la sesión anterior</span>
+  <span class="c-kw">await</span> Promise.all([cargarLotes(), cargarMaterial()]);
+}</pre>
+    </div>
+
+    <div class="code-wrap">
+      <div class="code-label after">Después — reset antes de cargar</div>
+      <pre><span class="c-kw">async function</span> <span class="c-fn">initApp</span>() {
+  <span class="c-comment">// Reset completo antes de cualquier consulta a la DB</span>
+  LOTE_ACTIVO = <span class="c-num">null</span>;
+  HIST_DATA = {};
+  INCONSISTENCIAS = {};
+  MAT_ACTIVO = <span class="c-num">null</span>;
+  MAT_TIPO = <span class="c-num">null</span>;
+  PAC_DATA = [];
+  PAC_EDIT_ID = <span class="c-num">null</span>;
+  ESTABL_EDITANDO = <span class="c-num">null</span>;
+
+  <span class="c-comment">// Recién ahora cargar los datos de la ONG correcta</span>
+  <span class="c-kw">await</span> Promise.all([cargarLotes(), cargarMaterial()]);
+}</pre>
+    </div>
+
+    <div class="affected">
+      <div class="affected-label">Corregido en</div>
+      <div class="affected-list">
+        <span class="affected-item">initApp() en agrotrace_prototipo_v3.html</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <!-- CAT F -->
+  <!-- ══════════════════════════════════════════════ -->
+  <div class="cat" id="cat-f">
+    <div class="cat-header">
+      <div class="cat-number n-baja">F</div>
+      <div class="cat-title-wrap">
+        <div class="cat-title">Fire-and-forget</div>
+        <div class="cat-english">Unhandled promise rejection · Missing error handler on async side effects</div>
+      </div>
+    </div>
+
+    <span class="severity sev-baja">● Severidad Baja — errores silenciosos en logging</span>
+
+    <div class="analogy">
+      <div class="analogy-label">En palabras simples</div>
+      <p>Mandás una carta sin acuse de recibo. Si llega, bien. Si no llega, nunca lo sabés. En código: llamás a una función asíncrona pero no esperás su resultado ni te preparás para el caso de que falle.</p>
+    </div>
+
+    <h3>Por qué es un problema</h3>
+    <p>En JavaScript, una promesa que falla sin que nadie la "atrape" genera un <strong>Unhandled Promise Rejection</strong>. Dependiendo del navegador y la versión, esto puede:</p>
+    <ul>
+      <li>Mostrar un error en la consola (siempre)</li>
+      <li>En versiones antiguas: cortar la ejecución del código que sigue</li>
+      <li>En futuras versiones: terminar el proceso (como ocurre en Node.js)</li>
+    </ul>
+
+    <p>En AgroTrace, <code>logActividad()</code> (que registra el historial de acciones) era llamada sin manejo de error. Si Supabase tenía un problema momentáneo, el log fallaba y podía interrumpir la operación principal.</p>
+
+    <div class="code-wrap">
+      <div class="code-label before">Antes — sin manejo</div>
+      <pre>logActividad(<span class="c-str">'avanzar_etapa'</span>, { lote_id: id, etapa: nuevaEtapa })
+<span class="c-comment">// Si logActividad lanza un error, nadie lo captura</span></pre>
+    </div>
+
+    <div class="code-wrap">
+      <div class="code-label after">Después — error silenciado intencionalmente</div>
+      <pre>logActividad(<span class="c-str">'avanzar_etapa'</span>, { lote_id: id, etapa: nuevaEtapa })
+  .<span class="c-fn">catch</span>(() => {}); <span class="c-comment">// el log no es crítico — si falla, se ignora</span></pre>
+    </div>
+
+    <p>El <code>.catch(()=>{})</code> vacío es intencional: dice explícitamente "si esto falla, no me importa". Es diferente a ignorarlo sin querer.</p>
+
+    <div class="affected">
+      <div class="affected-label">Corregido en</div>
+      <div class="affected-list">
+        <span class="affected-item">guardarAvanzar (5 llamadas)</span>
+        <span class="affected-item">guardarEntrega</span>
+        <span class="affected-item">guardarMaterial</span>
+        <span class="affected-item">crearSublote</span>
+        <span class="affected-item">doRecover</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <!-- CAT G -->
+  <!-- ══════════════════════════════════════════════ -->
+  <div class="cat" id="cat-g">
+    <div class="cat-header">
+      <div class="cat-number n-sql">G</div>
+      <div class="cat-title-wrap">
+        <div class="cat-title">RLS incorrecto</div>
+        <div class="cat-english">Row Level Security misconfiguration · Policy logic error · Wrong column reference</div>
+      </div>
+    </div>
+
+    <span class="severity sev-sql">● Severidad SQL — acceso bloqueado o habilitado incorrectamente</span>
+
+    <div class="analogy">
+      <div class="analogy-label">En palabras simples</div>
+      <p>Las políticas RLS son las reglas de seguridad de la base de datos: quién puede leer, escribir o modificar cada tabla. Si están mal configuradas, puede pasar lo contrario de lo esperado: un usuario no puede hacer algo que debería poder hacer, o puede hacer algo que no debería.</p>
+    </div>
+
+    <h3>Variante G-1: FOR ALL con subquery EXISTS</h3>
+    <p>En Supabase/PostgREST existe una trampa sutil: una política que dice <code>FOR ALL USING (EXISTS(...))</code> aplica la condición correctamente para lectura (<code>SELECT</code>), actualización (<code>UPDATE</code>) y borrado (<code>DELETE</code>), pero <strong>no para inserción (<code>INSERT</code>)</strong>. Los inserts pasan o fallan de manera impredecible.</p>
+
+    <div class="code-wrap">
+      <div class="code-label before">Antes — patrón incorrecto para INSERT</div>
+      <pre><span class="c-comment">-- Esta política falla silenciosamente en INSERTs</span>
+<span class="c-kw">CREATE POLICY</span> <span class="c-str">"organizaciones_access"</span> <span class="c-kw">ON</span> public.organizaciones
+  <span class="c-kw">FOR ALL USING</span> (<span class="c-kw">EXISTS</span> (
+    <span class="c-kw">SELECT</span> <span class="c-num">1</span> <span class="c-kw">FROM</span> rt_organizaciones ro
+    <span class="c-kw">WHERE</span> ro.rt_id = auth.uid()
+  ));</pre>
+    </div>
+
+    <div class="code-wrap">
+      <div class="code-label after">Después — políticas separadas por operación</div>
+      <pre><span class="c-kw">CREATE POLICY</span> <span class="c-str">"organizaciones_select"</span> <span class="c-kw">ON</span> public.organizaciones
+  <span class="c-kw">FOR SELECT USING</span> (condicion);
+
+<span class="c-kw">CREATE POLICY</span> <span class="c-str">"organizaciones_insert"</span> <span class="c-kw">ON</span> public.organizaciones
+  <span class="c-kw">FOR INSERT WITH CHECK</span> (condicion);
+
+<span class="c-kw">CREATE POLICY</span> <span class="c-str">"organizaciones_update"</span> <span class="c-kw">ON</span> public.organizaciones
+  <span class="c-kw">FOR UPDATE USING</span> (condicion);</pre>
+    </div>
+
+    <h3>Variante G-2: nombres de columna incorrectos</h3>
+    <p>Una política SQL que referencia una columna que no existe falla en tiempo de ejecución con un error críptico. En la auditoría, el SQL usaba <code>ro.rt_usuario_id</code> y <code>ro.organizacion_id</code> cuando los nombres reales en la tabla son <code>rt_id</code> y <code>ong_id</code>.</p>
+    <p>El síntoma: <code>ERROR: 42703: column ro.rt_usuario_id does not exist</code>. Siempre verificar los nombres exactos de columnas contra el archivo <code>supabase_schema.sql</code> antes de escribir políticas RLS.</p>
+
+    <div class="affected">
+      <div class="affected-label">Corregido en</div>
+      <div class="affected-list">
+        <span class="affected-item">Política RLS de tabla organizaciones (SQL ejecutado en Supabase)</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <!-- RESUMEN -->
+  <!-- ══════════════════════════════════════════════ -->
+  <div style="margin-top:16px;">
+    <h2 style="font-family:'DM Serif Display',serif;font-size:1.4rem;margin-bottom:20px;">Tabla resumen</h2>
+    <div style="background:var(--white);border:1px solid rgba(0,0,0,0.07);border-radius:var(--radius-lg);overflow:hidden;">
+      <table class="summary-table">
+        <thead>
+          <tr>
+            <th>Cat.</th>
+            <th>Nombre técnico</th>
+            <th>Severidad</th>
+            <th>Consecuencia real</th>
+            <th>Fix</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>A</td>
+            <td>Doble submit</td>
+            <td><span class="toc-badge alta">Alta</span></td>
+            <td>Registros duplicados, stock doble-descontado</td>
+            <td>Guard flag + try/finally</td>
+          </tr>
+          <tr>
+            <td>B-1</td>
+            <td>Stale cache</td>
+            <td><span class="toc-badge alta">Alta</span></td>
+            <td>Stock incorrecto al guardar</td>
+            <td>Leer DB fresco antes de usar</td>
+          </tr>
+          <tr>
+            <td>B-2</td>
+            <td>Stale closure</td>
+            <td><span class="toc-badge media">Media</span></td>
+            <td>Datos de lote A pisados por lote B</td>
+            <td>Capturar ID y verificar después de awaits</td>
+          </tr>
+          <tr>
+            <td>C</td>
+            <td>Constraint faltante</td>
+            <td><span class="toc-badge media">Media</span></td>
+            <td>Pacientes duplicados bajo concurrencia</td>
+            <td>UNIQUE constraint en DB</td>
+          </tr>
+          <tr>
+            <td>D</td>
+            <td>Transacción incompleta</td>
+            <td><span class="toc-badge alta">Alta</span></td>
+            <td>Registro huérfano, stock no actualizado</td>
+            <td>DELETE compensatorio si paso 2 falla</td>
+          </tr>
+          <tr>
+            <td>E</td>
+            <td>Tenant context leak</td>
+            <td><span class="toc-badge media">Media</span></td>
+            <td>Datos de ONG A visibles en ONG B</td>
+            <td>Reset de globals en initApp()</td>
+          </tr>
+          <tr>
+            <td>F</td>
+            <td>Fire-and-forget</td>
+            <td><span class="toc-badge baja">Baja</span></td>
+            <td>Error de log puede interrumpir flujo</td>
+            <td>.catch(()=>{}) en ops no críticas</td>
+          </tr>
+          <tr>
+            <td>G</td>
+            <td>RLS incorrecto</td>
+            <td><span class="toc-badge sql">SQL</span></td>
+            <td>Acceso bloqueado o habilitado incorrectamente</td>
+            <td>Políticas separadas por operación</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── NOTA FINAL ── -->
+  <div style="margin-top:48px;padding:24px 28px;background:var(--dew);border-radius:var(--radius-lg);border-left:4px solid var(--accent);">
+    <h3 style="font-family:'DM Serif Display',serif;font-size:1.05rem;color:var(--soil);margin-bottom:10px;">Para el futuro</h3>
+    <p style="color:var(--bark);font-size:0.875rem;margin-bottom:10px;">Estos bugs no son errores de lógica de negocio — son <strong>patrones estructurales</strong> que van a reaparecer en cada función nueva que toque la base de datos. Lo más útil no es recordar los bugs específicos, sino internalizar los patrones:</p>
+    <ul style="color:var(--bark);font-size:0.875rem;margin-left:18px;line-height:1.8;">
+      <li>Toda función que guarda datos necesita un guard flag</li>
+      <li>Nunca usar un valor cacheado para calcular un UPDATE de stock — siempre leer fresco</li>
+      <li>Si una operación tiene 2 pasos en DB, el primero necesita poder deshacerse</li>
+      <li>Al cambiar de ONG, resetear todos los globals</li>
+      <li>El logging nunca debe poder romper el flujo principal</li>
+    </ul>
+  </div>
+
+</div>
+
+<div class="doc-footer">
+  AgroTrace · Guía de Bugs: Concurrencia y Estado · Auditoría 2026-08-04
+</div>
+
+</body>
+</html>
