@@ -3077,16 +3077,7 @@ async function guardarAvanzar(){
     if(d){({error:dbErr}=await sb.from('etapa_cosecha').update({fecha_inicio:fi,fecha_fin:ff,peso_humedo_total:pesoH,notas}).eq('id',d.id));}
     else{
       const {data:{session:sChk}}=await sb.auth.getSession();
-      const {data:lChk}=await sb.from('lotes_produccion').select('usuario_id').eq('id',loteId).maybeSingle();
       if(!sChk){return showErr('Sesión expirada. Recargá la página e iniciá sesión nuevamente.');}
-      if(lChk&&sChk.user.id!==lChk.usuario_id){
-        return showErr(
-          'Error de permisos: el lote pertenece a otro usuario.\n'+
-          'Sesión actual: '+sChk.user.id.slice(0,12)+'...\n'+
-          'Dueño del lote: '+lChk.usuario_id.slice(0,12)+'...\n\n'+
-          'El lote fue creado con otro usuario. Necesitás crear un nuevo lote estando logueado con este usuario, o aplicar el SQL de ajuste de RLS.'
-        );
-      }
       ({error:dbErr}=await sb.from('etapa_cosecha').insert({lote_id:loteId,fecha_inicio:fi,fecha_fin:ff,peso_humedo_total:pesoH,notas}));
     }
     if(dbErr)return showErr('Error guardando cosecha: '+dbErr.message);
