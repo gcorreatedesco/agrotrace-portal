@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Mockup — Pacientes · AgroTrace</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<style>
+:root{
+  --soil:#2C1F0E;--bark:#4A3520;--sage:#6B7F5E;--leaf:#8EAA7B;
+  --mist:#C8D9BC;--dew:#EDF2E8;--cream:#F7F4EF;--white:#fff;
+  --accent:#4E7C3F;--amber:#854F0B;--purple:#534AB7;--error:#B94A3A;
+  --radius:8px;--radius-lg:12px;--trans:0.18s ease;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--bark);display:flex;height:100vh;overflow:hidden;font-size:14px;}
+
+/* ── SIDEBAR ── */
+.sidebar{width:220px;background:var(--soil);display:flex;flex-direction:column;flex-shrink:0;}
+.sb-logo{padding:20px 18px 16px;border-bottom:1px solid rgba(255,255,255,0.08);}
+.sb-logo-txt{font-family:'DM Serif Display',serif;color:var(--mist);font-size:1.2rem;}
+.sb-logo-sub{font-size:0.58rem;color:var(--sage);letter-spacing:0.1em;text-transform:uppercase;margin-top:2px;}
+.nav{flex:1;padding:10px 0;overflow-y:auto;}
+.nav-sec{font-size:0.58rem;font-weight:500;color:var(--sage);letter-spacing:0.1em;text-transform:uppercase;padding:12px 18px 4px;}
+.nav-it{display:flex;align-items:center;gap:10px;padding:9px 18px;font-size:0.82rem;color:rgba(255,255,255,0.55);cursor:pointer;transition:background var(--trans),color var(--trans);}
+.nav-it svg{width:16px;height:16px;fill:currentColor;flex-shrink:0;}
+.nav-it:hover{background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.85);}
+.nav-it.active{background:rgba(255,255,255,0.11);color:#fff;}
+.nav-badge{background:var(--accent);color:#fff;border-radius:10px;font-size:0.6rem;padding:1px 7px;margin-left:auto;font-weight:500;}
+.user-block{padding:14px 18px;border-top:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;gap:10px;}
+.user-av{width:30px;height:30px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:500;color:#fff;flex-shrink:0;}
+.user-info{min-width:0;}
+.user-org{font-size:0.78rem;color:var(--mist);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.user-email{font-size:0.65rem;color:var(--sage);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+/* ── MAIN ── */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.topbar{background:#fff;border-bottom:1px solid rgba(0,0,0,0.07);padding:0 24px;height:54px;display:flex;align-items:center;gap:16px;}
+.topbar-title{font-family:'DM Serif Display',serif;font-size:1rem;color:var(--soil);}
+.topbar-sub{font-size:0.72rem;color:var(--sage);}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:8px;}
+.content{flex:1;overflow-y:auto;padding:20px 24px;}
+
+/* ── BUTTONS ── */
+.btn{padding:8px 16px;border-radius:var(--radius);font-size:0.8rem;font-family:'DM Sans',sans-serif;cursor:pointer;border:none;transition:all var(--trans);font-weight:400;line-height:1.2;}
+.btn-primary{background:var(--accent);color:#fff;}
+.btn-primary:hover{background:#3d6231;}
+.btn-secondary{background:#fff;color:var(--bark);border:1px solid rgba(0,0,0,0.14);}
+.btn-secondary:hover{background:var(--cream);}
+.btn-sm{padding:5px 11px;font-size:0.72rem;}
+.btn-danger-soft{background:#fff;color:var(--error);border:1px solid rgba(185,74,58,0.25);}
+.btn-danger-soft:hover{background:rgba(185,74,58,0.05);}
+.btn-activate{background:#fff;color:var(--accent);border:1px solid rgba(78,124,63,0.3);}
+.btn-activate:hover{background:var(--dew);}
+
+/* ── BANNER AVISO ── */
+.note-banner{background:rgba(83,74,183,0.08);border:1px solid rgba(83,74,183,0.22);border-radius:var(--radius);padding:10px 14px;margin-bottom:18px;font-size:0.75rem;color:var(--purple);display:flex;align-items:center;gap:8px;}
+
+/* ── TABS ── */
+.tabs{display:flex;border-bottom:2px solid var(--mist);margin-bottom:18px;}
+.tab{padding:9px 22px;font-size:0.82rem;cursor:pointer;color:var(--sage);border-bottom:2px solid transparent;margin-bottom:-2px;transition:all var(--trans);}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:500;}
+.tab-cnt{display:inline-block;background:rgba(0,0,0,0.08);color:var(--sage);border-radius:10px;font-size:0.62rem;padding:1px 7px;margin-left:5px;}
+.tab.active .tab-cnt{background:var(--accent);color:#fff;}
+
+/* ── PATIENT TABLE ── */
+.pac-wrap{background:#fff;border-radius:var(--radius-lg);border:1px solid rgba(0,0,0,0.07);overflow:hidden;}
+.pac-table{width:100%;border-collapse:collapse;}
+.pac-table th{font-size:0.65rem;font-weight:500;color:var(--sage);text-transform:uppercase;letter-spacing:0.07em;padding:10px 14px;text-align:left;border-bottom:1px solid var(--mist);background:var(--cream);}
+.pac-table td{padding:12px 14px;border-bottom:1px solid rgba(0,0,0,0.05);font-size:0.82rem;vertical-align:middle;}
+.pac-table tr:last-child td{border-bottom:none;}
+.pac-table tbody tr:hover td{background:rgba(237,242,232,0.45);}
+.pac-num{font-weight:600;color:var(--accent);}
+.pac-num.inact{color:var(--sage);}
+.pac-name{font-weight:500;color:var(--soil);}
+.pac-name.inact{color:var(--sage);}
+.pac-repro{font-family:monospace;font-size:0.78rem;letter-spacing:0.02em;}
+.pac-tel{font-size:0.78rem;color:var(--sage);}
+.pac-actions{display:flex;align-items:center;gap:6px;justify-content:flex-end;}
+.pac-count{font-size:0.72rem;color:var(--sage);margin-bottom:10px;}
+
+/* ── TOGGLE SWITCH ── */
+.toggle-wrap{display:flex;align-items:center;gap:6px;justify-content:center;}
+.toggle{position:relative;display:inline-block;width:36px;height:20px;flex-shrink:0;}
+.toggle input{opacity:0;width:0;height:0;}
+.toggle-track{position:absolute;cursor:pointer;inset:0;background:#ccc;border-radius:20px;transition:.2s;}
+.toggle-track:before{position:absolute;content:"";height:14px;width:14px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,0.2);}
+.toggle input:checked+.toggle-track{background:var(--accent);}
+.toggle input:checked+.toggle-track:before{transform:translateX(16px);}
+.toggle input:disabled+.toggle-track{opacity:0.4;cursor:default;}
+.toggle-lbl{font-size:0.68rem;color:var(--sage);min-width:16px;}
+.toggle-lbl.on{color:var(--accent);font-weight:500;}
+
+/* ── ICON BUTTON ── */
+.icon-btn{width:30px;height:30px;border-radius:var(--radius);background:var(--dew);border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:background var(--trans);flex-shrink:0;}
+.icon-btn:hover{background:var(--mist);}
+.icon-btn svg{width:15px;height:15px;fill:var(--sage);}
+.icon-btn:hover svg{fill:var(--bark);}
+
+/* ── MODAL ── */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.42);z-index:100;align-items:center;justify-content:center;}
+.modal-bg.open{display:flex;}
+.modal{background:#fff;border-radius:var(--radius-lg);width:100%;padding:28px;box-shadow:0 24px 64px rgba(0,0,0,0.22);}
+.modal-title{font-family:'DM Serif Display',serif;font-size:1.05rem;color:var(--soil);margin-bottom:4px;}
+.modal-sub{font-size:0.73rem;color:var(--sage);margin-bottom:20px;}
+.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:22px;}
+.field label{font-size:0.72rem;font-weight:500;color:var(--bark);display:block;margin-bottom:5px;}
+.field input{width:100%;padding:9px 11px;border:1px solid rgba(0,0,0,0.14);border-radius:var(--radius);font-size:0.82rem;font-family:'DM Sans',sans-serif;transition:border-color var(--trans);}
+.field input:focus{outline:none;border-color:var(--accent);}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.opt{font-size:0.65rem;font-weight:300;color:var(--sage);margin-left:4px;}
+.num-asignado{background:var(--dew);border-radius:var(--radius);padding:10px 14px;margin-bottom:18px;display:flex;align-items:center;gap:12px;}
+.num-asignado-lbl{font-size:0.72rem;color:var(--sage);}
+.num-asignado-val{font-weight:700;color:var(--accent);font-size:1.1rem;margin-left:auto;}
+
+/* ── ENTREGAS TABLE ── */
+.entr-table{width:100%;border-collapse:collapse;margin-top:4px;}
+.entr-table th{font-size:0.65rem;font-weight:500;color:var(--sage);text-transform:uppercase;letter-spacing:0.06em;padding:7px 10px;text-align:left;border-bottom:1px solid var(--mist);}
+.entr-table td{padding:10px 10px;font-size:0.8rem;border-bottom:1px solid rgba(0,0,0,0.05);}
+.entr-table tr:last-child td{border-bottom:none;}
+.entr-total{font-size:0.72rem;color:var(--sage);margin-top:10px;text-align:right;}
+.entr-total strong{color:var(--bark);}
+.entr-empty{padding:24px;text-align:center;font-size:0.8rem;color:var(--sage);}
+
+/* ── INACT ROW ── */
+tr.inact-row td{opacity:0.6;}
+</style>
+</head>
+<body>
+
+<!-- ══ SIDEBAR ══ -->
+<aside class="sidebar">
+  <div class="sb-logo">
+    <div class="sb-logo-txt">AgroTrace</div>
+    <div class="sb-logo-sub">Trazabilidad REPROCANN</div>
+  </div>
+  <nav class="nav">
+    <div class="nav-sec">Principal</div>
+    <div class="nav-it">
+      <svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+      Dashboard
+    </div>
+    <div class="nav-it">
+      <svg viewBox="0 0 24 24"><path d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z"/></svg>
+      Mis Lotes
+      <span class="nav-badge">3</span>
+    </div>
+    <div class="nav-sec">Gestión</div>
+    <div class="nav-it">
+      <svg viewBox="0 0 24 24"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg>
+      Stock Material Básico
+    </div>
+    <div class="nav-it active">
+      <svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+      Pacientes
+      <span class="nav-badge">5</span>
+    </div>
+    <div class="nav-it">
+      <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+      Establecimientos
+    </div>
+  </nav>
+  <div class="user-block">
+    <div class="user-av">O</div>
+    <div class="user-info">
+      <div class="user-org" title="Asoc. Civil Los Tilos">Asoc. Civil Los Tilos</div>
+      <div class="user-email">admin@lostilos.com</div>
+    </div>
+  </div>
+</aside>
+
+<!-- ══ MAIN ══ -->
+<div class="main">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title">Pacientes</div>
+      <div class="topbar-sub">Registro de pacientes REPROCANN</div>
+    </div>
+    <div class="topbar-right">
+      <button class="btn btn-primary" onclick="abrirNuevoPac()">+ Nuevo Paciente</button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <div class="note-banner">
+      ℹ️ <strong>Mockup de previsualización.</strong> Esta pantalla es actualmente visible para Superadmin y RT. En el deploy definitivo se restringirá solo al perfil ONG.
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('activos',this)">Activos <span class="tab-cnt" id="cnt-act">4</span></div>
+      <div class="tab" onclick="switchTab('inactivos',this)">Inactivos <span class="tab-cnt" id="cnt-inact">1</span></div>
+    </div>
+
+    <!-- ── TAB ACTIVOS ── -->
+    <div id="tab-activos">
+      <div class="pac-count" id="lbl-act">4 pacientes activos</div>
+      <div class="pac-wrap">
+        <table class="pac-table">
+          <thead>
+            <tr>
+              <th>N° Pac.</th>
+              <th>Nombre y Apellido</th>
+              <th>N° REPROCANN</th>
+              <th>Tel. contacto</th>
+              <th style="text-align:center;">Visible al RT</th>
+              <th style="text-align:right;padding-right:18px;">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-activos"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── TAB INACTIVOS ── -->
+    <div id="tab-inactivos" style="display:none;">
+      <div class="pac-count" id="lbl-inact">1 paciente inactivo</div>
+      <div class="pac-wrap">
+        <table class="pac-table">
+          <thead>
+            <tr>
+              <th>N° Pac.</th>
+              <th>Nombre y Apellido</th>
+              <th>N° REPROCANN</th>
+              <th>Tel. contacto</th>
+              <th style="text-align:center;">Visible al RT</th>
+              <th style="text-align:right;padding-right:18px;">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-inactivos"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══ MODAL NUEVO PACIENTE ══ -->
+<div class="modal-bg" id="modal-nuevo">
+  <div class="modal" style="max-width:460px;">
+    <div class="modal-title">Nuevo Paciente</div>
+    <div class="modal-sub">Los campos marcados con * son obligatorios</div>
+    <div class="num-asignado">
+      <span class="num-asignado-lbl">Número de paciente asignado automáticamente:</span>
+      <span class="num-asignado-val" id="nuevo-num">#006</span>
+    </div>
+    <div style="display:grid;gap:12px;">
+      <div class="g2">
+        <div class="field"><label>Nombre *</label><input type="text" id="np-nombre" placeholder="Ej: María"/></div>
+        <div class="field"><label>Apellido *</label><input type="text" id="np-apellido" placeholder="Ej: González"/></div>
+      </div>
+      <div class="field"><label>N° REPROCANN *</label><input type="text" id="np-repro" placeholder="Ej: REP-2024-00456"/></div>
+      <div class="field"><label>Teléfono de contacto<span class="opt">opcional</span></label><input type="tel" id="np-tel" placeholder="Ej: +54 11 1234-5678"/></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="cerrarModal('modal-nuevo')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarNuevoPac()">Guardar paciente</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL EDITAR PACIENTE ══ -->
+<div class="modal-bg" id="modal-editar">
+  <div class="modal" style="max-width:460px;">
+    <div class="modal-title">Editar Paciente</div>
+    <div class="modal-sub" id="edit-sub"></div>
+    <div style="display:grid;gap:12px;">
+      <div class="g2">
+        <div class="field"><label>Nombre *</label><input type="text" id="ep-nombre"/></div>
+        <div class="field"><label>Apellido *</label><input type="text" id="ep-apellido"/></div>
+      </div>
+      <div class="field"><label>N° REPROCANN *</label><input type="text" id="ep-repro"/></div>
+      <div class="field"><label>Teléfono de contacto<span class="opt">opcional</span></label><input type="tel" id="ep-tel"/></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="cerrarModal('modal-editar')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarEdicion()">Guardar cambios</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL ENTREGAS ══ -->
+<div class="modal-bg" id="modal-entregas">
+  <div class="modal" style="max-width:560px;">
+    <div class="modal-title">Historial de entregas</div>
+    <div class="modal-sub" id="entr-sub"></div>
+    <div id="entr-body"></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="cerrarModal('modal-entregas')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ── DATOS DE EJEMPLO ── */
+let pacientes = [
+  { id:1, num:'001', nombre:'García',    apellido:'María Elena',   repro:'REP-2024-00123', tel:'+54 11 4521-7890',      activo:true,  visibleRT:true  },
+  { id:2, num:'002', nombre:'Rodríguez', apellido:'Carlos Alberto', repro:'REP-2024-00187', tel:'+54 9 351 4422-1133',  activo:true,  visibleRT:false },
+  { id:3, num:'003', nombre:'López',     apellido:'Ana Sofía',      repro:'REP-2023-00891', tel:'+54 11 2234-5678',     activo:true,  visibleRT:true  },
+  { id:4, num:'004', nombre:'Martínez',  apellido:'Jorge Daniel',   repro:'REP-2024-00312', tel:'+54 9 261 5599-0011',  activo:true,  visibleRT:false },
+  { id:5, num:'005', nombre:'Fernández', apellido:'Laura Beatriz',  repro:'REP-2022-00044', tel:'+54 11 3344-5566',     activo:false, visibleRT:false },
+];
+
+const entregas = {
+  1: [
+    { fecha:'15 jun 2024', lote:'Primavera 2024', cant:'25 g' },
+    { fecha:'03 mar 2024', lote:'Otoño 2023',     cant:'30 g' },
+    { fecha:'10 oct 2023', lote:'Invierno 2023',  cant:'20 g' },
+  ],
+  2: [
+    { fecha:'20 jul 2024', lote:'Primavera 2024 → Invernadero Norte', cant:'15 g' },
+  ],
+  3: [],
+  4: [
+    { fecha:'01 abr 2024', lote:'Otoño 2023',     cant:'40 g' },
+  ],
+  5: [
+    { fecha:'12 may 2023', lote:'Verano 2023',    cant:'10 g' },
+  ],
+};
+
+let editandoId = null;
+
+function nextNum() {
+  const maxNum = Math.max(...pacientes.map(p => parseInt(p.num)));
+  return String(maxNum + 1).padStart(3,'0');
+}
+
+/* ── RENDER ── */
+function render() {
+  const activos  = pacientes.filter(p => p.activo);
+  const inactivos = pacientes.filter(p => !p.activo);
+
+  document.getElementById('cnt-act').textContent   = activos.length;
+  document.getElementById('cnt-inact').textContent = inactivos.length;
+  document.getElementById('lbl-act').textContent   = `${activos.length} paciente${activos.length!==1?'s':''} activo${activos.length!==1?'s':''}`;
+  document.getElementById('lbl-inact').textContent = `${inactivos.length} paciente${inactivos.length!==1?'s':''} inactivo${inactivos.length!==1?'s':''}`;
+
+  document.getElementById('tbody-activos').innerHTML  = activos.map(p => rowHtml(p)).join('');
+  document.getElementById('tbody-inactivos').innerHTML = inactivos.map(p => rowHtml(p)).join('');
+}
+
+function rowHtml(p) {
+  const numClass  = p.activo ? 'pac-num'  : 'pac-num inact';
+  const nameClass = p.activo ? 'pac-name' : 'pac-name inact';
+  const toggleId  = `tog-${p.id}`;
+
+  const toggle = `
+    <div class="toggle-wrap">
+      <label class="toggle">
+        <input type="checkbox" id="${toggleId}" ${p.visibleRT?'checked':''} ${!p.activo?'disabled':''}
+               onchange="toggleRT(${p.id},this.checked)">
+        <span class="toggle-track"></span>
+      </label>
+      <span class="toggle-lbl ${p.visibleRT&&p.activo?'on':''}" id="lbl-${p.id}">${p.activo?(p.visibleRT?'Sí':'No'):'—'}</span>
+    </div>`;
+
+  const accionDesact = p.activo
+    ? `<button class="btn btn-danger-soft btn-sm" onclick="toggleEstado(${p.id})">Desactivar</button>`
+    : `<button class="btn btn-activate btn-sm" onclick="toggleEstado(${p.id})">Activar</button>`;
+
+  return `<tr class="${p.activo?'':'inact-row'}">
+    <td><span class="${numClass}">#${p.num}</span></td>
+    <td><span class="${nameClass}">${esc(p.nombre)}, ${esc(p.apellido)}</span></td>
+    <td><span class="pac-repro">${esc(p.repro)}</span></td>
+    <td><span class="pac-tel">${esc(p.tel||'—')}</span></td>
+    <td>${toggle}</td>
+    <td>
+      <div class="pac-actions">
+        <button class="btn btn-secondary btn-sm" onclick="abrirEditar(${p.id})">✏ Editar</button>
+        <button class="icon-btn" title="Ver entregas" onclick="abrirEntregas(${p.id})">
+          <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg>
+        </button>
+        ${accionDesact}
+      </div>
+    </td>
+  </tr>`;
+}
+
+function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+/* ── SWITCH TABS ── */
+function switchTab(tab, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('tab-activos').style.display   = tab==='activos'  ? 'block':'none';
+  document.getElementById('tab-inactivos').style.display = tab==='inactivos' ? 'block':'none';
+}
+
+/* ── TOGGLE VISIBLE RT ── */
+function toggleRT(id, val) {
+  const p = pacientes.find(x => x.id===id);
+  if(!p) return;
+  p.visibleRT = val;
+  const lbl = document.getElementById(`lbl-${id}`);
+  if(lbl){ lbl.textContent = val ? 'Sí' : 'No'; lbl.className = `toggle-lbl${val?' on':''}`; }
+}
+
+/* ── TOGGLE ACTIVO/INACTIVO ── */
+function toggleEstado(id) {
+  const p = pacientes.find(x => x.id===id);
+  if(!p) return;
+  const accion = p.activo ? 'desactivar' : 'activar';
+  if(!confirm(`¿Confirmás ${accion} a ${p.nombre} ${p.apellido}?`)) return;
+  p.activo = !p.activo;
+  if(!p.activo) p.visibleRT = false;
+  render();
+}
+
+/* ── MODAL NUEVO ── */
+function abrirNuevoPac() {
+  document.getElementById('nuevo-num').textContent = '#' + nextNum();
+  ['np-nombre','np-apellido','np-repro','np-tel'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+  document.getElementById('modal-nuevo').classList.add('open');
+}
+
+function guardarNuevoPac() {
+  const nombre  = document.getElementById('np-nombre').value.trim();
+  const apellido= document.getElementById('np-apellido').value.trim();
+  const repro   = document.getElementById('np-repro').value.trim();
+  const tel     = document.getElementById('np-tel').value.trim();
+  if(!nombre||!apellido||!repro){ alert('Completá los campos obligatorios.'); return; }
+  const num = nextNum();
+  const newId = pacientes.length ? Math.max(...pacientes.map(p=>p.id))+1 : 1;
+  pacientes.push({ id:newId, num, nombre, apellido, repro, tel, activo:true, visibleRT:false });
+  entregas[newId] = [];
+  cerrarModal('modal-nuevo');
+  render();
+  // Ir a tab activos
+  document.querySelectorAll('.tab')[0].click();
+}
+
+/* ── MODAL EDITAR ── */
+function abrirEditar(id) {
+  const p = pacientes.find(x => x.id===id);
+  if(!p) return;
+  editandoId = id;
+  document.getElementById('edit-sub').textContent = `Paciente #${p.num}`;
+  document.getElementById('ep-nombre').value   = p.nombre;
+  document.getElementById('ep-apellido').value = p.apellido;
+  document.getElementById('ep-repro').value    = p.repro;
+  document.getElementById('ep-tel').value      = p.tel || '';
+  document.getElementById('modal-editar').classList.add('open');
+}
+
+function guardarEdicion() {
+  const p = pacientes.find(x => x.id===editandoId);
+  if(!p) return;
+  const nombre  = document.getElementById('ep-nombre').value.trim();
+  const apellido= document.getElementById('ep-apellido').value.trim();
+  const repro   = document.getElementById('ep-repro').value.trim();
+  const tel     = document.getElementById('ep-tel').value.trim();
+  if(!nombre||!apellido||!repro){ alert('Completá los campos obligatorios.'); return; }
+  p.nombre=nombre; p.apellido=apellido; p.repro=repro; p.tel=tel;
+  cerrarModal('modal-editar');
+  render();
+}
+
+/* ── MODAL ENTREGAS ── */
+function abrirEntregas(id) {
+  const p = pacientes.find(x => x.id===id);
+  if(!p) return;
+  document.getElementById('entr-sub').textContent = `${p.nombre}, ${p.apellido} — #${p.num}`;
+  const lista = entregas[id] || [];
+  if(!lista.length) {
+    document.getElementById('entr-body').innerHTML = '<div class="entr-empty">Sin entregas registradas aún.</div>';
+  } else {
+    const total = lista.reduce((s,e)=>{ const n=parseFloat(e.cant); return s+(isNaN(n)?0:n); }, 0);
+    document.getElementById('entr-body').innerHTML = `
+      <table class="entr-table">
+        <thead><tr>
+          <th>Fecha</th><th>Lote / Sublote</th><th style="text-align:right;">Cantidad</th>
+        </tr></thead>
+        <tbody>${lista.map(e=>`
+          <tr>
+            <td>${esc(e.fecha)}</td>
+            <td>${esc(e.lote)}</td>
+            <td style="text-align:right;color:var(--accent);font-weight:500;">${esc(e.cant)}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+      <div class="entr-total">Total entregado: <strong>${total} g</strong></div>`;
+  }
+  document.getElementById('modal-entregas').classList.add('open');
+}
+
+/* ── CERRAR MODALES ── */
+function cerrarModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+document.querySelectorAll('.modal-bg').forEach(m => {
+  m.addEventListener('click', e => { if(e.target===m) m.classList.remove('open'); });
+});
+
+/* ── INIT ── */
+render();
+</script>
+</body>
+</html>
