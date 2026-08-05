@@ -1331,11 +1331,9 @@ async function cargarPacientes(){
     PAC_VISIBLE_RT=orgD?.pacientes_visibles_rt||false;
   }
 
-  // RT/SA supervisando y no habilitado → no cargar datos
-  const esONG=rolActivo==='ong';
-  if(!esONG&&!PAC_VISIBLE_RT){
-    _renderPacNoAcceso();return;
-  }
+  // TODO DEPLOY: reactivar restricción por visible_rt para RT/SA
+  // const esONG=rolActivo==='ong';
+  // if(!esONG&&!PAC_VISIBLE_RT){ _renderPacNoAcceso(); return; }
 
   const{data,error}=await sb.from('pacientes').select('*').eq('usuario_id',uid).order('numero',{ascending:true});
   if(error){console.error('Error cargando pacientes:',error);PAC_DATA=[];}
