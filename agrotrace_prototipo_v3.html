@@ -1295,6 +1295,9 @@ async function initApp(){
     if(bar){bar.style.display='flex';document.getElementById('rt-bar-ong').textContent=ongNombre;}
   }
   await ensureActiveOngUserContext();
+  // limpiar estado de la sesión anterior antes de cargar los datos de la ONG activa
+  LOTE_ACTIVO=null;HIST_DATA={};INCONSISTENCIAS={};CORRECCIONES_LOG={};
+  MAT_ACTIVO=null;MAT_TIPO=null;PAC_DATA=[];PAC_EDIT_ID=null;PAC_ONG_ID=null;ESTABL_EDITANDO=null;
   await Promise.all([cargarLotes(),cargarMaterial()]);
   rebuildSearchIndex();
   rAll('dash-lotes','todos');
@@ -2015,7 +2018,10 @@ async function openLote(id){
   if(etIdx>=4)reqs.push(sb.from('etapa_cosecha').select('*').eq('lote_id',id).maybeSingle());
   if(etIdx>=5)reqs.push(sb.from('etapa_curado_secado').select('*').eq('lote_id',id).maybeSingle());
   if(etIdx>=6)reqs.push(sb.from('flores_cosechadas').select('*').eq('lote_id',id).maybeSingle());
+  const capturedId=id;
   const results=await Promise.all(reqs);
+  // si el usuario abrió otro lote mientras este Promise.all estaba en vuelo, descartar
+  if(LOTE_ACTIVO?.id!==capturedId)return;
   const keys=['nursery','vegetativa','floracion','cosecha','curado_secado','flores'];
   for(let i=0;i<results.length;i++){if(results[i].data)HIST_DATA[keys[i]]=results[i].data;}
   try{
