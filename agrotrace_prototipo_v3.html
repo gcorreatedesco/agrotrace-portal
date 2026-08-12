@@ -41,6 +41,16 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);c
 .nav-badge{margin-left:auto;background:var(--amber-light);color:var(--amber);font-size:0.58rem;font-weight:700;padding:1px 5px;border-radius:10px;}
 .nav-it.new-mat{color:rgba(142,170,123,0.7);font-size:0.72rem;}
 .nav-it.new-mat:hover{color:var(--leaf);}
+.nav-it-arrow{margin-left:auto;font-size:0.6rem;transition:transform 0.2s;opacity:0.5;}
+.nav-it-arrow.open{transform:rotate(90deg);}
+.nav-sub{display:none;overflow:hidden;}
+.nav-sub.open{display:block;}
+.nav-sub-it{display:flex;align-items:center;gap:8px;padding:7px 16px 7px 34px;cursor:pointer;color:rgba(255,255,255,0.45);font-size:0.73rem;transition:all var(--trans);border-left:2px solid transparent;}
+.nav-sub-it svg{width:13px;height:13px;fill:currentColor;flex-shrink:0;}
+.nav-sub-it:hover{color:var(--dew);background:rgba(255,255,255,0.05);}
+.nav-sub-it.active{color:var(--leaf);border-left-color:var(--leaf);background:rgba(142,170,123,0.1);}
+.nav-sub-it.prox{cursor:default;opacity:0.35;}
+.nav-sub-it.prox:hover{color:rgba(255,255,255,0.45);background:none;}
 
 /* búsqueda en sidebar */
 .search-sb-wrap{overflow:hidden;transition:max-height 0.3s ease,opacity 0.3s ease;max-height:0;opacity:0;}
@@ -623,7 +633,22 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
       Mis establecimientos
     </div>
-
+    <div class="nav-it" id="nav-reportes" onclick="toggleReportes()">
+      <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+      Reportes
+      <span class="nav-it-arrow" id="reportes-arrow">▶</span>
+    </div>
+    <div class="nav-sub" id="nav-sub-reportes">
+      <div class="nav-sub-it" id="nav-rep-reprocann" onclick="sv('reporte-reprocann')">
+        <svg viewBox="0 0 24 24"><path d="M9 11H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2zm2-7h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11z"/></svg>
+        REPROCANN
+      </div>
+      <div class="nav-sub-it prox">
+        <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+        Exportar HISTORIAL
+        <span style="margin-left:auto;font-size:0.58rem;color:rgba(255,255,255,0.2);">Próx.</span>
+      </div>
+    </div>
 
     <div class="nav-sec">Búsqueda</div>
     <div class="nav-it" id="nav-busqueda" onclick="toggleSearch()">
@@ -1085,6 +1110,67 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
   </div>
   <div class="pac-cnt" id="pac-list-count"></div>
   <div id="pac-list"></div>
+</div>
+
+<!-- REPORTE REPROCANN -->
+<div class="view" id="view-reporte-reprocann">
+  <div style="background:var(--white);border:1px solid rgba(0,0,0,0.07);border-radius:10px;padding:24px;margin-bottom:16px;">
+    <div style="font-family:'DM Serif Display',serif;font-size:1.1rem;color:var(--soil);margin-bottom:4px;">Reporte REPROCANN</div>
+    <div style="font-size:0.78rem;color:var(--sage);margin-bottom:16px;">Listado de lotes productivos con datos regulatorios</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+      <div>
+        <label style="font-size:0.68rem;font-weight:500;text-transform:uppercase;letter-spacing:0.08em;color:var(--bark);display:block;margin-bottom:4px;">Desde</label>
+        <input type="date" id="rep-fecha-desde" style="padding:7px 10px;border:1.5px solid var(--mist);border-radius:6px;font-family:'DM Sans',sans-serif;font-size:0.82rem;color:var(--soil);outline:none;"/>
+      </div>
+      <div>
+        <label style="font-size:0.68rem;font-weight:500;text-transform:uppercase;letter-spacing:0.08em;color:var(--bark);display:block;margin-bottom:4px;">Hasta</label>
+        <input type="date" id="rep-fecha-hasta" style="padding:7px 10px;border:1.5px solid var(--mist);border-radius:6px;font-family:'DM Sans',sans-serif;font-size:0.82rem;color:var(--soil);outline:none;"/>
+      </div>
+      <button class="btn btn-primary" onclick="generarReporteReprocann()" style="height:36px;">Generar reporte</button>
+      <button class="btn btn-secondary" id="btn-imprimir-rep" onclick="window.print()" style="height:36px;display:none;">Imprimir / PDF</button>
+    </div>
+    <div id="rep-err" style="display:none;font-size:0.75rem;color:var(--error);margin-top:10px;"></div>
+  </div>
+  <div id="rep-resultado" style="display:none;">
+    <div style="overflow-x:auto;">
+      <table id="rep-tabla" style="width:100%;border-collapse:collapse;font-size:0.72rem;background:var(--white);border:1px solid rgba(0,0,0,0.07);border-radius:10px;overflow:hidden;">
+        <thead>
+          <tr style="background:var(--soil);color:rgba(255,255,255,0.85);">
+            <th style="padding:8px 10px;text-align:left;white-space:nowrap;font-weight:500;">Tipo Persona Jurídica</th>
+            <th style="padding:8px 10px;text-align:left;white-space:nowrap;font-weight:500;">Persona Jurídica</th>
+            <th style="padding:8px 10px;text-align:left;white-space:nowrap;font-weight:500;">Provincia</th>
+            <th style="padding:8px 10px;text-align:left;white-space:nowrap;font-weight:500;">Ciudad</th>
+            <th style="padding:8px 10px;text-align:left;white-space:nowrap;font-weight:500;">Dirección/Predio</th>
+            <th style="padding:8px 10px;text-align:left;white-space:nowrap;font-weight:500;">Nombre del Predio</th>
+            <th style="padding:8px 10px;text-align:left;white-space:nowrap;font-weight:500;">Nombre Resp. Cultivo</th>
+            <th style="padding:8px 10px;text-align:left;white-space:nowrap;font-weight:500;">Apellido Resp. Cultivo</th>
+            <th style="padding:8px 10px;text-align:left;white-space:nowrap;font-weight:500;">Profesión/Título</th>
+            <th style="padding:8px 10px;text-align:left;white-space:nowrap;font-weight:500;">Nro Matrícula</th>
+            <th style="padding:8px 10px;text-align:left;white-space:nowrap;font-weight:500;">Tipo Matrícula</th>
+            <th style="padding:8px 10px;text-align:left;white-space:nowrap;font-weight:500;">Nro Lote</th>
+            <th style="padding:8px 10px;text-align:left;white-space:nowrap;font-weight:500;">Fecha Inicio Cosecha</th>
+            <th style="padding:8px 10px;text-align:left;white-space:nowrap;font-weight:500;">Fecha Cosecha</th>
+            <th style="padding:8px 10px;text-align:left;white-space:nowrap;font-weight:500;">Nro RNC</th>
+            <th style="padding:8px 10px;text-align:left;white-space:nowrap;font-weight:500;">Tipo de Manejo</th>
+            <th style="padding:8px 10px;text-align:left;white-space:nowrap;font-weight:500;">Nombre Genética</th>
+            <th style="padding:8px 10px;text-align:left;white-space:nowrap;font-weight:500;">Plantas en Floración</th>
+            <th style="padding:8px 10px;text-align:left;white-space:nowrap;font-weight:500;">Plantas Descartadas</th>
+            <th style="padding:8px 10px;text-align:left;white-space:nowrap;font-weight:500;">Flores Secas (kg)</th>
+            <th style="padding:8px 10px;text-align:left;white-space:nowrap;font-weight:500;">THC %</th>
+            <th style="padding:8px 10px;text-align:left;white-space:nowrap;font-weight:500;">CBD %</th>
+            <th style="padding:8px 10px;text-align:left;white-space:nowrap;font-weight:500;opacity:0.5;">CBN % ⏳</th>
+            <th style="padding:8px 10px;text-align:left;white-space:nowrap;font-weight:500;opacity:0.5;">CBG % ⏳</th>
+            <th style="padding:8px 10px;text-align:left;white-space:nowrap;font-weight:500;">Fecha Analítica</th>
+            <th style="padding:8px 10px;text-align:left;white-space:nowrap;font-weight:500;opacity:0.5;">Tipo Analítica ⏳</th>
+            <th style="padding:8px 10px;text-align:left;white-space:nowrap;font-weight:500;opacity:0.5;">Entidad Analítica ⏳</th>
+            <th style="padding:8px 10px;text-align:left;white-space:nowrap;font-weight:500;opacity:0.5;">ID Cromatografía ⏳</th>
+          </tr>
+        </thead>
+        <tbody id="rep-tbody"></tbody>
+      </table>
+    </div>
+    <div id="rep-sin-datos" style="display:none;text-align:center;padding:40px;color:var(--sage);font-size:0.85rem;">No hay lotes que coincidan con los filtros seleccionados.</div>
+  </div>
 </div>
 
 <!-- ESTABLECIMIENTOS -->
@@ -2968,7 +3054,7 @@ function closeSidebar(){
 }
 let PREV_VIEW='lotes';
 let formDirty=false;
-const SAFE_VIEWS=['dashboard','lotes','stock','busqueda','organizaciones','establecimientos','pacientes'];
+const SAFE_VIEWS=['dashboard','lotes','stock','busqueda','organizaciones','establecimientos','pacientes','reporte-reprocann'];
 function sv(id){
   closeSidebar();
   if(SAFE_VIEWS.includes(id))formDirty=false;
@@ -2987,6 +3073,7 @@ function sv(id){
     pacientes:['Pacientes','Registro de pacientes REPROCANN','<button class="btn btn-primary" onclick="abrirNuevoPac()">+ Nuevo Paciente</button>'],
     establecimientos:['Mis establecimientos','Sedes de producción registradas','<button class="btn btn-primary" onclick="abrirFormEstabl(null)">+ Nuevo establecimiento</button>'],
     'establ-form':['','',''],
+    'reporte-reprocann':['Reporte REPROCANN','Listado de lotes productivos con datos regulatorios',''],
   };
   if(mp[id]){document.getElementById('tt').textContent=mp[id][0];document.getElementById('ts').textContent=mp[id][1];document.getElementById('ta').innerHTML=mp[id][2];}
   // botón de retorno
@@ -3006,8 +3093,124 @@ function sv(id){
   if(id==='establecimientos')cargarEstablecimientos();
   if(id==='nuevo-material')cargarEstablecimientosSelect('nm-establ');
   if(id==='nuevo-lote')rW();
+  // sub-nav reportes
+  document.querySelectorAll('.nav-sub-it').forEach(n=>n.classList.remove('active'));
+  if(id==='reporte-reprocann'){
+    document.getElementById('nav-rep-reprocann').classList.add('active');
+    document.getElementById('nav-sub-reportes').classList.add('open');
+    document.getElementById('reportes-arrow').classList.add('open');
+  }
 }
 function volverDesdePantalla(){sv(PREV_VIEW);}
+
+/* ── SIDEBAR REPORTES ── */
+function toggleReportes(){
+  const sub=document.getElementById('nav-sub-reportes');
+  const arrow=document.getElementById('reportes-arrow');
+  const isOpen=sub.classList.toggle('open');
+  arrow.classList.toggle('open',isOpen);
+}
+
+/* ── REPORTE REPROCANN ── */
+async function generarReporteReprocann(){
+  const desde=document.getElementById('rep-fecha-desde').value;
+  const hasta=document.getElementById('rep-fecha-hasta').value;
+  const errEl=document.getElementById('rep-err');
+  errEl.style.display='none';
+
+  const btn=document.querySelector('#view-reporte-reprocann .btn-primary');
+  btn.textContent='Generando…';btn.disabled=true;
+
+  try{
+    // Datos de la ONG y su RT
+    const ongUid=sessionStorage.getItem('agrotrace_supervisando_ong_usuario_id')||CURRENT_USER?.id;
+    const[{data:perfONG},{data:org}]=await Promise.all([
+      sb.from('perfiles').select('ong_id').eq('id',ongUid).single(),
+      sb.from('perfiles').select('ong_id').eq('id',ongUid).single(),
+    ]);
+    const ongId=perfONG?.ong_id;
+
+    // Organización
+    const{data:orgData}=ongId?await sb.from('organizaciones').select('nombre').eq('id',ongId).single():{data:null};
+
+    // RT asignado a esta ONG
+    const{data:rtRel}=ongId?await sb.from('rt_organizaciones').select('rt_id').eq('ong_id',ongId).single():{data:null};
+    const{data:rtPerf}=rtRel?await sb.from('perfiles').select('nombre,apellido,titulo_profesional,nro_matricula,colegio_profesional').eq('id',rtRel.rt_id).single():{data:null};
+
+    // Lotes productivos
+    let q=sb.from('lotes_produccion').select(`
+      id,nombre_completo,variedad,establecimiento_id,
+      etapa_cosecha(fecha_inicio,fecha_fin),
+      etapa_floracion(cantidad_ingreso),
+      flores_cosechadas(stock_inicial,analisis_calidad(fecha_analisis,thc_pct,cbd_pct))
+    `).eq('usuario_id',ongUid).is('lote_padre_id',null);
+    if(desde)q=q.gte('creado_en',desde);
+    if(hasta)q=q.lte('creado_en',hasta+'T23:59:59');
+    const{data:lotes,error}=await q;
+    if(error)throw error;
+
+    // Establecimientos
+    const establIds=[...new Set((lotes||[]).map(l=>l.establecimiento_id).filter(Boolean))];
+    let establMap={};
+    if(establIds.length){
+      const{data:eD}=await sb.from('establecimientos').select('id,nombre,calle,nro,ciudad,provincia').in('id',establIds);
+      if(eD)establMap=Object.fromEntries(eD.map(e=>[e.id,e]));
+    }
+
+    const tbody=document.getElementById('rep-tbody');
+    const sinDatos=document.getElementById('rep-sin-datos');
+    if(!lotes||lotes.length===0){tbody.innerHTML='';sinDatos.style.display='block';}
+    else{
+      sinDatos.style.display='none';
+      const fmtD=d=>d?new Date(d).toLocaleDateString('es-AR'):'';
+      tbody.innerHTML=(lotes||[]).map(l=>{
+        const e=establMap[l.establecimiento_id]||{};
+        const cosecha=l.etapa_cosecha?.[0]||{};
+        const flor=l.etapa_floracion?.[0]||{};
+        const flores=l.flores_cosechadas?.[0]||{};
+        const anal=flores.analisis_calidad?.[0]||{};
+        const td=(v,pend)=>`<td style="padding:7px 10px;border-bottom:1px solid rgba(0,0,0,0.05);white-space:nowrap;${pend?'color:#bbb;font-style:italic;':''}">${v??''}</td>`;
+        return`<tr>
+          ${td('Asociación Civil')}
+          ${td(orgData?.nombre||'')}
+          ${td(e.provincia||'')}
+          ${td(e.ciudad||'')}
+          ${td([e.calle,e.nro].filter(Boolean).join(' ')||'')}
+          ${td(e.nombre||'')}
+          ${td(rtPerf?.nombre||'')}
+          ${td(rtPerf?.apellido||'')}
+          ${td(rtPerf?.titulo_profesional||'')}
+          ${td(rtPerf?.nro_matricula||'')}
+          ${td(rtPerf?.colegio_profesional||'')}
+          ${td(l.nombre_completo||'')}
+          ${td(fmtD(cosecha.fecha_inicio))}
+          ${td(fmtD(cosecha.fecha_fin))}
+          ${td('',true)}
+          ${td('In door')}
+          ${td(l.variedad||'')}
+          ${td(flor.cantidad_ingreso??'')}
+          ${td('',true)}
+          ${td(flores.stock_inicial!=null?flores.stock_inicial:'')}
+          ${td(anal.thc_pct!=null?anal.thc_pct+'%':'')}
+          ${td(anal.cbd_pct!=null?anal.cbd_pct+'%':'')}
+          ${td('⏳',true)}
+          ${td('⏳',true)}
+          ${td(fmtD(anal.fecha_analisis))}
+          ${td('⏳',true)}
+          ${td('⏳',true)}
+          ${td('⏳',true)}
+        </tr>`;
+      }).join('');
+    }
+    document.getElementById('rep-resultado').style.display='block';
+    document.getElementById('btn-imprimir-rep').style.display='inline-flex';
+  }catch(err){
+    errEl.textContent='Error al generar el reporte: '+(err.message||JSON.stringify(err));
+    errEl.style.display='block';
+  }finally{
+    btn.textContent='Generar reporte';btn.disabled=false;
+  }
+}
 
 function fD(el,et){document.querySelectorAll('#view-dashboard .pill').forEach(p=>p.classList.remove('active'));el.classList.add('active');rAll('dash-lotes',et);}
 function fL(el,et){
