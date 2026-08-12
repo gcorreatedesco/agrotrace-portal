@@ -367,6 +367,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);c
       <div class="view" id="view-mis-datos">
         <div class="sec-header" style="margin-bottom:20px;">
           <div class="sec-title">Mis Datos</div>
+          <button id="btn-habilitar-md" onclick="habilitarEdicionMD()" style="font-size:0.72rem;padding:5px 12px;border:1px solid var(--accent);background:transparent;color:var(--accent);border-radius:5px;cursor:pointer;font-family:'DM Sans',sans-serif;">🔓 Habilitar edición</button>
         </div>
         <div class="form-card">
 
@@ -378,15 +379,15 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);c
             </div>
             <div class="field">
               <label>CUIT <span>(opcional)</span></label>
-              <input type="text" id="md-cuit" placeholder="xx-xxxxxxxxx-x" maxlength="13"/>
+              <input type="text" id="md-cuit" placeholder="xx-xxxxxxxxx-x" maxlength="13" disabled/>
             </div>
             <div class="field">
               <label>Nombre *</label>
-              <input type="text" id="md-nombre" placeholder="Ej: María"/>
+              <input type="text" id="md-nombre" placeholder="Ej: María" disabled/>
             </div>
             <div class="field">
               <label>Apellido *</label>
-              <input type="text" id="md-apellido" placeholder="Ej: García"/>
+              <input type="text" id="md-apellido" placeholder="Ej: García" disabled/>
             </div>
           </div>
 
@@ -394,15 +395,15 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);c
           <div class="form-grid">
             <div class="field" style="grid-column:1/-1">
               <label>Título profesional <span>(opcional)</span></label>
-              <input type="text" id="md-titulo" placeholder="Ej: Ing. Agrónomo"/>
+              <input type="text" id="md-titulo" placeholder="Ej: Ing. Agrónomo" disabled/>
             </div>
             <div class="field">
               <label>Colegio de profesionales <span>(opcional)</span></label>
-              <input type="text" id="md-colegio" placeholder="Ej: CONICET, CABA"/>
+              <input type="text" id="md-colegio" placeholder="Ej: CONICET, CABA" disabled/>
             </div>
             <div class="field">
               <label>Nro de Matrícula <span>(opcional)</span></label>
-              <input type="text" id="md-matricula" placeholder="Ej: 12345"/>
+              <input type="text" id="md-matricula" placeholder="Ej: 12345" disabled/>
             </div>
           </div>
 
@@ -410,23 +411,24 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);c
           <div class="form-grid">
             <div class="field">
               <label>Provincia <span>(opcional)</span></label>
-              <input type="text" id="md-provincia" placeholder="Ej: Buenos Aires"/>
+              <input type="text" id="md-provincia" placeholder="Ej: Buenos Aires" disabled/>
             </div>
             <div class="field">
               <label>Ciudad <span>(opcional)</span></label>
-              <input type="text" id="md-ciudad" placeholder="Ej: La Plata"/>
+              <input type="text" id="md-ciudad" placeholder="Ej: La Plata" disabled/>
             </div>
             <div class="field" style="grid-column:1/-1">
               <label>Dirección y número <span>(opcional)</span></label>
-              <input type="text" id="md-direccion" placeholder="Ej: Av. 7 Nro 1234"/>
+              <input type="text" id="md-direccion" placeholder="Ej: Av. 7 Nro 1234" disabled/>
             </div>
           </div>
 
           <div class="error-msg" id="md-err"></div>
           <div id="md-ok" style="display:none;font-size:0.78rem;color:var(--accent);padding:8px 12px;background:var(--dew);border-radius:var(--radius);margin-top:12px;">✓ Datos guardados correctamente.</div>
 
-          <div class="form-actions">
+          <div class="form-actions" id="md-actions" style="display:none;">
             <button class="btn-primary" onclick="guardarMisDatos()">Guardar datos</button>
+            <button class="btn-secondary" onclick="cancelarEdicionMD()">Cancelar</button>
           </div>
         </div>
       </div>
@@ -1373,6 +1375,38 @@ function renderAlertasRT(alertas) {
 }
 
 /* ── MIS DATOS ── */
+const MD_CAMPOS = ['md-cuit','md-nombre','md-apellido','md-titulo','md-colegio','md-matricula','md-provincia','md-ciudad','md-direccion'];
+let MD_VALORES_ORIG = {};
+
+function mdSetBlocked(blocked) {
+  MD_CAMPOS.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.disabled = blocked;
+  });
+  document.getElementById('btn-habilitar-md').style.display = blocked ? 'inline-block' : 'none';
+  document.getElementById('md-actions').style.display = blocked ? 'none' : 'flex';
+  document.getElementById('md-err').classList.remove('show');
+  document.getElementById('md-ok').style.display = 'none';
+}
+
+function habilitarEdicionMD() {
+  mdSetBlocked(false);
+  document.getElementById('md-nombre').focus();
+}
+
+function cancelarEdicionMD() {
+  document.getElementById('md-nombre').value    = MD_VALORES_ORIG.nombre;
+  document.getElementById('md-apellido').value  = MD_VALORES_ORIG.apellido;
+  document.getElementById('md-cuit').value      = MD_VALORES_ORIG.cuit;
+  document.getElementById('md-titulo').value    = MD_VALORES_ORIG.titulo_profesional;
+  document.getElementById('md-colegio').value   = MD_VALORES_ORIG.colegio_profesional;
+  document.getElementById('md-matricula').value = MD_VALORES_ORIG.nro_matricula;
+  document.getElementById('md-provincia').value = MD_VALORES_ORIG.provincia;
+  document.getElementById('md-ciudad').value    = MD_VALORES_ORIG.ciudad;
+  document.getElementById('md-direccion').value = MD_VALORES_ORIG.direccion;
+  mdSetBlocked(true);
+}
+
 async function cargarMisDatos() {
   const { data: { session } } = await sb.auth.getSession();
   if (!session) return;
@@ -1390,14 +1424,20 @@ async function cargarMisDatos() {
   document.getElementById('md-provincia').value = data.provincia || '';
   document.getElementById('md-ciudad').value    = data.ciudad || '';
   document.getElementById('md-direccion').value = data.direccion || '';
+  MD_VALORES_ORIG = {
+    nombre: data.nombre||'', apellido: data.apellido||'', cuit: data.cuit||'',
+    titulo_profesional: data.titulo_profesional||'', colegio_profesional: data.colegio_profesional||'',
+    nro_matricula: data.nro_matricula||'', provincia: data.provincia||'',
+    ciudad: data.ciudad||'', direccion: data.direccion||'',
+  };
+  mdSetBlocked(true);
 }
 
 async function guardarMisDatos() {
   const nombre   = document.getElementById('md-nombre').value.trim();
   const apellido = document.getElementById('md-apellido').value.trim();
   const errEl    = document.getElementById('md-err');
-  const okEl     = document.getElementById('md-ok');
-  errEl.classList.remove('show'); okEl.style.display = 'none';
+  errEl.classList.remove('show');
 
   if (!nombre)   { errEl.textContent = 'El nombre es obligatorio.';   errEl.classList.add('show'); return; }
   if (!apellido) { errEl.textContent = 'El apellido es obligatorio.'; errEl.classList.add('show'); return; }
@@ -1406,7 +1446,7 @@ async function guardarMisDatos() {
   btn.textContent = 'Guardando…'; btn.disabled = true;
   try {
     const { data: { session } } = await sb.auth.getSession();
-    const { error } = await sb.from('perfiles').update({
+    const updates = {
       nombre,
       apellido:            apellido || null,
       cuit:                document.getElementById('md-cuit').value.trim() || null,
@@ -1416,13 +1456,18 @@ async function guardarMisDatos() {
       provincia:           document.getElementById('md-provincia').value.trim() || null,
       ciudad:              document.getElementById('md-ciudad').value.trim() || null,
       direccion:           document.getElementById('md-direccion').value.trim() || null,
-    }).eq('id', session.user.id);
+    };
+    const { error } = await sb.from('perfiles').update(updates).eq('id', session.user.id);
     if (error) throw error;
-    okEl.style.display = 'block';
+    Object.assign(MD_VALORES_ORIG, updates,
+      { titulo_profesional: updates.titulo_profesional||'', colegio_profesional: updates.colegio_profesional||'',
+        nro_matricula: updates.nro_matricula||'', cuit: updates.cuit||'',
+        provincia: updates.provincia||'', ciudad: updates.ciudad||'', direccion: updates.direccion||'' });
+    mdSetBlocked(true);
+    document.getElementById('md-ok').style.display = 'block';
   } catch (err) {
     errEl.textContent = 'Error al guardar: ' + (err.message || JSON.stringify(err));
     errEl.classList.add('show');
-  } finally {
     btn.textContent = 'Guardar datos'; btn.disabled = false;
   }
 }
