@@ -3122,24 +3122,25 @@ async function generarReporteReprocann(){
   btn.textContent='Generando…';btn.disabled=true;
 
   try{
-    // Datos de la ONG y su RT
     const ongUid=sessionStorage.getItem('agrotrace_supervisando_ong_usuario_id')||CURRENT_USER?.id;
-    const[{data:perfONG},{data:org}]=await Promise.all([
-      sb.from('perfiles').select('ong_id').eq('id',ongUid).single(),
-      sb.from('perfiles').select('ong_id').eq('id',ongUid).single(),
-    ]);
+
+    // Perfil ONG → ong_id
+    const{data:perfONG}=await sb.from('perfiles').select('ong_id').eq('id',ongUid).single();
     const ongId=perfONG?.ong_id;
 
-    // Organización
-    const{data:orgData}=ongId?await sb.from('organizaciones').select('nombre').eq('id',ongId).single():{data:null};
+    // Organización + RT en paralelo
+    const[{data:orgData},{data:rtRel}]=await Promise.all([
+      ongId?sb.from('organizaciones').select('nombre').eq('id',ongId).single():{data:null},
+      ongId?sb.from('rt_organizaciones').select('rt_id').eq('ong_id',ongId).single():{data:null},
+    ]);
+    const{data:rtPerf}=rtRel?.rt_id?await sb.from('perfiles').select('nombre,apellido,titulo_profesional,nro_matricula,colegio_profesional').eq('id',rtRel.rt_id).single():{data:null};
 
-    // RT asignado a esta ONG
-    const{data:rtRel}=ongId?await sb.from('rt_organizaciones').select('rt_id').eq('ong_id',ongId).single():{data:null};
-    const{data:rtPerf}=rtRel?await sb.from('perfiles').select('nombre,apellido,titulo_profesional,nro_matricula,colegio_profesional').eq('id',rtRel.rt_id).single():{data:null};
-
-    // Lotes productivos
+    // Lotes productivos — variedad viene de las tablas de material de origen (FK hint PostgREST)
     let q=sb.from('lotes_produccion').select(`
-      id,nombre_completo,variedad,establecimiento_id,
+      id,nombre_completo,establecimiento_id,
+      lotes_semillas!origen_semilla_id(variedad),
+      lotes_esquejes!origen_esqueje_id(variedad),
+      lotes_plantas_madre!origen_pm_id(variedad),
       etapa_cosecha(fecha_inicio,fecha_fin),
       etapa_floracion(cantidad_ingreso),
       flores_cosechadas(stock_inicial,analisis_calidad(fecha_analisis,thc_pct,cbd_pct))
@@ -3165,10 +3166,11 @@ async function generarReporteReprocann(){
       const fmtD=d=>d?new Date(d).toLocaleDateString('es-AR'):'';
       tbody.innerHTML=(lotes||[]).map(l=>{
         const e=establMap[l.establecimiento_id]||{};
-        const cosecha=l.etapa_cosecha?.[0]||{};
-        const flor=l.etapa_floracion?.[0]||{};
-        const flores=l.flores_cosechadas?.[0]||{};
-        const anal=flores.analisis_calidad?.[0]||{};
+        const cosecha=(l.etapa_cosecha||[])[0]||{};
+        const flor=(l.etapa_floracion||[])[0]||{};
+        const flores=(l.flores_cosechadas||[])[0]||{};
+        const anal=(flores.analisis_calidad||[])[0]||{};
+        const variedad=l.lotes_semillas?.variedad||l.lotes_esquejes?.variedad||l.lotes_plantas_madre?.variedad||'';
         const td=(v,pend)=>`<td style="padding:7px 10px;border-bottom:1px solid rgba(0,0,0,0.05);white-space:nowrap;${pend?'color:#bbb;font-style:italic;':''}">${v??''}</td>`;
         return`<tr>
           ${td('Asociación Civil')}
@@ -3187,7 +3189,7 @@ async function generarReporteReprocann(){
           ${td(fmtD(cosecha.fecha_fin))}
           ${td('',true)}
           ${td('In door')}
-          ${td(l.variedad||'')}
+          ${td(variedad)}
           ${td(flor.cantidad_ingreso??'')}
           ${td('',true)}
           ${td(flores.stock_inicial!=null?flores.stock_inicial:'')}
