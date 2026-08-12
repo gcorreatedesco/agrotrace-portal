@@ -394,15 +394,15 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);c
           <div class="form-section-title">Datos profesionales</div>
           <div class="form-grid">
             <div class="field" style="grid-column:1/-1">
-              <label>Título profesional <span>(opcional)</span></label>
+              <label>Título profesional *</label>
               <input type="text" id="md-titulo" placeholder="Ej: Ing. Agrónomo" disabled/>
             </div>
             <div class="field">
-              <label>Colegio de profesionales <span>(opcional)</span></label>
+              <label>Colegio de profesionales *</label>
               <input type="text" id="md-colegio" placeholder="Ej: CONICET, CABA" disabled/>
             </div>
             <div class="field">
-              <label>Nro de Matrícula <span>(opcional)</span></label>
+              <label>Nro de Matrícula *</label>
               <input type="text" id="md-matricula" placeholder="Ej: 12345" disabled/>
             </div>
           </div>
@@ -1439,8 +1439,15 @@ async function guardarMisDatos() {
   const errEl    = document.getElementById('md-err');
   errEl.classList.remove('show');
 
-  if (!nombre)   { errEl.textContent = 'El nombre es obligatorio.';   errEl.classList.add('show'); return; }
-  if (!apellido) { errEl.textContent = 'El apellido es obligatorio.'; errEl.classList.add('show'); return; }
+  const titulo    = document.getElementById('md-titulo').value.trim();
+  const colegio   = document.getElementById('md-colegio').value.trim();
+  const matricula = document.getElementById('md-matricula').value.trim();
+
+  if (!nombre)    { errEl.textContent = 'El nombre es obligatorio.';              errEl.classList.add('show'); return; }
+  if (!apellido)  { errEl.textContent = 'El apellido es obligatorio.';            errEl.classList.add('show'); return; }
+  if (!titulo)    { errEl.textContent = 'El título profesional es obligatorio.';  errEl.classList.add('show'); return; }
+  if (!colegio)   { errEl.textContent = 'El colegio de profesionales es obligatorio.'; errEl.classList.add('show'); return; }
+  if (!matricula) { errEl.textContent = 'El Nro de Matrícula es obligatorio.';    errEl.classList.add('show'); return; }
 
   const btn = document.querySelector('#view-mis-datos .btn-primary');
   btn.textContent = 'Guardando…'; btn.disabled = true;

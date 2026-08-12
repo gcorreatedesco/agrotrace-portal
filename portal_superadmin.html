@@ -579,16 +579,16 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);c
 
     <div class="form-sep">Datos profesionales</div>
     <div class="form-row">
-      <label class="form-label">Título profesional</label>
+      <label class="form-label">Título profesional <span class="form-req">*</span></label>
       <input id="drt-titulo" class="form-input" type="text" placeholder="Ej: Ing. Agrónomo"/>
     </div>
     <div class="form-grid-2">
       <div class="form-row">
-        <label class="form-label">Colegio de profesionales</label>
+        <label class="form-label">Colegio de profesionales <span class="form-req">*</span></label>
         <input id="drt-colegio" class="form-input" type="text" placeholder="Ej: CONICET, CABA"/>
       </div>
       <div class="form-row">
-        <label class="form-label">Nro de Matrícula</label>
+        <label class="form-label">Nro de Matrícula <span class="form-req">*</span></label>
         <input id="drt-matricula" class="form-input" type="text" placeholder="Ej: 12345"/>
       </div>
     </div>
@@ -1617,8 +1617,15 @@ async function guardarDatosRT() {
   const cuit     = document.getElementById('drt-cuit').value.trim();
   const errEl    = document.getElementById('drt-err');
 
-  if (!nombre) { errEl.textContent = 'El nombre es obligatorio.'; errEl.style.display = 'block'; return; }
-  if (!apellido) { errEl.textContent = 'El apellido es obligatorio.'; errEl.style.display = 'block'; return; }
+  const titulo    = document.getElementById('drt-titulo').value.trim();
+  const colegio   = document.getElementById('drt-colegio').value.trim();
+  const matricula = document.getElementById('drt-matricula').value.trim();
+
+  if (!nombre)    { errEl.textContent = 'El nombre es obligatorio.';              errEl.style.display = 'block'; return; }
+  if (!apellido)  { errEl.textContent = 'El apellido es obligatorio.';            errEl.style.display = 'block'; return; }
+  if (!titulo)    { errEl.textContent = 'El título profesional es obligatorio.';  errEl.style.display = 'block'; return; }
+  if (!colegio)   { errEl.textContent = 'El colegio de profesionales es obligatorio.'; errEl.style.display = 'block'; return; }
+  if (!matricula) { errEl.textContent = 'El Nro de Matrícula es obligatorio.';    errEl.style.display = 'block'; return; }
   if (!validarCUIT(cuit)) { errEl.textContent = 'El formato de CUIT debe ser xx-xxxxxxxxx-x (ej: 20-12345678-9).'; errEl.style.display = 'block'; return; }
   errEl.style.display = 'none';
 
