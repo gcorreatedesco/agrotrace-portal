@@ -278,6 +278,10 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);c
         <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
         Detalles de ONG
       </div>
+      <div class="nav-it" id="nav-mis-datos" onclick="showView('view-mis-datos',this)">
+        <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+        Mis Datos
+      </div>
     </div>
 
     <div class="sb-footer">
@@ -357,6 +361,74 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);c
         </div>
         <div id="det-list-activas"></div>
         <div id="det-list-inactivas" style="display:none;"></div>
+      </div>
+
+      <!-- ── VIEW: MIS DATOS ── -->
+      <div class="view" id="view-mis-datos">
+        <div class="sec-header" style="margin-bottom:20px;">
+          <div class="sec-title">Mis Datos</div>
+        </div>
+        <div class="form-card">
+
+          <div class="form-section-title">Identificación</div>
+          <div class="form-grid">
+            <div class="field">
+              <label>Email (login)</label>
+              <input type="text" id="md-email" disabled style="color:var(--sage);background:var(--dew);"/>
+            </div>
+            <div class="field">
+              <label>CUIT <span>(opcional)</span></label>
+              <input type="text" id="md-cuit" placeholder="xx-xxxxxxxxx-x" maxlength="13"/>
+            </div>
+            <div class="field">
+              <label>Nombre *</label>
+              <input type="text" id="md-nombre" placeholder="Ej: María"/>
+            </div>
+            <div class="field">
+              <label>Apellido *</label>
+              <input type="text" id="md-apellido" placeholder="Ej: García"/>
+            </div>
+          </div>
+
+          <div class="form-section-title">Datos profesionales</div>
+          <div class="form-grid">
+            <div class="field" style="grid-column:1/-1">
+              <label>Título profesional <span>(opcional)</span></label>
+              <input type="text" id="md-titulo" placeholder="Ej: Ing. Agrónomo"/>
+            </div>
+            <div class="field">
+              <label>Colegio de profesionales <span>(opcional)</span></label>
+              <input type="text" id="md-colegio" placeholder="Ej: CONICET, CABA"/>
+            </div>
+            <div class="field">
+              <label>Nro de Matrícula <span>(opcional)</span></label>
+              <input type="text" id="md-matricula" placeholder="Ej: 12345"/>
+            </div>
+          </div>
+
+          <div class="form-section-title">Domicilio profesional</div>
+          <div class="form-grid">
+            <div class="field">
+              <label>Provincia <span>(opcional)</span></label>
+              <input type="text" id="md-provincia" placeholder="Ej: Buenos Aires"/>
+            </div>
+            <div class="field">
+              <label>Ciudad <span>(opcional)</span></label>
+              <input type="text" id="md-ciudad" placeholder="Ej: La Plata"/>
+            </div>
+            <div class="field" style="grid-column:1/-1">
+              <label>Dirección y número <span>(opcional)</span></label>
+              <input type="text" id="md-direccion" placeholder="Ej: Av. 7 Nro 1234"/>
+            </div>
+          </div>
+
+          <div class="error-msg" id="md-err"></div>
+          <div id="md-ok" style="display:none;font-size:0.78rem;color:var(--accent);padding:8px 12px;background:var(--dew);border-radius:var(--radius);margin-top:12px;">✓ Datos guardados correctamente.</div>
+
+          <div class="form-actions">
+            <button class="btn-primary" onclick="guardarMisDatos()">Guardar datos</button>
+          </div>
+        </div>
       </div>
 
       <!-- VIEW: NUEVA ONG — deshabilitado: solo el superadmin puede crear ONGs -->
@@ -590,6 +662,7 @@ function showView(viewId, navEl) {
     'view-mis-ongs': ['Mis Organizaciones', 'Panel de Supervisión'],
     'view-detalles-ong': ['Detalles de ONG', 'Gestión de Asociaciones Civiles'],
     'view-nueva-ong': ['Nueva Asociación Civil', 'Gestión de Asociaciones'],
+    'view-mis-datos': ['Mis Datos', 'Mi perfil profesional'],
   };
   const t = titles[viewId];
   if (t) {
@@ -597,6 +670,7 @@ function showView(viewId, navEl) {
     document.getElementById('tb-sub').textContent = t[1];
   }
   if (viewId === 'view-detalles-ong') cargarDetallesONGs();
+  if (viewId === 'view-mis-datos') cargarMisDatos();
 }
 
 /* ── RENDER ONGs ── */
@@ -1296,6 +1370,61 @@ function renderAlertasRT(alertas) {
         </div>
       </div>
     </div>`).join('');
+}
+
+/* ── MIS DATOS ── */
+async function cargarMisDatos() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) return;
+  document.getElementById('md-email').value = session.user.email || '';
+  const { data } = await sb.from('perfiles')
+    .select('nombre, apellido, cuit, titulo_profesional, colegio_profesional, nro_matricula, provincia, ciudad, direccion')
+    .eq('id', session.user.id).single();
+  if (!data) return;
+  document.getElementById('md-nombre').value    = data.nombre || '';
+  document.getElementById('md-apellido').value  = data.apellido || '';
+  document.getElementById('md-cuit').value      = data.cuit || '';
+  document.getElementById('md-titulo').value    = data.titulo_profesional || '';
+  document.getElementById('md-colegio').value   = data.colegio_profesional || '';
+  document.getElementById('md-matricula').value = data.nro_matricula || '';
+  document.getElementById('md-provincia').value = data.provincia || '';
+  document.getElementById('md-ciudad').value    = data.ciudad || '';
+  document.getElementById('md-direccion').value = data.direccion || '';
+}
+
+async function guardarMisDatos() {
+  const nombre   = document.getElementById('md-nombre').value.trim();
+  const apellido = document.getElementById('md-apellido').value.trim();
+  const errEl    = document.getElementById('md-err');
+  const okEl     = document.getElementById('md-ok');
+  errEl.classList.remove('show'); okEl.style.display = 'none';
+
+  if (!nombre)   { errEl.textContent = 'El nombre es obligatorio.';   errEl.classList.add('show'); return; }
+  if (!apellido) { errEl.textContent = 'El apellido es obligatorio.'; errEl.classList.add('show'); return; }
+
+  const btn = document.querySelector('#view-mis-datos .btn-primary');
+  btn.textContent = 'Guardando…'; btn.disabled = true;
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    const { error } = await sb.from('perfiles').update({
+      nombre,
+      apellido:            apellido || null,
+      cuit:                document.getElementById('md-cuit').value.trim() || null,
+      titulo_profesional:  document.getElementById('md-titulo').value.trim() || null,
+      colegio_profesional: document.getElementById('md-colegio').value.trim() || null,
+      nro_matricula:       document.getElementById('md-matricula').value.trim() || null,
+      provincia:           document.getElementById('md-provincia').value.trim() || null,
+      ciudad:              document.getElementById('md-ciudad').value.trim() || null,
+      direccion:           document.getElementById('md-direccion').value.trim() || null,
+    }).eq('id', session.user.id);
+    if (error) throw error;
+    okEl.style.display = 'block';
+  } catch (err) {
+    errEl.textContent = 'Error al guardar: ' + (err.message || JSON.stringify(err));
+    errEl.classList.add('show');
+  } finally {
+    btn.textContent = 'Guardar datos'; btn.disabled = false;
+  }
 }
 
 /* ── VOLVER AL SUPERADMIN ── */

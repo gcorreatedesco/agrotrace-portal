@@ -578,6 +578,10 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);c
     </div>
 
     <div class="form-sep">Datos profesionales</div>
+    <div class="form-row">
+      <label class="form-label">Título profesional</label>
+      <input id="drt-titulo" class="form-input" type="text" placeholder="Ej: Ing. Agrónomo"/>
+    </div>
     <div class="form-grid-2">
       <div class="form-row">
         <label class="form-label">Colegio de profesionales</label>
@@ -767,7 +771,7 @@ function cargarDemo() {
 
 /* ── CARGAR RTs ── */
 async function cargarRTs() {
-  const { data, error } = await sb.from('perfiles').select('id, nombre, email, activo, apellido, cuit, colegio_profesional, nro_matricula, provincia, ciudad, direccion').eq('rol', 'rt');
+  const { data, error } = await sb.from('perfiles').select('id, nombre, email, activo, apellido, cuit, titulo_profesional, colegio_profesional, nro_matricula, provincia, ciudad, direccion').eq('rol', 'rt');
   if (error || !data) return;
 
   const rtIds = data.map(r => r.id);
@@ -1503,7 +1507,7 @@ async function guardarAsignacionRT() {
 }
 
 /* ── DATOS RT ── */
-const DRT_CAMPOS = ['drt-nombre','drt-apellido','drt-cuit','drt-colegio','drt-matricula','drt-provincia','drt-ciudad','drt-direccion'];
+const DRT_CAMPOS = ['drt-nombre','drt-apellido','drt-cuit','drt-titulo','drt-colegio','drt-matricula','drt-provincia','drt-ciudad','drt-direccion'];
 let DRT_VALORES_ORIG = {};
 
 function drtSetBlocked(blocked) {
@@ -1527,6 +1531,7 @@ function abrirDatosRT(rtId) {
   document.getElementById('drt-nombre').value        = rt.nombre || '';
   document.getElementById('drt-apellido').value      = rt.apellido || '';
   document.getElementById('drt-cuit').value          = rt.cuit || '';
+  document.getElementById('drt-titulo').value        = rt.titulo_profesional || '';
   document.getElementById('drt-colegio').value       = rt.colegio_profesional || '';
   document.getElementById('drt-matricula').value     = rt.nro_matricula || '';
   document.getElementById('drt-provincia').value     = rt.provincia || '';
@@ -1539,6 +1544,7 @@ function abrirDatosRT(rtId) {
   // Guardar copia de los valores originales para poder cancelar
   DRT_VALORES_ORIG = {
     nombre: rt.nombre||'', apellido: rt.apellido||'', cuit: rt.cuit||'',
+    titulo_profesional: rt.titulo_profesional||'',
     colegio_profesional: rt.colegio_profesional||'', nro_matricula: rt.nro_matricula||'',
     provincia: rt.provincia||'', ciudad: rt.ciudad||'', direccion: rt.direccion||'',
   };
@@ -1560,6 +1566,7 @@ function cancelarEdicionDRT() {
   document.getElementById('drt-nombre').value    = DRT_VALORES_ORIG.nombre;
   document.getElementById('drt-apellido').value  = DRT_VALORES_ORIG.apellido;
   document.getElementById('drt-cuit').value      = DRT_VALORES_ORIG.cuit;
+  document.getElementById('drt-titulo').value    = DRT_VALORES_ORIG.titulo_profesional;
   document.getElementById('drt-colegio').value   = DRT_VALORES_ORIG.colegio_profesional;
   document.getElementById('drt-matricula').value = DRT_VALORES_ORIG.nro_matricula;
   document.getElementById('drt-provincia').value = DRT_VALORES_ORIG.provincia;
@@ -1623,6 +1630,7 @@ async function guardarDatosRT() {
       nombre:              nombre,
       apellido:            apellido || null,
       cuit:                cuit || null,
+      titulo_profesional:  document.getElementById('drt-titulo').value.trim() || null,
       colegio_profesional: document.getElementById('drt-colegio').value.trim() || null,
       nro_matricula:       document.getElementById('drt-matricula').value.trim() || null,
       provincia:           document.getElementById('drt-provincia').value.trim() || null,

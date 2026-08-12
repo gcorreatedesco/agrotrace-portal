@@ -34,13 +34,34 @@ ALTER TABLE public.rt_organizaciones ENABLE ROW LEVEL SECURITY;
 -- Extiende la tabla de autenticación de Supabase.
 -- ong_id: solo para rol='ong'. NULL para superadmin y rt.
 CREATE TABLE IF NOT EXISTS public.perfiles (
-  id          UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  nombre      TEXT NOT NULL,
-  rol         TEXT NOT NULL CHECK (rol IN ('superadmin','rt','ong')),
-  ong_id      UUID REFERENCES public.organizaciones(id),
-  creado_en   TIMESTAMPTZ DEFAULT NOW()
+  id                  UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  nombre              TEXT NOT NULL,
+  rol                 TEXT NOT NULL CHECK (rol IN ('superadmin','rt','ong')),
+  ong_id              UUID REFERENCES public.organizaciones(id),
+  email               TEXT,
+  activo              BOOLEAN DEFAULT TRUE,
+  apellido            TEXT,
+  cuit                TEXT,
+  titulo_profesional  TEXT,
+  colegio_profesional TEXT,
+  nro_matricula       TEXT,
+  provincia           TEXT,
+  ciudad              TEXT,
+  direccion           TEXT,
+  creado_en           TIMESTAMPTZ DEFAULT NOW()
 );
 ALTER TABLE public.perfiles ENABLE ROW LEVEL SECURITY;
+-- Migración: ejecutar solo si la tabla ya existe (IF NOT EXISTS es seguro)
+ALTER TABLE public.perfiles ADD COLUMN IF NOT EXISTS email TEXT;
+ALTER TABLE public.perfiles ADD COLUMN IF NOT EXISTS activo BOOLEAN DEFAULT TRUE;
+ALTER TABLE public.perfiles ADD COLUMN IF NOT EXISTS apellido TEXT;
+ALTER TABLE public.perfiles ADD COLUMN IF NOT EXISTS cuit TEXT;
+ALTER TABLE public.perfiles ADD COLUMN IF NOT EXISTS titulo_profesional TEXT;
+ALTER TABLE public.perfiles ADD COLUMN IF NOT EXISTS colegio_profesional TEXT;
+ALTER TABLE public.perfiles ADD COLUMN IF NOT EXISTS nro_matricula TEXT;
+ALTER TABLE public.perfiles ADD COLUMN IF NOT EXISTS provincia TEXT;
+ALTER TABLE public.perfiles ADD COLUMN IF NOT EXISTS ciudad TEXT;
+ALTER TABLE public.perfiles ADD COLUMN IF NOT EXISTS direccion TEXT;
 
 
 -- ── FUNCIÓN HELPER — evita recursión en RLS ──────
