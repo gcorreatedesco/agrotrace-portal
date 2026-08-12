@@ -1,3 +1,87 @@
+# AgroTrace — Resumen de sesión (2026-08-12)
+
+## Lo que se hizo en esta sesión
+
+### 1. Datos profesionales del RT — nuevos campos
+
+Se agregaron tres campos obligatorios al perfil del RT:
+- **Título Profesional**, **Colegio de Profesionales**, **Nro de Matrícula**
+
+**Cambios en código:**
+- `supabase_schema.sql`: ALTER TABLE con `titulo_profesional`, `colegio_profesional`, `nro_matricula`, `apellido`, `cuit`, `provincia`, `ciudad`, `direccion` sobre `perfiles`.
+- `portal_rt.html`: nueva vista `view-mis-datos` en sidebar bajo "Gestión". Campos editables con mecanismo de lock/unlock (botón "Habilitar edición" → formulario activo → Guardar/Cancelar). Los cinco campos clave son obligatorios.
+- `portal_superadmin.html`: modal `modal-datos-rt` actualizado con campo Título Profesional y validación de campos obligatorios.
+
+**Acción manual pendiente en Supabase:**
+```sql
+ALTER TABLE public.perfiles ADD COLUMN IF NOT EXISTS titulo_profesional TEXT;
+ALTER TABLE public.perfiles ADD COLUMN IF NOT EXISTS colegio_profesional TEXT;
+ALTER TABLE public.perfiles ADD COLUMN IF NOT EXISTS nro_matricula TEXT;
+ALTER TABLE public.perfiles ADD COLUMN IF NOT EXISTS apellido TEXT;
+ALTER TABLE public.perfiles ADD COLUMN IF NOT EXISTS cuit TEXT;
+ALTER TABLE public.perfiles ADD COLUMN IF NOT EXISTS provincia TEXT;
+ALTER TABLE public.perfiles ADD COLUMN IF NOT EXISTS ciudad TEXT;
+ALTER TABLE public.perfiles ADD COLUMN IF NOT EXISTS direccion TEXT;
+```
+
+### 2. Sistema de Reportes — Portal ONG (esqueleto REPROCANN)
+
+**Sidebar:** acordeón "Reportes" en sección MI ONG con dos sub-ítems:
+- **REPROCANN** → vista funcional con filtros de fecha y tabla de 28 columnas
+- **Exportar HISTORIAL** → marcado como "Próx." (no implementado)
+
+**Vista `view-reporte-reprocann`:**
+- Filtros Desde/Hasta fecha → botón "Generar reporte"
+- Tabla con las 28 columnas del template regulatorio oficial
+- 22 columnas se llenan desde la base de datos
+- 6 columnas marcadas ⏳ (pendientes de campos aún no creados en DB)
+
+**Función `generarReporteReprocann()`:**
+- Obtiene perfil ONG → `ong_id` → nombre organización + RT asignado en paralelo
+- Query a `lotes_produccion` con join PostgREST a tablas de material de origen para obtener variedad (`lotes_semillas!origen_semilla_id(variedad)`, etc.)
+- Lookup de establecimientos por IDs únicos
+- Render de filas con `fmtD()` para fechas en español (es-AR)
+
+**Bug corregido en esta sesión:**
+- `column lotes_produccion.variedad does not exist` → `lotes_produccion` no tiene columna `variedad`; viene de las tablas de material básico (semillas/esquejes/plantas madre) vía FK join con hint PostgREST.
+
+### 3. Commits de esta sesión
+
+| Hash | Descripción |
+|------|-------------|
+| `004cc63` | Datos profesionales RT: campos nuevos en perfiles + Mis Datos portal RT + actualización superadmin |
+| `107d604` | feat: sidebar Reportes + esqueleto reporte REPROCANN (28 columnas) |
+| `b1aface` | fix: reporte REPROCANN — variedad desde tablas de origen via FK hint |
+
+---
+
+## Pendientes — Flujo de Reportes REPROCANN
+
+### A. Prueba de flujo end-to-end
+Hacer una prueba completa del reporte generado considerando:
+1. **Lotes activos vs. dados de baja** — ¿qué lotes deben aparecer en el reporte? ¿solo los que llegaron a cosecha? ¿todos en el rango de fechas? Definir criterio de filtrado.
+2. **Exportación del reporte** — la tabla se muestra en pantalla; falta exportar a Excel/CSV. La opción "Imprimir/PDF" ya existe (`window.print()`). Para Excel evaluar: SheetJS (js-xlsx) cargado desde CDN, o exportar como CSV directamente desde JS sin dependencias externas.
+3. **Campos pendientes en DB** (6 columnas ⏳ no implementadas):
+   - `analisis_calidad`: agregar `cbn_pct`, `cbg_pct`, `tipo_analitica`, `entidad_analitica`, `id_cromatografia`
+   - `lotes_produccion`: agregar `plantas_descartadas` (o resolverlo sumando bajas de todas las etapas)
+   - Nro RNC: vincular lote a `variedades_rnc` (FK `rnc_id` en `lotes_produccion`)
+
+### B. SQL para los campos pendientes (ejecutar en Supabase)
+```sql
+-- analisis_calidad — campos analíticos faltantes
+ALTER TABLE public.analisis_calidad ADD COLUMN IF NOT EXISTS cbn_pct NUMERIC(5,2);
+ALTER TABLE public.analisis_calidad ADD COLUMN IF NOT EXISTS cbg_pct NUMERIC(5,2);
+ALTER TABLE public.analisis_calidad ADD COLUMN IF NOT EXISTS tipo_analitica TEXT;
+ALTER TABLE public.analisis_calidad ADD COLUMN IF NOT EXISTS entidad_analitica TEXT;
+ALTER TABLE public.analisis_calidad ADD COLUMN IF NOT EXISTS id_cromatografia TEXT;
+
+-- lotes_produccion — plantas descartadas y RNC
+ALTER TABLE public.lotes_produccion ADD COLUMN IF NOT EXISTS plantas_descartadas INTEGER DEFAULT 0;
+ALTER TABLE public.lotes_produccion ADD COLUMN IF NOT EXISTS rnc_id UUID REFERENCES public.variedades_rnc(id);
+```
+
+---
+
 # AgroTrace — Resumen de sesión (2026-08-03)
 
 ## Lo que se hizo en esta sesión
