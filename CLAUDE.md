@@ -198,11 +198,17 @@ Ver `Proximospasos.md` para el orden recomendado.
 | Sidebar usuario RT (nombre + email + ícono "RT" fijo) | ✅ Implementado (2026-07-13) |
 | Fix sidebar: supervisor ve su propia identidad (no la supervisada) | ✅ Implementado (2026-07-13) |
 | RLS 3 niveles (superadmin/RT/ONG) en todas las tablas | ✅ Implementado (2026-07-16) |
-| SQL Tabla `variedades_rnc` | ❌ SQL listo en `summary.md` — ejecutar en Supabase |
-| Fix Edge Function `crear-rt` (nombre incorrecto en Dashboard) | ❌ Acción manual en Dashboard |
-| Fix JWT `crear-ong` (desactivar en Dashboard) | ❌ Acción manual en Dashboard |
-| Sistema de Reportes | ❌ Pendiente |
-| Adaptación mobile | ❌ Pendiente |
+| Adaptación mobile (sidebar colapsable, formularios apilados) | ✅ Implementado (2026-07-17) |
+| SQL Tabla `variedades_rnc` | ✅ Ejecutado en Supabase |
+| Fix Edge Function `crear-rt` (JWT desactivado) | ✅ Resuelto (2026-08-13) |
+| Fix JWT `crear-ong` (desactivar en Dashboard) | ✅ Resuelto (2026-08-13) |
+| Datos profesionales RT (`titulo_profesional`, `colegio_profesional`, `nro_matricula`, etc.) | ✅ Implementado (2026-08-12) — SQL ejecutado (2026-08-13) |
+| Campos analíticos en `analisis_calidad` (`cbn_pct`, `cbg_pct`, `tipo_analitica`, etc.) | ✅ SQL ejecutado (2026-08-13) |
+| Campos `plantas_descartadas` y `rnc_id` en `lotes_produccion` | ✅ SQL ejecutado (2026-08-13) |
+| Esqueleto reporte REPROCANN (28 columnas, filtros de fecha) | ✅ Implementado (2026-08-12) |
+| Sistema de Reportes — flujo completo y exportación | ❌ Pendiente (ver criterios en `summary.md`) |
+| Reporte de visita RT (formato papel A4) | ❌ Pendiente |
+| Exportar HISTORIAL ONG (constancia interna) | ❌ Pendiente |
 
 ## Decisiones de arquitectura
 
