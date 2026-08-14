@@ -1730,7 +1730,7 @@ function rebuildSearchIndex(){
 /* ── VARIEDAD COMBOBOX ── */
 async function loadVariedadesRNC(){
   if(VARIEDADES_RNC!==null)return;
-  const{data}=await sb.from('variedades_rnc').select('cultivar,nro_rnc,especie').eq('activa',true).order('cultivar');
+  const{data}=await sb.from('variedades_rnc').select('id,cultivar,nro_rnc,especie').eq('activa',true).order('cultivar');
   VARIEDADES_RNC=data||[];
 }
 
@@ -1767,7 +1767,7 @@ function initVariedadCombobox(inputId){
       drop.innerHTML=`<div class="var-combo-empty">Sin resultados — podés ingresar la variedad manualmente.</div>`;
     } else {
       drop.innerHTML=matches.slice(0,10).map((v,i)=>
-        `<div class="var-combo-item" data-val="${v.cultivar.replace(/"/g,'&quot;')}" data-idx="${i}">
+        `<div class="var-combo-item" data-val="${v.cultivar.replace(/"/g,'&quot;')}" data-rnc-id="${v.id||''}" data-nro-rnc="${v.nro_rnc||''}" data-idx="${i}">
           <div class="var-combo-item-name">${v.cultivar}</div>
           <div class="var-combo-item-rnc">Nº RNC ${v.nro_rnc||'—'}${v.especie?' · '+v.especie:''}</div>
         </div>`
@@ -1779,11 +1779,25 @@ function initVariedadCombobox(inputId){
 
   function closeDrop(){drop.classList.remove('open');activeIdx=-1;}
 
-  function selectItem(val){inp.value=val;closeDrop();inp.dispatchEvent(new Event('change'));}
+  function selectItem(val,rncId,nroRnc){
+    inp.value=val;
+    inp.dataset.selectedRncId=rncId||'';
+    const hint=document.getElementById('nm-variedad-hint');
+    if(hint){
+      if(nroRnc){
+        hint.innerHTML='✓ Nro RNC <strong>'+nroRnc+'</strong> vinculado al catálogo INASE.';
+        hint.style.display='block';
+      } else {
+        hint.style.display='none';
+      }
+    }
+    closeDrop();
+    inp.dispatchEvent(new Event('change'));
+  }
 
   drop.addEventListener('mousedown',e=>{
     const item=e.target.closest('.var-combo-item');
-    if(item){e.preventDefault();selectItem(item.dataset.val);}
+    if(item){e.preventDefault();selectItem(item.dataset.val,item.dataset.rncId,item.dataset.nroRnc);}
   });
 
   inp.addEventListener('focus',async()=>{
@@ -1798,6 +1812,7 @@ function initVariedadCombobox(inputId){
 
   inp.addEventListener('input',()=>{
     if(inp.readOnly)return;
+    inp.dataset.selectedRncId='';
     renderDrop(inp.value);
   });
 
@@ -1808,7 +1823,7 @@ function initVariedadCombobox(inputId){
     if(!drop.classList.contains('open')||!items.length)return;
     if(e.key==='ArrowDown'){e.preventDefault();activeIdx=Math.min(activeIdx+1,items.length-1);}
     else if(e.key==='ArrowUp'){e.preventDefault();activeIdx=Math.max(activeIdx-1,-1);}
-    else if(e.key==='Enter'&&activeIdx>=0){e.preventDefault();selectItem(items[activeIdx].dataset.val);return;}
+    else if(e.key==='Enter'&&activeIdx>=0){e.preventDefault();selectItem(items[activeIdx].dataset.val,items[activeIdx].dataset.rncId,items[activeIdx].dataset.nroRnc);return;}
     else if(e.key==='Escape'){closeDrop();return;}
     items.forEach((el,i)=>el.classList.toggle('active',i===activeIdx));
     if(activeIdx>=0)items[activeIdx].scrollIntoView({block:'nearest'});
@@ -3179,6 +3194,7 @@ async function generarReporteReprocann(){
     // Lotes productivos — variedad viene de las tablas de material de origen (FK hint PostgREST)
     const{data:lotesBrutos,error}=await sb.from('lotes_produccion').select(`
       id,nombre_completo,establecimiento_id,
+      variedades_rnc(nro_rnc),
       lotes_semillas!origen_semilla_id(variedad),
       lotes_esquejes!origen_esqueje_id(variedad),
       lotes_plantas_madre!origen_pm_id(variedad),
@@ -3241,7 +3257,7 @@ async function generarReporteReprocann(){
             l.nombre_completo||'',
             fmtD(cosecha.fecha_inicio),
             fmtD(cosecha.fecha_fin),
-            '',
+            l.variedades_rnc?.nro_rnc||'',
             'In door',
             variedad,
             flor.cantidad_ingreso!=null?flor.cantidad_ingreso:'',
@@ -3256,7 +3272,7 @@ async function generarReporteReprocann(){
             anal.entidad_analitica||'',
             anal.id_cromatografia||'',
           ],
-          pendCols:[14,18],
+          pendCols:[18],
         };
       });
 
@@ -3922,6 +3938,7 @@ async function cL(){
         origen_semilla_id:OA==='semillas'?LA.v:null,
         origen_esqueje_id:OA==='esquejes'?LA.v:null,
         origen_pm_id:OA==='pm'?LA.v:null,
+        rnc_id:document.getElementById('nm-variedad')?.dataset?.selectedRncId||null,
       },
     });
     lote=loteResp.data;
