@@ -2503,13 +2503,29 @@ function panelFlores(){
           <div class="field"><label>Fecha de análisis<span class="req">*</span></label><input type="date" id="an-fecha"/></div>
           <div class="field"><label>Muestra preparada por<span class="opt">opcional</span></label><input type="text" id="an-preparador" placeholder="Nombre del responsable"/></div>
         </div>
-        <div class="g2" style="grid-template-columns:1fr 1fr 1fr;">
+        <div class="g2" style="grid-template-columns:1fr 1fr 1fr 1fr 1fr;">
           <div class="field"><label>THC %</label><input type="number" id="an-thc" placeholder="0.00" min="0" max="100" step="0.01"/></div>
           <div class="field"><label>CBD %</label><input type="number" id="an-cbd" placeholder="0.00" min="0" max="100" step="0.01"/></div>
+          <div class="field"><label>CBN %<span class="opt">opcional</span></label><input type="number" id="an-cbn" placeholder="0.00" min="0" max="100" step="0.01"/></div>
+          <div class="field"><label>CBG %<span class="opt">opcional</span></label><input type="number" id="an-cbg" placeholder="0.00" min="0" max="100" step="0.01"/></div>
           <div class="field"><label>Humedad %</label><input type="number" id="an-hum" placeholder="0.00" min="0" max="100" step="0.01"/></div>
         </div>
+        <div class="g2">
+          <div class="field">
+            <label>Tipo de Analítica<span class="opt">opcional</span></label>
+            <select id="an-tipo-analitica">
+              <option value="Gases - GC">Gases — GC</option>
+              <option value="Líquida - HPLC">Líquida — HPLC</option>
+              <option value="Fluidos Supercrítica - SFC">Fluidos Supercrítica — SFC</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Entidad Analítica<span class="opt">opcional</span></label>
+            <input type="text" id="an-entidad" placeholder="nombre de institución"/>
+          </div>
+        </div>
         <div class="g2" style="grid-template-columns:2fr 1fr 1fr;align-items:end;">
-          <div class="field"><label>Otro compuesto<span class="opt">opcional</span></label><input type="text" id="an-otro-nombre" placeholder="Ej: CBG, Terpenos..."/></div>
+          <div class="field"><label>Otro compuesto<span class="opt">opcional</span></label><input type="text" id="an-otro-nombre" placeholder="Ej: Terpenos..."/></div>
           <div class="field"><label>Valor</label><input type="number" id="an-otro-val" placeholder="0.00" min="0" step="0.0001"/></div>
           <div class="field"><label>Unidad</label><input type="text" id="an-otro-unidad" placeholder="%, mg, ppm..."/></div>
         </div>
@@ -2587,7 +2603,11 @@ async function guardarAnalisis(){
   const preparador=document.getElementById('an-preparador').value.trim()||null;
   const thc=document.getElementById('an-thc').value||null;
   const cbd=document.getElementById('an-cbd').value||null;
+  const cbn=document.getElementById('an-cbn').value||null;
+  const cbg=document.getElementById('an-cbg').value||null;
   const hum=document.getElementById('an-hum').value||null;
+  const tipoAnalitica=document.getElementById('an-tipo-analitica').value||null;
+  const entidad=document.getElementById('an-entidad').value.trim()||null;
   const otroNombre=document.getElementById('an-otro-nombre').value.trim()||null;
   const otroVal=document.getElementById('an-otro-val').value||null;
   const otroUnidad=document.getElementById('an-otro-unidad').value.trim()||null;
@@ -2611,7 +2631,11 @@ async function guardarAnalisis(){
     preparado_por:preparador,
     thc_pct:thc?parseFloat(thc):null,
     cbd_pct:cbd?parseFloat(cbd):null,
+    cbn_pct:cbn?parseFloat(cbn):null,
+    cbg_pct:cbg?parseFloat(cbg):null,
     humedad_pct:hum?parseFloat(hum):null,
+    tipo_analitica:tipoAnalitica,
+    entidad_analitica:entidad,
     otro_compuesto:otroNombre,
     otro_valor:otroVal?parseFloat(otroVal):null,
     otro_unidad:otroUnidad,
@@ -2622,9 +2646,10 @@ async function guardarAnalisis(){
 
   cerrarFormAnalisis();
   // limpiar inputs
-  ['an-fecha','an-preparador','an-thc','an-cbd','an-hum','an-otro-nombre','an-otro-val','an-otro-unidad'].forEach(id=>{
+  ['an-fecha','an-preparador','an-thc','an-cbd','an-cbn','an-cbg','an-hum','an-entidad','an-otro-nombre','an-otro-val','an-otro-unidad'].forEach(id=>{
     const el=document.getElementById(id);if(el)el.value='';
   });
+  document.getElementById('an-tipo-analitica').value='Gases - GC';
   document.getElementById('an-file-drop').classList.remove('drag');
   cargarAnalisis();
   }finally{_g.an=false;}
@@ -2641,14 +2666,20 @@ async function cargarAnalisis(){
     const vals=[];
     if(a.thc_pct!=null)vals.push(`<div class="analisis-val"><div class="analisis-val-num">${a.thc_pct}%</div><div class="analisis-val-lbl">THC</div></div>`);
     if(a.cbd_pct!=null)vals.push(`<div class="analisis-val"><div class="analisis-val-num">${a.cbd_pct}%</div><div class="analisis-val-lbl">CBD</div></div>`);
+    if(a.cbn_pct!=null)vals.push(`<div class="analisis-val"><div class="analisis-val-num">${a.cbn_pct}%</div><div class="analisis-val-lbl">CBN</div></div>`);
+    if(a.cbg_pct!=null)vals.push(`<div class="analisis-val"><div class="analisis-val-num">${a.cbg_pct}%</div><div class="analisis-val-lbl">CBG</div></div>`);
     if(a.humedad_pct!=null)vals.push(`<div class="analisis-val"><div class="analisis-val-num">${a.humedad_pct}%</div><div class="analisis-val-lbl">Humedad</div></div>`);
     if(a.otro_compuesto&&a.otro_valor!=null)vals.push(`<div class="analisis-val"><div class="analisis-val-num">${a.otro_valor}${a.otro_unidad?' '+a.otro_unidad:''}</div><div class="analisis-val-lbl">${a.otro_compuesto}</div></div>`);
+    const meta=[];
+    if(a.tipo_analitica)meta.push(a.tipo_analitica);
+    if(a.entidad_analitica)meta.push(a.entidad_analitica);
     const linkArchivo=a.informe_url?`<a class="analisis-link" href="${a.informe_url}" target="_blank" download="${a.informe_nombre||'informe'}">📄 ${a.informe_nombre||'Ver informe'} ↗</a>`:'';
     return`<div class="analisis-card">
       <div class="analisis-card-header">
         <div class="analisis-card-title">${fmtDate(a.fecha_analisis)}${a.preparado_por?' · Preparado por: '+a.preparado_por:''}</div>
       </div>
       ${vals.length>0?`<div class="analisis-valores">${vals.join('')}</div>`:''}
+      ${meta.length>0?`<div style="font-size:0.68rem;color:var(--sage);margin-top:4px;">${meta.join(' · ')}</div>`:''}
       ${linkArchivo}
     </div>`;
   }).join('');
