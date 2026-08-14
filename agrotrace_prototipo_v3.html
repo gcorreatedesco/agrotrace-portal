@@ -1159,12 +1159,12 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
             <th style="padding:8px 10px;text-align:left;white-space:nowrap;font-weight:500;">Flores Secas (kg)</th>
             <th style="padding:8px 10px;text-align:left;white-space:nowrap;font-weight:500;">THC %</th>
             <th style="padding:8px 10px;text-align:left;white-space:nowrap;font-weight:500;">CBD %</th>
-            <th style="padding:8px 10px;text-align:left;white-space:nowrap;font-weight:500;opacity:0.5;">CBN % ⏳</th>
-            <th style="padding:8px 10px;text-align:left;white-space:nowrap;font-weight:500;opacity:0.5;">CBG % ⏳</th>
+            <th style="padding:8px 10px;text-align:left;white-space:nowrap;font-weight:500;">CBN %</th>
+            <th style="padding:8px 10px;text-align:left;white-space:nowrap;font-weight:500;">CBG %</th>
             <th style="padding:8px 10px;text-align:left;white-space:nowrap;font-weight:500;">Fecha Analítica</th>
-            <th style="padding:8px 10px;text-align:left;white-space:nowrap;font-weight:500;opacity:0.5;">Tipo Analítica ⏳</th>
-            <th style="padding:8px 10px;text-align:left;white-space:nowrap;font-weight:500;opacity:0.5;">Entidad Analítica ⏳</th>
-            <th style="padding:8px 10px;text-align:left;white-space:nowrap;font-weight:500;opacity:0.5;">ID Cromatografía ⏳</th>
+            <th style="padding:8px 10px;text-align:left;white-space:nowrap;font-weight:500;">Tipo Analítica</th>
+            <th style="padding:8px 10px;text-align:left;white-space:nowrap;font-weight:500;">Entidad Analítica</th>
+            <th style="padding:8px 10px;text-align:left;white-space:nowrap;font-weight:500;">ID Cromatografía</th>
           </tr>
         </thead>
         <tbody id="rep-tbody"></tbody>
@@ -2510,7 +2510,7 @@ function panelFlores(){
           <div class="field"><label>CBG %<span class="opt">opcional</span></label><input type="number" id="an-cbg" placeholder="0.00" min="0" max="100" step="0.01"/></div>
           <div class="field"><label>Humedad %</label><input type="number" id="an-hum" placeholder="0.00" min="0" max="100" step="0.01"/></div>
         </div>
-        <div class="g2">
+        <div class="g2" style="grid-template-columns:1fr 1fr 1fr;">
           <div class="field">
             <label>Tipo de Analítica<span class="opt">opcional</span></label>
             <select id="an-tipo-analitica">
@@ -2522,6 +2522,10 @@ function panelFlores(){
           <div class="field">
             <label>Entidad Analítica<span class="opt">opcional</span></label>
             <input type="text" id="an-entidad" placeholder="nombre de institución"/>
+          </div>
+          <div class="field">
+            <label>ID Cromatografía<span class="opt">opcional</span></label>
+            <input type="text" id="an-id-croma" placeholder="Nro de referencia análisis"/>
           </div>
         </div>
         <div class="g2" style="grid-template-columns:2fr 1fr 1fr;align-items:end;">
@@ -2608,6 +2612,7 @@ async function guardarAnalisis(){
   const hum=document.getElementById('an-hum').value||null;
   const tipoAnalitica=document.getElementById('an-tipo-analitica').value||null;
   const entidad=document.getElementById('an-entidad').value.trim()||null;
+  const idCroma=document.getElementById('an-id-croma').value.trim()||null;
   const otroNombre=document.getElementById('an-otro-nombre').value.trim()||null;
   const otroVal=document.getElementById('an-otro-val').value||null;
   const otroUnidad=document.getElementById('an-otro-unidad').value.trim()||null;
@@ -2636,6 +2641,7 @@ async function guardarAnalisis(){
     humedad_pct:hum?parseFloat(hum):null,
     tipo_analitica:tipoAnalitica,
     entidad_analitica:entidad,
+    id_cromatografia:idCroma,
     otro_compuesto:otroNombre,
     otro_valor:otroVal?parseFloat(otroVal):null,
     otro_unidad:otroUnidad,
@@ -2646,7 +2652,7 @@ async function guardarAnalisis(){
 
   cerrarFormAnalisis();
   // limpiar inputs
-  ['an-fecha','an-preparador','an-thc','an-cbd','an-cbn','an-cbg','an-hum','an-entidad','an-otro-nombre','an-otro-val','an-otro-unidad'].forEach(id=>{
+  ['an-fecha','an-preparador','an-thc','an-cbd','an-cbn','an-cbg','an-hum','an-entidad','an-id-croma','an-otro-nombre','an-otro-val','an-otro-unidad'].forEach(id=>{
     const el=document.getElementById(id);if(el)el.value='';
   });
   document.getElementById('an-tipo-analitica').value='Gases - GC';
@@ -2673,6 +2679,7 @@ async function cargarAnalisis(){
     const meta=[];
     if(a.tipo_analitica)meta.push(a.tipo_analitica);
     if(a.entidad_analitica)meta.push(a.entidad_analitica);
+    if(a.id_cromatografia)meta.push('Ref: '+a.id_cromatografia);
     const linkArchivo=a.informe_url?`<a class="analisis-link" href="${a.informe_url}" target="_blank" download="${a.informe_nombre||'informe'}">📄 ${a.informe_nombre||'Ver informe'} ↗</a>`:'';
     return`<div class="analisis-card">
       <div class="analisis-card-header">
@@ -3177,7 +3184,7 @@ async function generarReporteReprocann(){
       lotes_plantas_madre!origen_pm_id(variedad),
       etapa_cosecha(fecha_inicio,fecha_fin),
       etapa_floracion(cantidad_ingreso),
-      flores_cosechadas(stock_inicial,analisis_calidad(fecha_analisis,thc_pct,cbd_pct))
+      flores_cosechadas(stock_inicial,analisis_calidad(fecha_analisis,thc_pct,cbd_pct,cbn_pct,cbg_pct,tipo_analitica,entidad_analitica,id_cromatografia))
     `).eq('usuario_id',ongUid).is('lote_padre_id',null);
     if(error)throw error;
 
@@ -3242,14 +3249,14 @@ async function generarReporteReprocann(){
             flores.stock_inicial!=null?flores.stock_inicial:'',
             anal.thc_pct!=null?anal.thc_pct:'',
             anal.cbd_pct!=null?anal.cbd_pct:'',
-            '',
-            '',
+            anal.cbn_pct!=null?anal.cbn_pct:'',
+            anal.cbg_pct!=null?anal.cbg_pct:'',
             fmtD(anal.fecha_analisis),
-            '',
-            '',
-            '',
+            anal.tipo_analitica||'',
+            anal.entidad_analitica||'',
+            anal.id_cromatografia||'',
           ],
-          pendCols:[14,18,22,23,25,26,27],
+          pendCols:[14,18],
         };
       });
 
