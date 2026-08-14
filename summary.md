@@ -1,3 +1,77 @@
+# AgroTrace — Resumen de sesión (2026-08-13)
+
+## Lo que se hizo en esta sesión
+
+### 1. Acciones manuales en Supabase — completadas
+
+**SQL ejecutados en Supabase Dashboard:**
+
+```sql
+-- Nuevos campos en perfiles (datos profesionales RT)
+ALTER TABLE public.perfiles ADD COLUMN IF NOT EXISTS titulo_profesional TEXT;
+ALTER TABLE public.perfiles ADD COLUMN IF NOT EXISTS colegio_profesional TEXT;
+ALTER TABLE public.perfiles ADD COLUMN IF NOT EXISTS nro_matricula TEXT;
+ALTER TABLE public.perfiles ADD COLUMN IF NOT EXISTS apellido TEXT;
+ALTER TABLE public.perfiles ADD COLUMN IF NOT EXISTS cuit TEXT;
+ALTER TABLE public.perfiles ADD COLUMN IF NOT EXISTS provincia TEXT;
+ALTER TABLE public.perfiles ADD COLUMN IF NOT EXISTS ciudad TEXT;
+ALTER TABLE public.perfiles ADD COLUMN IF NOT EXISTS direccion TEXT;
+
+-- Nuevos campos para reporte REPROCANN
+ALTER TABLE public.analisis_calidad ADD COLUMN IF NOT EXISTS cbn_pct NUMERIC(5,2);
+ALTER TABLE public.analisis_calidad ADD COLUMN IF NOT EXISTS cbg_pct NUMERIC(5,2);
+ALTER TABLE public.analisis_calidad ADD COLUMN IF NOT EXISTS tipo_analitica TEXT;
+ALTER TABLE public.analisis_calidad ADD COLUMN IF NOT EXISTS entidad_analitica TEXT;
+ALTER TABLE public.analisis_calidad ADD COLUMN IF NOT EXISTS id_cromatografia TEXT;
+ALTER TABLE public.lotes_produccion ADD COLUMN IF NOT EXISTS plantas_descartadas INTEGER DEFAULT 0;
+ALTER TABLE public.lotes_produccion ADD COLUMN IF NOT EXISTS rnc_id UUID REFERENCES public.variedades_rnc(id);
+```
+
+**Edge Functions:**
+- `crear-ong` → JWT desactivado en Dashboard
+- `crear-rt` → ya estaba correctamente deployada y con JWT desactivado
+
+### 2. CLAUDE.md actualizado
+
+Tabla de pendientes sincronizada con el estado real del proyecto. Mobile, variedades_rnc y edge functions pasaron a ✅.
+
+### 3. Exportación Excel — Reporte REPROCANN
+
+**Decisiones tomadas:**
+- Criterio de lotes: solo lotes que llegaron a cosecha, filtrados por `etapa_cosecha.fecha_inicio` en el rango seleccionado (no por `creado_en`)
+- Título del reporte: "Lotes productivos cosechados desde [fecha1] hasta [fecha2]"
+- Exportación: SheetJS (`xlsx-js-style`) — genera `.xlsx` real con formato
+
+**Implementado en `agrotrace_prototipo_v3.html`:**
+- CDN `xlsx-js-style@1.2.0` agregado al `<head>`
+- Variable global `REP_DATA` guarda la última consulta para no re-consultar al exportar
+- `generarReporteReprocann()` refactorizado: filtra en JS por fecha de cosecha, construye array `rows` compartido entre render HTML y exportación, muestra botón "Exportar Excel" solo cuando hay datos
+- `exportarExcelReprocann()` nueva función: encabezado `--soil` (#2C1F0E) con texto blanco y negrita, filas alternas blanco/#EDF2E8, anchos de columna ajustados, nombre de archivo `Reporte_REPROCANN_DESDE_HASTA.xlsx`
+- Botón "Exportar Excel" aparece junto a "Imprimir / PDF" tras generar el reporte
+
+**Pendiente:** probar con datos reales (el usuario lo hará luego).
+
+### 4. Commits de esta sesión
+
+| Hash | Descripción |
+|------|-------------|
+| `f324444` | docs: actualizar CLAUDE.md con estado real de pendientes al 2026-08-13 |
+| `72dd5f9` | feat: exportar reporte REPROCANN a Excel (SheetJS, filas alternadas, colores AgroTrace) |
+
+---
+
+## Pendientes — próxima sesión
+
+| Tarea | Prioridad |
+|-------|-----------|
+| Probar exportación Excel con datos reales | Alta |
+| Actualizar formulario de análisis de calidad con nuevos campos (cbn, cbg, tipo_analitica, entidad_analitica, id_cromatografia) | Media |
+| Vincular lote a `variedades_rnc` (selector en wizard nuevo lote con autocompletado) | Media |
+| Reporte de visita RT (formato papel A4) | Baja |
+| Exportar HISTORIAL ONG (constancia interna) | Baja |
+
+---
+
 # AgroTrace — Resumen de sesión (2026-08-12)
 
 ## Lo que se hizo en esta sesión
