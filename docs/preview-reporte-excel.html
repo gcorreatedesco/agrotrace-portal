@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Preview — Reporte REPROCANN Excel</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --soil:   #2C1F0E;
+    --bark:   #4A3520;
+    --sage:   #6B7F5E;
+    --leaf:   #8EAA7B;
+    --mist:   #C8D9BC;
+    --dew:    #EDF2E8;
+    --cream:  #F7F4EF;
+    --accent: #4E7C3F;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--cream);
+    padding: 32px;
+    color: var(--soil);
+  }
+  .wrapper {
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+  .titulo {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.4rem;
+    color: var(--soil);
+    margin-bottom: 4px;
+  }
+  .subtitulo {
+    font-size: 0.82rem;
+    color: var(--sage);
+    margin-bottom: 6px;
+  }
+  .rango {
+    font-size: 0.78rem;
+    color: var(--bark);
+    font-weight: 500;
+    margin-bottom: 20px;
+  }
+  .nota {
+    background: #fff8e1;
+    border: 1.5px solid #ffe082;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 0.75rem;
+    color: #795548;
+    margin-bottom: 20px;
+  }
+  .scroll {
+    overflow-x: auto;
+    border-radius: 10px;
+    border: 1px solid var(--mist);
+    box-shadow: 0 2px 8px rgba(44,31,14,0.06);
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.72rem;
+    background: #fff;
+    min-width: 2400px;
+  }
+  thead tr {
+    background: var(--soil);
+  }
+  thead th {
+    padding: 10px 11px;
+    text-align: left;
+    white-space: nowrap;
+    font-weight: 500;
+    font-size: 0.68rem;
+    letter-spacing: 0.02em;
+    color: rgba(255,255,255,0.9);
+    border-right: 1px solid rgba(255,255,255,0.08);
+  }
+  thead th:last-child { border-right: none; }
+
+  /* fila par = blanco, fila impar = dew */
+  tbody tr:nth-child(odd)  { background: #ffffff; }
+  tbody tr:nth-child(even) { background: var(--dew); }
+  tbody tr:hover { background: var(--mist); transition: background 0.15s; }
+
+  tbody td {
+    padding: 8px 11px;
+    white-space: nowrap;
+    color: var(--bark);
+    border-right: 1px solid rgba(0,0,0,0.04);
+    font-size: 0.71rem;
+  }
+  tbody td:last-child { border-right: none; }
+
+  /* columnas pendientes */
+  .pend { color: var(--sage); font-style: italic; }
+
+  .badge {
+    display: inline-block;
+    background: var(--dew);
+    color: var(--accent);
+    border: 1px solid var(--mist);
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 0.65rem;
+    font-weight: 500;
+  }
+
+  .leyenda {
+    margin-top: 16px;
+    font-size: 0.72rem;
+    color: var(--sage);
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  .leyenda-item { display: flex; align-items: center; gap: 6px; }
+  .swatch {
+    width: 14px; height: 14px;
+    border-radius: 3px;
+    border: 1px solid rgba(0,0,0,0.1);
+  }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="titulo">Lotes productivos cosechados</div>
+  <div class="subtitulo">Reporte regulatorio REPROCANN</div>
+  <div class="rango">Desde 01/01/2025 hasta 31/12/2025 · Asociación Civil Los Tilos · 3 registros</div>
+
+  <div class="nota">
+    ⚠️ <strong>Preview de maqueta</strong> — los datos son inventados para mostrar el formato visual. Las columnas en <em>itálica</em> corresponden a campos aún no cargados en este lote.
+  </div>
+
+  <div class="scroll">
+    <table>
+      <thead>
+        <tr>
+          <th>Tipo Persona Jurídica</th>
+          <th>Persona Jurídica</th>
+          <th>Provincia</th>
+          <th>Ciudad</th>
+          <th>Dirección / Predio</th>
+          <th>Nombre del Predio</th>
+          <th>Nombre Resp. Cultivo</th>
+          <th>Apellido Resp. Cultivo</th>
+          <th>Profesión / Título</th>
+          <th>Nro Matrícula</th>
+          <th>Tipo Matrícula</th>
+          <th>Nro Lote</th>
+          <th>Fecha Inicio Cosecha</th>
+          <th>Fecha Cosecha</th>
+          <th>Nro RNC</th>
+          <th>Tipo de Manejo</th>
+          <th>Nombre Genética</th>
+          <th>Plantas en Floración</th>
+          <th>Plantas Descartadas</th>
+          <th>Flores Secas (kg)</th>
+          <th>THC %</th>
+          <th>CBD %</th>
+          <th>CBN %</th>
+          <th>CBG %</th>
+          <th>Fecha Analítica</th>
+          <th>Tipo Analítica</th>
+          <th>Entidad Analítica</th>
+          <th>ID Cromatografía</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="badge">Asociación Civil</span></td>
+          <td>Asoc. Civil Los Tilos</td>
+          <td>Buenos Aires</td>
+          <td>Luján</td>
+          <td>Ruta 7, km 12, Predio Norte</td>
+          <td>Invernadero Norte</td>
+          <td>María</td>
+          <td>González</td>
+          <td>Ing. Agrónoma</td>
+          <td>12345</td>
+          <td>CIAP</td>
+          <td>LOTE-2025-001</td>
+          <td>15 mar. 2025</td>
+          <td>22 abr. 2025</td>
+          <td>RNC-0047</td>
+          <td>Orgánico</td>
+          <td>Carmagnola</td>
+          <td>48</td>
+          <td>2</td>
+          <td>3.200</td>
+          <td>18.4</td>
+          <td>0.8</td>
+          <td class="pend">—</td>
+          <td class="pend">—</td>
+          <td>5 may. 2025</td>
+          <td class="pend">—</td>
+          <td class="pend">—</td>
+          <td class="pend">—</td>
+        </tr>
+        <tr>
+          <td><span class="badge">Asociación Civil</span></td>
+          <td>Asoc. Civil Los Tilos</td>
+          <td>Buenos Aires</td>
+          <td>Luján</td>
+          <td>Ruta 7, km 12, Predio Norte</td>
+          <td>Sector Exterior A</td>
+          <td>María</td>
+          <td>González</td>
+          <td>Ing. Agrónoma</td>
+          <td>12345</td>
+          <td>CIAP</td>
+          <td>LOTE-2025-002</td>
+          <td>10 jun. 2025</td>
+          <td>18 jul. 2025</td>
+          <td>RNC-0031</td>
+          <td>Convencional</td>
+          <td>Fedora 17</td>
+          <td>60</td>
+          <td>5</td>
+          <td>4.750</td>
+          <td>6.2</td>
+          <td>14.1</td>
+          <td class="pend">—</td>
+          <td class="pend">—</td>
+          <td>2 ago. 2025</td>
+          <td class="pend">—</td>
+          <td class="pend">—</td>
+          <td class="pend">—</td>
+        </tr>
+        <tr>
+          <td><span class="badge">Asociación Civil</span></td>
+          <td>Asoc. Civil Los Tilos</td>
+          <td>Buenos Aires</td>
+          <td>Luján</td>
+          <td>Ruta 7, km 12, Predio Norte</td>
+          <td>Invernadero Norte</td>
+          <td>María</td>
+          <td>González</td>
+          <td>Ing. Agrónoma</td>
+          <td>12345</td>
+          <td>CIAP</td>
+          <td>LOTE-2025-003</td>
+          <td>5 ago. 2025</td>
+          <td>12 sep. 2025</td>
+          <td>RNC-0112</td>
+          <td>Orgánico</td>
+          <td>USO-31</td>
+          <td>35</td>
+          <td>0</td>
+          <td>2.100</td>
+          <td>22.7</td>
+          <td>1.2</td>
+          <td class="pend">—</td>
+          <td class="pend">—</td>
+          <td>30 sep. 2025</td>
+          <td class="pend">—</td>
+          <td class="pend">—</td>
+          <td class="pend">—</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="leyenda">
+    <div class="leyenda-item"><div class="swatch" style="background:#2C1F0E;"></div> Encabezado (--soil)</div>
+    <div class="leyenda-item"><div class="swatch" style="background:#ffffff;"></div> Fila impar — blanco</div>
+    <div class="leyenda-item"><div class="swatch" style="background:#EDF2E8;"></div> Fila par — dew</div>
+    <div class="leyenda-item"><div class="swatch" style="background:#C8D9BC;"></div> Hover — mist</div>
+    <span style="color:var(--sage);font-style:italic;">Las columnas en itálica (—) son campos aún sin datos en estos lotes.</span>
+  </div>
+
+</div>
+</body>
+</html>
