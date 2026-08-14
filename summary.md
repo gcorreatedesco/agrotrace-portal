@@ -1,3 +1,54 @@
+# AgroTrace — Resumen de sesión (2026-08-14)
+
+## Lo que se hizo en esta sesión
+
+### 1. Plantas Descartadas — implementación completa
+
+**SQL a ejecutar en Supabase** (si no se ejecutó aún):
+```sql
+ALTER TABLE public.etapa_nursery    ADD COLUMN IF NOT EXISTS plantas_descartadas INTEGER DEFAULT 0;
+ALTER TABLE public.etapa_vegetativa ADD COLUMN IF NOT EXISTS plantas_descartadas INTEGER DEFAULT 0;
+ALTER TABLE public.etapa_floracion  ADD COLUMN IF NOT EXISTS plantas_descartadas INTEGER DEFAULT 0;
+ALTER TABLE public.etapa_cosecha    ADD COLUMN IF NOT EXISTS plantas_descartadas INTEGER DEFAULT 0;
+```
+
+**Implementado en `agrotrace_prototipo_v3.html`:**
+- Campo numérico `plantas_descartadas` agregado en los 4 paneles editables (Nursery, Vegetativa, Floración, Cosecha)
+- `guardarBorrador()` — persiste `plantas_descartadas` en la DB para las 4 etapas
+- `guardarAvanzar()` — ídem al avanzar etapa
+- `guardarEtapaHist()` — ídem al guardar corrección histórica
+- `panelReadOnly()` — muestra el valor guardado junto a "Bajas" en la vista de solo lectura de cada etapa
+
+**Reporte REPROCANN — columna 18 (Plantas Descartadas):**
+- Query ampliada: ahora incluye `etapa_nursery(plantas_descartadas)` y `etapa_vegetativa(plantas_descartadas)` además de las ya existentes `etapa_floracion` y `etapa_cosecha`
+- `cells[18]` suma **vegetativa + floración + cosecha** (nursery excluido por decisión del usuario)
+- `pendCols` queda vacío `[]` — el reporte no tiene columnas pendientes
+
+### 2. Pendiente de decisión registrado en memoria
+
+- **Criterio de período del reporte REPROCANN:** actualmente filtra por `etapa_cosecha.fecha_inicio`. Pendiente definir si el criterio correcto para REPROCANN es fecha inicio cosecha, fecha fin cosecha, fecha creación del lote u otra. Confirmar antes de dar el reporte por definitivo.
+
+### 3. Commits de esta sesión
+
+| Hash | Descripción |
+|------|-------------|
+| `a6053e6` | feat: plantas descartadas — sumatoria por etapa (nursery/veg/flo/cosecha) |
+| `55877e9` | fix: plantas descartadas reporte — excluir nursery, sumar solo veg+flo+cosecha |
+
+---
+
+## Pendientes — próxima sesión
+
+| Tarea | Prioridad |
+|-------|-----------|
+| Ejecutar SQL `plantas_descartadas` en las 4 tablas de etapa (si no se hizo) | Alta |
+| Probar exportación Excel con datos reales | Alta |
+| Definir criterio de período del reporte REPROCANN (¿qué fecha rige el rango?) | Media |
+| Reporte de visita RT (formato papel A4) | Baja |
+| Exportar HISTORIAL ONG (constancia interna) | Baja |
+
+---
+
 # AgroTrace — Resumen de sesión (2026-08-13)
 
 ## Lo que se hizo en esta sesión
