@@ -1653,7 +1653,16 @@ async function cargarLotes(){
     renderLotesHistorico('cerrados');
     return;
   }
-  let q=sb.from('lotes_produccion').select('*').is('lote_padre_id',null).order('creado_en',{ascending:false});
+  let q=sb.from('lotes_produccion').select(`*,
+    lotes_semillas!origen_semilla_id(variedad),
+    lotes_esquejes!origen_esqueje_id(variedad),
+    lotes_plantas_madre!origen_pm_id(variedad),
+    etapa_nursery(cantidad_ingreso),
+    etapa_vegetativa(cantidad_ingreso),
+    etapa_floracion(cantidad_ingreso,cantidad_egreso),
+    etapa_cosecha(peso_humedo_total),
+    flores_cosechadas(stock_actual)
+  `).is('lote_padre_id',null).order('creado_en',{ascending:false});
   q=q.eq('usuario_id',ongUid);
   const{data,error}=await q;
   if(error){console.error('Error cargando lotes:',error);return;}
@@ -1686,7 +1695,23 @@ function mapLote(row,establMap={}){
   if(row.origen_semilla_id)o='Semillas';
   else if(row.origen_esqueje_id)o='Esquejes externos';
   else if(row.origen_pm_id)o='Plantas Madre';
-  return{id:row.id,n:row.nombre_completo,o,et:row.etapa_actual,etapaRaw:row.etapa_actual,b:info.b,bt:info.bt,hs:false,s:steps,sc:row.etapa_actual==='completado'?'6/6':row.etapa_actual==='cerrado'?'—':info.idx+'/6',m:[{l:'Inicio',v:fmtDate(row.fecha_inicio)}],fechaInicioRaw:row.fecha_inicio||null,creadoEn:row.creado_en||null,fecha_cierre:row.fecha_cierre||null,motivo_cierre:row.motivo_cierre||null,origen_semilla_id:row.origen_semilla_id||null,origen_esqueje_id:row.origen_esqueje_id||null,origen_pm_id:row.origen_pm_id||null,establNombre:establMap[row.establecimiento_id]||null};
+  const variedad=row.lotes_semillas?.variedad||row.lotes_esquejes?.variedad||row.lotes_plantas_madre?.variedad||null;
+  const esSemillas=!!row.origen_semilla_id;
+  const et=row.etapa_actual;
+  const nurD=(row.etapa_nursery||[])[0];
+  const vegD=(row.etapa_vegetativa||[])[0];
+  const floD=(row.etapa_floracion||[])[0];
+  const cosD=(row.etapa_cosecha||[])[0];
+  const florD=(row.flores_cosechadas||[])[0];
+  const fmtPeso=g=>g!=null?(g>=1000?(g/1000).toFixed(2)+' kg':g+' g'):null;
+  let cardCant=null,cardPeso=null;
+  if(et==='nursery'&&nurD?.cantidad_ingreso!=null)cardCant=`${nurD.cantidad_ingreso} ${esSemillas?'plántulas':'plantas'}`;
+  else if(et==='vegetativa'&&vegD?.cantidad_ingreso!=null)cardCant=`${vegD.cantidad_ingreso} ${esSemillas?'plantines':'plantas'}`;
+  else if(et==='floracion'&&floD?.cantidad_ingreso!=null)cardCant=`${floD.cantidad_ingreso} plantas`;
+  else if(et==='cosecha'&&floD?.cantidad_egreso!=null)cardCant=`${floD.cantidad_egreso} plantas cosechadas`;
+  else if(et==='curado_secado'&&floD?.cantidad_egreso!=null){cardCant=`${floD.cantidad_egreso} plantas cosechadas`;const p=fmtPeso(cosD?.peso_humedo_total);if(p)cardPeso=`${p} cosechados`;}
+  else if(et==='flores'&&floD?.cantidad_egreso!=null){cardCant=`${floD.cantidad_egreso} plantas cosechadas`;const p=fmtPeso(florD?.stock_actual);if(p)cardPeso=`${p} disponibles`;}
+  return{id:row.id,n:row.nombre_completo,o,et:row.etapa_actual,etapaRaw:row.etapa_actual,b:info.b,bt:info.bt,hs:false,s:steps,sc:row.etapa_actual==='completado'?'6/6':row.etapa_actual==='cerrado'?'—':info.idx+'/6',m:[{l:'Inicio',v:fmtDate(row.fecha_inicio)}],fechaInicioRaw:row.fecha_inicio||null,creadoEn:row.creado_en||null,fecha_cierre:row.fecha_cierre||null,motivo_cierre:row.motivo_cierre||null,origen_semilla_id:row.origen_semilla_id||null,origen_esqueje_id:row.origen_esqueje_id||null,origen_pm_id:row.origen_pm_id||null,establNombre:establMap[row.establecimiento_id]||null,variedad,cardCant,cardPeso};
 }
 
 function fmtDate(iso){if(!iso)return'—';const[y,m,d]=iso.split('-');return d+'/'+m+'/'+y;}
@@ -2091,7 +2116,7 @@ function rLC(l){
       <div><div class="lote-name">${esc(l.n)}</div><div class="lote-orig">${esc(l.o)}</div></div>
     </div><span class="eb ${l.b}">${l.bt}</span></div>
     <div class="pb"><div class="steps">${sc2.map(c=>`<div class="step ${c}"></div>`).join('')}</div><div class="sc">${l.sc}</div></div>
-    <div class="lm">${l.m.map(m=>`<div class="mi">${m.l} <b>${m.v}</b></div>`).join('')}${l.establNombre?`<div class="lote-establ"><svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>${esc(l.establNombre)}</div>`:''}</div>
+    <div class="lm">${l.m.map(m=>`<div class="mi">${m.l} <b>${m.v}</b></div>`).join('')}${l.variedad?`<div class="mi">Variedad <b>${esc(l.variedad)}</b></div>`:''}${l.cardCant?`<div class="mi"><b>${esc(l.cardCant)}</b></div>`:''}${l.cardPeso?`<div class="mi">${esc(l.cardPeso)}</div>`:''}${l.establNombre?`<div class="lote-establ"><svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>${esc(l.establNombre)}</div>`:''}</div>
   </div>`;
 }
 
