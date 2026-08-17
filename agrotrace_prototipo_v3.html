@@ -3235,12 +3235,12 @@ async function generarReporteReprocann(){
     const{data:perfONG}=await sb.from('perfiles').select('ong_id').eq('id',ongUid).single();
     const ongId=perfONG?.ong_id;
 
-    // Organización + RT en paralelo
+    // Organización + RT en paralelo (.maybeSingle tolera 0 filas sin tirar 406)
     const[{data:orgData},{data:rtRel}]=await Promise.all([
-      ongId?sb.from('organizaciones').select('nombre').eq('id',ongId).single():{data:null},
-      ongId?sb.from('rt_organizaciones').select('rt_id').eq('ong_id',ongId).single():{data:null},
+      ongId?sb.from('organizaciones').select('nombre').eq('id',ongId).maybeSingle():{data:null},
+      ongId?sb.from('rt_organizaciones').select('rt_id').eq('ong_id',ongId).maybeSingle():{data:null},
     ]);
-    const{data:rtPerf}=rtRel?.rt_id?await sb.from('perfiles').select('nombre,apellido,titulo_profesional,nro_matricula,colegio_profesional').eq('id',rtRel.rt_id).single():{data:null};
+    const{data:rtPerf}=rtRel?.rt_id?await sb.from('perfiles').select('nombre,apellido,titulo_profesional,nro_matricula,colegio_profesional').eq('id',rtRel.rt_id).maybeSingle():{data:null};
 
     // Lotes productivos — variedad viene de las tablas de material de origen (FK hint PostgREST)
     const{data:lotesBrutos,error}=await sb.from('lotes_produccion').select(`
@@ -3255,7 +3255,11 @@ async function generarReporteReprocann(){
       etapa_cosecha(fecha_inicio,fecha_fin,plantas_descartadas),
       flores_cosechadas(stock_inicial,analisis_calidad(fecha_analisis,thc_pct,cbd_pct,cbn_pct,cbg_pct,tipo_analitica,entidad_analitica,id_cromatografia))
     `).eq('usuario_id',ongUid).is('lote_padre_id',null);
-    if(error)throw error;
+    if(error){console.error('[REPROCANN] query error:',error);throw error;}
+
+    // DEBUG TEMPORAL
+    console.log('[REPROCANN] ongUid=',ongUid,'lotesBrutos=',lotesBrutos?.length,lotesBrutos);
+    (lotesBrutos||[]).forEach((l,i)=>console.log(`[REPROCANN] lote[${i}] etapa_cosecha=`,l.etapa_cosecha,'etapa_actual=',l.etapa_actual));
 
     // Filtrar: solo lotes que llegaron a cosecha y cuya fecha de inicio de cosecha cae en el rango
     const lotes=(lotesBrutos||[]).filter(l=>{
