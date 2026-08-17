@@ -1006,6 +1006,7 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
         <div class="oc" id="nm-p" onclick="selNM('pm')"><div class="oct">Plantas Madre</div><div class="ocs">Lote de plantas madre</div></div>
       </div>
     </div>
+    <div id="nm-campos" style="display:none;">
     <div class="g2">
       <div class="field"><label>Nombre del lote<span class="req">*</span></label><input type="text" id="nm-nombre" placeholder="Ej: Semillas Batch Abril 2025"/></div>
       <div class="field"><label>Fecha de adquisición<span class="req">*</span></label><input type="date" id="nm-fecha"/></div>
@@ -1065,6 +1066,7 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
       <button class="btn btn-secondary" onclick="sv('stock')">Cancelar</button>
       <button class="btn btn-primary" onclick="guardarMaterial()">Crear lote</button>
     </div>
+    </div><!-- /nm-campos -->
   </div>
 </div>
 
@@ -3155,7 +3157,23 @@ function sv(id){
   if(id==='stock')renderStock();
   if(id==='pacientes')cargarPacientes();
   if(id==='establecimientos')cargarEstablecimientos();
-  if(id==='nuevo-material')cargarEstablecimientosSelect('nm-establ');
+  if(id==='nuevo-material'){
+    cargarEstablecimientosSelect('nm-establ');
+    // resetear tipo y ocultar campos
+    TIPO_NM=null;
+    ['nm-s','nm-e','nm-p'].forEach(x=>{const el=document.getElementById(x);if(el)el.classList.remove('sel');});
+    document.getElementById('nm-campos').style.display='none';
+    document.getElementById('nm-nombre').value='';
+    document.getElementById('nm-fecha').value='';
+    document.getElementById('nm-origen').value='';
+    document.getElementById('nm-externo').style.display='none';
+    document.getElementById('nm-interno').style.display='none';
+    const vInp=document.getElementById('nm-variedad');
+    if(vInp){vInp.value='';vInp.readOnly=false;vInp.style.background='';vInp.style.color='';}
+    const hint=document.getElementById('nm-variedad-hint');
+    if(hint)hint.style.display='none';
+    document.getElementById('nm-notas').value='';
+  }
   if(id==='nuevo-lote')rW();
   // sub-nav reportes
   document.querySelectorAll('.nav-sub-it').forEach(n=>n.classList.remove('active'));
@@ -4137,6 +4155,7 @@ async function guardarBaja(){
 function selNM(t){
   TIPO_NM=t;
   ['s','e','p'].forEach(x=>{const map={s:'nm-s',e:'nm-e',p:'nm-p'};const e=document.getElementById(map[x]);if(e)e.classList.toggle('sel',x===t[0]);});
+  document.getElementById('nm-campos').style.display='block';
   const uSel=document.getElementById('nm-unidad');
   if(t==='semillas'){uSel.innerHTML='<option value="">— Elegí unidad —</option><option value="gramos">Gramos</option><option value="semillas">Nº de semillas</option>';}
   else if(t==='esquejes'){uSel.innerHTML='<option value="esquejes">Nº de esquejes</option>';}
