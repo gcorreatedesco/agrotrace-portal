@@ -3357,7 +3357,9 @@ async function generarReporteReprocann(){
 
 function exportarExcelReprocann(){
   if(!REP_DATA)return;
+  if(typeof XLSX==='undefined'){alert('Error: librería XLSX no cargada. Revisá tu conexión a internet.');return;}
   const{rows,orgNombre,desde,hasta}=REP_DATA;
+  try{
 
   const HEADERS=[
     'Tipo Persona Jurídica','Persona Jurídica','Provincia','Ciudad',
@@ -3409,6 +3411,7 @@ function exportarExcelReprocann(){
   const d1=desde||'inicio';
   const d2=hasta||'fin';
   XLSX.writeFile(wb,`Reporte_REPROCANN_${d1}_${d2}.xlsx`);
+  }catch(err){alert('Error al exportar: '+err.message);}
 }
 
 function fD(el,et){document.querySelectorAll('#view-dashboard .pill').forEach(p=>p.classList.remove('active'));el.classList.add('active');rAll('dash-lotes',et);}
