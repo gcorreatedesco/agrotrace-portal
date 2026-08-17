@@ -1699,11 +1699,11 @@ function mapLote(row,establMap={}){
   const variedad=row.lotes_semillas?.variedad||row.lotes_esquejes?.variedad||row.lotes_plantas_madre?.variedad||null;
   const esSemillas=!!row.origen_semilla_id;
   const et=row.etapa_actual;
-  const nurD=(row.etapa_nursery||[])[0];
-  const vegD=(row.etapa_vegetativa||[])[0];
-  const floD=(row.etapa_floracion||[])[0];
-  const cosD=(row.etapa_cosecha||[])[0];
-  const florD=(row.flores_cosechadas||[])[0];
+  const nurD=one(row.etapa_nursery);
+  const vegD=one(row.etapa_vegetativa);
+  const floD=one(row.etapa_floracion);
+  const cosD=one(row.etapa_cosecha);
+  const florD=one(row.flores_cosechadas);
   const fmtPeso=g=>g!=null?(g>=1000?(g/1000).toFixed(2)+' kg':g+' g'):null;
   let cardCant=null,cardPeso=null;
   if(et==='nursery'&&nurD?.cantidad_ingreso!=null)cardCant=`${nurD.cantidad_ingreso} ${esSemillas?'plántulas':'plantas'}`;
@@ -1716,6 +1716,8 @@ function mapLote(row,establMap={}){
 }
 
 function fmtDate(iso){if(!iso)return'—';const[y,m,d]=iso.split('-');return d+'/'+m+'/'+y;}
+// PostgREST 12+ devuelve objeto plano (no array) en relaciones 1-a-1 — normaliza ambos casos
+function one(v){return Array.isArray(v)?v[0]||{}:v||{};}
 
 function esc(v){if(v==null)return'';return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
 
@@ -3257,10 +3259,6 @@ async function generarReporteReprocann(){
       flores_cosechadas(stock_inicial,analisis_calidad(fecha_analisis,thc_pct,cbd_pct,cbn_pct,cbg_pct,tipo_analitica,entidad_analitica,id_cromatografia))
     `).eq('usuario_id',ongUid).is('lote_padre_id',null);
     if(error){console.error('[REPROCANN] query error:',error);throw error;}
-
-    // PostgREST 12+ infiere 1-to-1 cuando hay unique constraint en FK → devuelve objeto plano
-    // Esta helper normaliza ambos casos: array o objeto → siempre devuelve objeto (o {} si null)
-    const one=v=>Array.isArray(v)?v[0]||{}:v||{};
 
     // Filtrar: solo lotes que llegaron a cosecha y cuya fecha de inicio de cosecha cae en el rango
     const lotes=(lotesBrutos||[]).filter(l=>{
