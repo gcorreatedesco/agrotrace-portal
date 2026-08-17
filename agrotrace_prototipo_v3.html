@@ -3257,14 +3257,14 @@ async function generarReporteReprocann(){
     `).eq('usuario_id',ongUid).is('lote_padre_id',null);
     if(error){console.error('[REPROCANN] query error:',error);throw error;}
 
-    // DEBUG TEMPORAL
-    console.log('[REPROCANN] ongUid=',ongUid,'lotesBrutos=',lotesBrutos?.length,lotesBrutos);
-    (lotesBrutos||[]).forEach((l,i)=>console.log(`[REPROCANN] lote[${i}] etapa_cosecha=`,l.etapa_cosecha,'etapa_actual=',l.etapa_actual));
+    // PostgREST 12+ infiere 1-to-1 cuando hay unique constraint en FK → devuelve objeto plano
+    // Esta helper normaliza ambos casos: array o objeto → siempre devuelve objeto (o {} si null)
+    const one=v=>Array.isArray(v)?v[0]||{}:v||{};
 
     // Filtrar: solo lotes que llegaron a cosecha y cuya fecha de inicio de cosecha cae en el rango
     const lotes=(lotesBrutos||[]).filter(l=>{
-      const cosecha=(l.etapa_cosecha||[])[0];
-      if(!cosecha?.fecha_inicio)return false;
+      const cosecha=one(l.etapa_cosecha);
+      if(!cosecha.fecha_inicio)return false;
       const fc=new Date(cosecha.fecha_inicio);
       if(desde&&fc<new Date(desde))return false;
       if(hasta&&fc>new Date(hasta+'T23:59:59'))return false;
@@ -3293,12 +3293,12 @@ async function generarReporteReprocann(){
       // Construir filas una sola vez para HTML y para exportar
       const rows=lotes.map(l=>{
         const e=establMap[l.establecimiento_id]||{};
-        const cosecha=(l.etapa_cosecha||[])[0]||{};
-        const flor=(l.etapa_floracion||[])[0]||{};
-        const nur=(l.etapa_nursery||[])[0]||{};
-        const veg=(l.etapa_vegetativa||[])[0]||{};
-        const flores=(l.flores_cosechadas||[])[0]||{};
-        const anal=(flores.analisis_calidad||[])[0]||{};
+        const cosecha=one(l.etapa_cosecha);
+        const flor=one(l.etapa_floracion);
+        const nur=one(l.etapa_nursery);
+        const veg=one(l.etapa_vegetativa);
+        const flores=one(l.flores_cosechadas);
+        const anal=one(flores.analisis_calidad);
         const variedad=l.lotes_semillas?.variedad||l.lotes_esquejes?.variedad||l.lotes_plantas_madre?.variedad||'';
         return{
           cells:[
