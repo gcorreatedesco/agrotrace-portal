@@ -787,7 +787,7 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
           <option value="floracion">Floración (ingreso externo)</option>
         </select>
       </div>
-      <div class="field"><label>Variedad<span class="opt">se completa automáticamente desde el lote de origen en paso 2</span></label><input type="text" id="p1v" placeholder="Se completará automáticamente" readonly/></div>
+      <div class="field"><label>Variedad<span class="opt">se completa desde el origen — podés buscar en el catálogo RNC</span></label><input type="text" id="p1v" placeholder="Se completará desde el origen o buscá en catálogo"/></div>
       <div class="field"><label>Establecimiento<span class="req">*</span></label>
         <select id="p1-establ"><option value="">— Cargando establecimientos... —</option></select>
       </div>
@@ -1389,12 +1389,13 @@ async function initApp(){
   // limpiar estado de la sesión anterior antes de cargar los datos de la ONG activa
   LOTE_ACTIVO=null;HIST_DATA={};INCONSISTENCIAS={};CORRECCIONES_LOG={};
   MAT_ACTIVO=null;MAT_TIPO=null;PAC_DATA=[];PAC_EDIT_ID=null;PAC_ONG_ID=null;ESTABL_EDITANDO=null;
-  await Promise.all([cargarLotes(),cargarMaterial()]);
+  await Promise.all([cargarLotes(),cargarMaterial(),loadVariedadesRNC()]);
   rebuildSearchIndex();
   rAll('dash-lotes','todos');
   actualizarMetricasDash();
   calcularAlertas();
   initVariedadCombobox('nm-variedad');
+  initVariedadCombobox('p1v');
 }
 
 function volverPortalRT(){
@@ -3953,7 +3954,7 @@ function selO(t){
   const ll=document.getElementById('lsl');
   if(ll)ll.innerHTML=(t==='semillas'?'Lote de Semillas a utilizar':t==='esquejes'?'Lote de Esquejes a utilizar':'Lote de Plantas Madre a utilizar')+'<span class="req">*</span>';
 }
-function onLC(v){if(!v||!OA){LA=null;return;}LA=LM[OA].find(l=>l.v===v)||null;if(!LA)return;document.getElementById('sh').textContent='Stock disponible: '+LA.stock+' '+LA.u;document.getElementById('p1v').value=LA.var;if(OA==='semillas'){document.getElementById('upl').textContent='('+LA.u+')';const s=stepForUnit(LA.u);['cp','cm'].forEach(id=>{const e=document.getElementById(id);if(e)e.step=s;});}document.getElementById('sp').style.display='block';uS(0);}
+function onLC(v){if(!v||!OA){LA=null;return;}LA=LM[OA].find(l=>l.v===v)||null;if(!LA)return;document.getElementById('sh').textContent='Stock disponible: '+LA.stock+' '+LA.u;const p1vEl=document.getElementById('p1v');p1vEl.value=LA.var;const rncMatch=(VARIEDADES_RNC||[]).find(r=>r.cultivar.toLowerCase()===( LA.var||'').toLowerCase());p1vEl.dataset.selectedRncId=rncMatch?.id||'';const hint=document.getElementById('nm-variedad-hint');if(hint)hint.style.display='none';if(OA==='semillas'){document.getElementById('upl').textContent='('+LA.u+')';const s=stepForUnit(LA.u);['cp','cm'].forEach(id=>{const e=document.getElementById(id);if(e)e.step=s;});}document.getElementById('sp').style.display='block';uS(0);}
 function onUM(v){document.getElementById('mpred').style.display=v==='pred'?'block':'none';document.getElementById('mman').style.display=v==='man'?'block':'none';UI=false;document.getElementById('uiw').style.display='none';}
 function chkUC(){if(!LA)return;const s=document.getElementById('um2').value;const inc=s&&s!==LA.u;UI=inc;document.getElementById('uiw').style.display=inc?'block':'none';}
 function uS(v){if(!LA){document.getElementById('sp').style.display='none';return;}const val=parseInt(v)||0;const r=Math.max(0,LA.stock-val);document.getElementById('spa').textContent=LA.stock+' '+LA.u;const hideDesc=OA!=='semillas';document.getElementById('spu').textContent=hideDesc?'':('− '+val+' '+LA.u);document.getElementById('spf').textContent=hideDesc?'':( r+' '+LA.u);const spRows=document.getElementById('sp').querySelectorAll('.sr:not(:first-child)');spRows.forEach(el=>el.style.display=hideDesc?'none':'flex');document.getElementById('sp').style.display='block';}
@@ -4005,7 +4006,7 @@ async function cL(){
         origen_semilla_id:OA==='semillas'?LA.v:null,
         origen_esqueje_id:OA==='esquejes'?LA.v:null,
         origen_pm_id:OA==='pm'?LA.v:null,
-        rnc_id:document.getElementById('nm-variedad')?.dataset?.selectedRncId||null,
+        rnc_id:document.getElementById('p1v')?.dataset?.selectedRncId||null,
       },
     });
     lote=loteResp.data;
@@ -4067,7 +4068,7 @@ function rW(){
   OA=null;LA=null;UI=false;
 
   // Paso 1
-  ['p1n','p1f','p1v'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  ['p1n','p1f','p1v'].forEach(id=>{const e=document.getElementById(id);if(e){e.value='';e.dataset.selectedRncId='';}});
   const p1e=document.getElementById('p1e');if(p1e)p1e.selectedIndex=0;
   cargarEstablecimientosSelect('p1-establ');
   ['p1-err','p1-warn'].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display='none';});
