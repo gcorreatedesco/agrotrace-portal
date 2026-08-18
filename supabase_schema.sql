@@ -534,8 +534,6 @@ ALTER TABLE public.lotes_produccion
 
 -- ── MIGRACIÓN: analisis_calidad — nuevos campos ──
 ALTER TABLE public.analisis_calidad
-  ALTER COLUMN laboratorio DROP NOT NULL;
-ALTER TABLE public.analisis_calidad
   ADD COLUMN IF NOT EXISTS preparado_por  TEXT,
   ADD COLUMN IF NOT EXISTS thc_pct        NUMERIC(5,2),
   ADD COLUMN IF NOT EXISTS cbd_pct        NUMERIC(5,2),
