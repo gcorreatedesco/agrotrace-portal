@@ -1,3 +1,105 @@
+# AgroTrace — Resumen de sesión (2026-08-17)
+
+## Lo que se hizo en esta sesión
+
+### 1. Reporte REPROCANN — fixes críticos
+
+**Problema:** el reporte no mostraba datos para `ong2@gmail.com` aunque los lotes existían.
+
+**Causa raíz:** PostgREST 12+ devuelve un objeto plano (no array) en relaciones 1-a-1. El código usaba `(arr||[])[0]` que devuelve `undefined` sobre un objeto plano → el filtro rechazaba todos los lotes.
+
+**Fix:** función global `one(v)` — `Array.isArray(v)?v[0]||{}:v||{}` — aplicada en `generarReporteReprocann()` y en `mapLote()` (cards de Mis Lotes).
+
+**Fix adicional:** `.single()` → `.maybeSingle()` en todas las queries preliminares del reporte (organizaciones, rt_organizaciones, perfiles RT). `.single()` lanzaba 406 si no encontraba fila y cortaba la ejecución con error.
+
+### 2. Exportación Excel — fix CDN
+
+El archivo `xlsxjs.min.js` (y `xlsx.min.js`) no son builds UMD válidos para el browser. CDN corregido a `dist/xlsx.bundle.js` de `xlsx-js-style@1.2.0`. Exportación Excel confirmada funcional.
+
+### 3. Nro RNC — fix en wizard de nuevo lote
+
+**Problema:** `rnc_id` siempre se guardaba como `null` porque el código leía `dataset.selectedRncId` del elemento `nm-variedad` (formulario de material) en lugar de `p1v` (campo variedad del wizard de lote).
+
+**Fix completo:**
+- Campo `p1v` (Variedad en wizard) convertido a combobox editable con catálogo RNC
+- `onLC()` hace auto-match por nombre al seleccionar material de origen
+- `rW()` (reset wizard) limpia `p1v.dataset.selectedRncId`
+- Al guardar el lote: lee `p1v.dataset.selectedRncId`
+
+**SQL pendiente (ejecutar en Supabase):** backfill de `rnc_id` para lotes ya existentes.
+
+### 4. Cards de Mis Lotes — cantidad y variedad visibles
+
+Mismo problema `one()` que el reporte. `mapLote()` ahora usa `one()` para leer los datos de cada etapa → las cards muestran correctamente cantidad disponible y variedad.
+
+### 5. Fix RLS — recursión infinita en `perfiles`
+
+La política de `rt_organizaciones` consultaba `perfiles`, que a su vez tenía política que consultaba `rt_organizaciones` → recursión infinita.
+
+**Fix (SQL ejecutado en Supabase por el usuario):**
+```sql
+CREATE OR REPLACE FUNCTION public.get_my_ong_id()
+RETURNS UUID AS $$
+  SELECT ong_id FROM public.perfiles WHERE id = auth.uid();
+$$ LANGUAGE sql SECURITY DEFINER STABLE;
+
+DROP POLICY IF EXISTS "ong ve su rt asignado" ON public.rt_organizaciones;
+CREATE POLICY "ong ve su rt asignado" ON public.rt_organizaciones
+  FOR SELECT USING (ong_id = public.get_my_ong_id());
+```
+
+### 6. Adaptación mobile — nuevas implementaciones
+
+**Clases nuevas** (reemplazan inline styles del formulario de análisis de calidad):
+- `.g2-5col` — grilla de 5 columnas
+- `.g2-3col` — grilla de 3 columnas
+- `.g2-mixed` — grilla 2fr+1fr+1fr con align-items:end
+
+**`@media(max-width:900px)` — reglas nuevas:**
+- `input[type=*]{font-size:16px!important}` — evita zoom automático en iOS Safari
+- Grids de establecimientos, análisis y reporte apilados
+- Tabla pacientes con scroll horizontal
+- Botones de alerta con mayor área de toque
+
+**`@media(max-width:520px)` — bloque expandido:**
+- Grids a 1-2 columnas según tipo
+- Alertas en columna, botones ancho completo
+- Snooze dropdown centrado (no sale del viewport)
+- Combobox variedad limitado al ancho del viewport
+
+### 7. Botón "atrás" del celular — History API
+
+El botón nativo de Android/iOS ya no desloguea al usuario.
+
+**Implementación:**
+- `history.replaceState({view:'dashboard'})` en el init registra el punto de entrada
+- `sv(id)` hace `history.pushState({view:id})` en cada navegación
+- Listener `popstate` intercepta el botón atrás y llama `sv()` con flag `_svFromPop=true` para no generar una entrada nueva en el historial
+
+---
+
+### Commits de esta sesión
+
+| Hash | Descripción |
+|------|-------------|
+| `ecbcde7` | Múltiples fixes REPROCANN (one(), maybeSingle(), CDN xlsx, rnc_id, mapLote) |
+| `2cc5a42` | fix(mobile): adaptacion responsive <900px y <520px |
+| `7e05825` | feat(mobile): boton atras del celular navega dentro de la app |
+
+---
+
+## Pendientes — próxima sesión
+
+| Tarea | Prioridad |
+|-------|-----------|
+| Deploy completo del sistema | Alta |
+| SQL backfill rnc_id para lotes existentes | Media |
+| Asignar RT a ong2 desde portal Superadmin | Media |
+| Reporte de visita RT (formato A4 imprimible) | Baja |
+| Exportar HISTORIAL ONG | Baja |
+
+---
+
 # AgroTrace — Resumen de sesión (2026-08-14)
 
 ## Lo que se hizo en esta sesión
