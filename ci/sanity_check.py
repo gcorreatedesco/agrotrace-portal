@@ -26,8 +26,17 @@ APP_FILES = [
 # Funciones globales del navegador, SDKs de CDN y palabras clave de JS
 # que pueden abrir un handler inline (onclick="if(...)...")
 KNOWN_GLOBALS = {
-    "alert", "confirm", "prompt", "supabase",
+    # JS keywords que pueden abrir un handler
     "if", "for", "while", "switch", "return",
+    # Browser globals
+    "alert", "confirm", "prompt",
+    "setTimeout", "clearTimeout", "setInterval", "clearInterval",
+    "console", "window", "document", "location", "history",
+    "fetch", "URL", "URLSearchParams", "FormData", "FileReader",
+    "JSON", "Math", "Date", "Object", "Array", "Promise",
+    "parseInt", "parseFloat", "isNaN", "encodeURIComponent",
+    # SDKs de CDN
+    "supabase",
 }
 
 errors = []

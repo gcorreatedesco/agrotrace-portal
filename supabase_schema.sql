@@ -755,6 +755,22 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON public.establecimientos TO authenticated
 
 
 -- ── ACTIVIDADES LOG (historial de acciones por usuario) ──
+CREATE TABLE IF NOT EXISTS public.pacientes (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  usuario_id    UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  numero        INTEGER NOT NULL,
+  nombre        TEXT NOT NULL,
+  apellido      TEXT NOT NULL,
+  nro_reprocann TEXT,
+  tel_contacto  TEXT,
+  activo        BOOLEAN DEFAULT TRUE,
+  creado_en     TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE public.pacientes ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "pacientes_all" ON public.pacientes
+  FOR ALL USING (puede_acceder_usuario(usuario_id)) WITH CHECK (puede_acceder_usuario(usuario_id));
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.pacientes TO authenticated;
+
 CREATE TABLE IF NOT EXISTS public.actividades_log (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   usuario_id  UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
