@@ -1,3 +1,71 @@
+# AgroTrace — Resumen de sesión (2026-08-18)
+
+## Lo que se hizo en esta sesión
+
+### 1. CI — corrección de fallas
+
+El sistema de CI (GitHub Actions) mandaba emails de error en cada push. Dos causas:
+
+- **`setTimeout` no reconocido:** el script `ci/sanity_check.py` tenía una lista corta de globales del browser. Se amplió `KNOWN_GLOBALS` con `setTimeout`, `fetch`, `console`, `window`, `JSON`, `Math`, `Date`, y otros APIs estándar.
+- **Tabla `pacientes` faltaba en `supabase_schema.sql`:** el módulo de pacientes usa `sb.from('pacientes')` pero la tabla nunca se había definido en el archivo de schema. El CI lo detectaba como tabla inexistente. Se agregó la definición completa con RLS y grants.
+
+### 2. Limpieza del repositorio
+
+Los 12 archivos `AgroTrace_*.html` (documentación, guías, léxico, procedimientos) se movieron de la raíz del repo a `docs/` con `git mv`. La raíz queda solo con los archivos de la app y configuración.
+
+### 3. Fix schema SQL — migración incompatible
+
+El archivo `supabase_schema.sql` tenía una línea de migración:
+```sql
+ALTER TABLE public.analisis_calidad ALTER COLUMN laboratorio DROP NOT NULL;
+```
+Esta línea asumía que la tabla ya existía con una columna `laboratorio` (versión vieja). En una instalación nueva falla porque la columna nunca se crea. Se eliminó la línea — en instalación nueva la tabla ya tiene la estructura correcta.
+
+### 4. Estrategia dev/prod — inicio de implementación
+
+**Conceptos explicados:**
+- Qué es un repo, branches, CI, capacidad de almacenamiento Supabase/GitHub
+- Por qué se necesita un Supabase DEV separado del de producción
+- Cómo funciona el flujo `dev → main` con dos proyectos Supabase
+
+**Ejecutado:**
+- Creación del proyecto `agrotrace-dev` en Supabase (plan gratuito, región São Paulo)
+- Limpieza del schema DEV con `DROP SCHEMA public CASCADE`
+- Ejecución del `supabase_schema.sql` completo en el proyecto DEV ✅
+
+**Pendiente del setup dev/prod:**
+- Crear branch `dev` en git
+- Cambiar las constantes `SUPABASE_URL` y `SUPABASE_ANON` en el branch `dev` para que apunten al proyecto DEV
+- Configurar GitHub Pages para servir solo `main`
+- Crear usuario superadmin de prueba en Supabase DEV
+- Deployar Edge Functions (`crear-ong`, `crear-rt`) en el proyecto DEV
+
+---
+
+### Commits de esta sesión
+
+| Hash | Descripción |
+|------|-------------|
+| `e254d85` | fix(ci): corregir fallas del sanity check |
+| `d15bed2` | refactor: mover documentacion a docs/ |
+| `e1061aa` | fix(schema): eliminar migracion laboratorio incompatible con instalacion nueva |
+
+---
+
+## Pendientes — próxima sesión
+
+| Tarea | Prioridad |
+|-------|-----------|
+| Crear branch `dev` y conectarlo a Supabase DEV | Alta |
+| Crear usuario superadmin en Supabase DEV | Alta |
+| Deployar Edge Functions en proyecto DEV | Alta |
+| SQL backfill rnc_id para lotes existentes en PROD | Media |
+| Asignar RT a ong2 desde portal Superadmin | Media |
+| Reporte de visita RT (formato A4 imprimible) | Baja |
+| Exportar HISTORIAL ONG | Baja |
+
+---
+
 # AgroTrace — Resumen de sesión (2026-08-17)
 
 ## Lo que se hizo en esta sesión
