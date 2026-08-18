@@ -251,6 +251,9 @@ input[type=text],input[type=number],input[type=date],select,textarea{width:100%;
 input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(78,124,63,0.1);}
 input[readonly],input[disabled],select:disabled{background:var(--cream);color:var(--sage);cursor:not-allowed;}
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.g2-5col{display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:10px;}
+.g2-3col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+.g2-mixed{display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px;align-items:end;}
 
 /* auto field */
 .af{border-radius:var(--radius);padding:9px 12px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;}
@@ -506,11 +509,36 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
   .tli{min-width:84px;padding:10px 4px;}
   .ws{overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px;}
   .wst{min-width:72px;}
-  input[type=text],input[type=number],input[type=date],select,textarea{font-size:16px;padding:10px 12px;}
+  input[type=text],input[type=number],input[type=date],select,textarea{font-size:16px!important;padding:10px 12px;}
   .btn{padding:10px 16px;}
   .cf input{width:70px;}
   .ab{flex-wrap:wrap;}
   .ab .btn{flex:1 1 auto;}
+  /* Establecimientos: grids colapsan a 1 columna */
+  .establ-row2,.establ-row3,.establ-row2-geo{grid-template-columns:1fr;}
+  /* Análisis calidad: grids multi-col colapsan */
+  .g2-5col{grid-template-columns:1fr 1fr 1fr;}
+  .g2-3col{grid-template-columns:1fr 1fr;}
+  .g2-mixed{grid-template-columns:1fr 1fr;}
+  /* Pacientes: tabla con scroll horizontal touch */
+  .pac-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  .pac-table{min-width:380px;}
+  .pac-table th{font-size:0.62rem;padding:7px 8px;}
+  .pac-table td{font-size:0.75rem;padding:9px 8px;}
+  .pac-rt-toggle{flex-wrap:wrap;white-space:normal;}
+  /* Alertas: botones con área de toque mayor */
+  .al-btn-ver,.al-btn-pos{padding:5px 10px;font-size:0.68rem;}
+  /* Combobox variedad */
+  .var-combo-drop{max-height:190px;}
+  .var-combo-item{padding:8px 12px;}
+  .var-combo-item-name{font-size:0.78rem;}
+  .var-combo-item-rnc{font-size:0.65rem;}
+  /* Cards de lotes */
+  .lm{gap:10px;}
+  /* Sidebar sub-items */
+  .nav-sub-it{font-size:0.78rem;}
+  /* Reporte: tabla compacta */
+  #rep-tabla th,#rep-tabla td{font-size:0.68rem;padding:7px 8px;}
 }
 
 @media(max-width:520px){
@@ -527,6 +555,32 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
   .cop{padding-top:0;text-align:center;}
   .analisis-val{flex:1;}
   .topbar-sub{display:none;}
+  /* Análisis calidad: a 1 o 2 columnas en pantalla muy chica */
+  .g2-5col{grid-template-columns:1fr 1fr;}
+  .g2-3col,.g2-mixed{grid-template-columns:1fr;}
+  /* Cards de lotes: info apilada */
+  .lm{flex-direction:column;gap:5px;align-items:flex-start;}
+  .lote-establ{margin-left:0;max-width:100%;}
+  /* Pacientes: acciones apiladas */
+  .pac-actions{flex-wrap:wrap;gap:4px;justify-content:flex-start;}
+  .pac-actions .btn{font-size:0.7rem;padding:6px 10px;}
+  /* Alertas: acciones apiladas, botones ancho completo */
+  .al-actions{flex-direction:column;align-items:stretch;gap:4px;}
+  .al-btn-ver,.al-btn-pos{width:100%;text-align:center;padding:6px 8px;}
+  .al-nombre{white-space:normal;}
+  /* Snooze dropdown: no salir del viewport */
+  .snooze-dd{right:auto;left:50%;transform:translateX(-50%);min-width:120px;}
+  /* Combobox variedad: no salir del viewport */
+  .var-combo-drop{max-width:calc(100vw - 28px);}
+  /* Documentos material básico */
+  .mb-doc-view{flex-direction:column;gap:4px;}
+  /* Reporte: tabla más compacta */
+  #rep-tabla th,#rep-tabla td{font-size:0.62rem;padding:5px 6px;}
+  /* Establecimientos */
+  .establ-card{padding:12px 14px;}
+  /* File drop */
+  .file-drop{padding:14px;}
+  .file-drop-txt{font-size:0.72rem;}
 }
 </style>
 </head>
@@ -1135,7 +1189,7 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
     <div id="rep-err" style="display:none;font-size:0.75rem;color:var(--error);margin-top:10px;"></div>
   </div>
   <div id="rep-resultado" style="display:none;">
-    <div style="overflow-x:auto;">
+    <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
       <table id="rep-tabla" style="width:100%;border-collapse:collapse;font-size:0.72rem;background:var(--white);border:1px solid rgba(0,0,0,0.07);border-radius:10px;overflow:hidden;">
         <thead>
           <tr style="background:var(--soil);color:rgba(255,255,255,0.85);">
@@ -2552,14 +2606,14 @@ function panelFlores(){
           <div class="field"><label>Fecha de análisis<span class="req">*</span></label><input type="date" id="an-fecha"/></div>
           <div class="field"><label>Muestra preparada por<span class="opt">opcional</span></label><input type="text" id="an-preparador" placeholder="Nombre del responsable"/></div>
         </div>
-        <div class="g2" style="grid-template-columns:1fr 1fr 1fr 1fr 1fr;">
+        <div class="g2-5col">
           <div class="field"><label>THC %</label><input type="number" id="an-thc" placeholder="0.00" min="0" max="100" step="0.01"/></div>
           <div class="field"><label>CBD %</label><input type="number" id="an-cbd" placeholder="0.00" min="0" max="100" step="0.01"/></div>
           <div class="field"><label>CBN %<span class="opt">opcional</span></label><input type="number" id="an-cbn" placeholder="0.00" min="0" max="100" step="0.01"/></div>
           <div class="field"><label>CBG %<span class="opt">opcional</span></label><input type="number" id="an-cbg" placeholder="0.00" min="0" max="100" step="0.01"/></div>
           <div class="field"><label>Humedad %</label><input type="number" id="an-hum" placeholder="0.00" min="0" max="100" step="0.01"/></div>
         </div>
-        <div class="g2" style="grid-template-columns:1fr 1fr 1fr;">
+        <div class="g2-3col">
           <div class="field">
             <label>Tipo de Analítica<span class="opt">opcional</span></label>
             <select id="an-tipo-analitica">
@@ -2577,7 +2631,7 @@ function panelFlores(){
             <input type="text" id="an-id-croma" placeholder="Nro de referencia análisis"/>
           </div>
         </div>
-        <div class="g2" style="grid-template-columns:2fr 1fr 1fr;align-items:end;">
+        <div class="g2-mixed">
           <div class="field"><label>Otro compuesto<span class="opt">opcional</span></label><input type="text" id="an-otro-nombre" placeholder="Ej: Terpenos..."/></div>
           <div class="field"><label>Valor</label><input type="number" id="an-otro-val" placeholder="0.00" min="0" step="0.0001"/></div>
           <div class="field"><label>Unidad</label><input type="text" id="an-otro-unidad" placeholder="%, mg, ppm..."/></div>
