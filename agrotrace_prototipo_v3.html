@@ -1450,6 +1450,9 @@ async function initApp(){
   calcularAlertas();
   initVariedadCombobox('nm-variedad');
   initVariedadCombobox('p1v');
+  // Registrar el estado inicial en el historial del browser para que el
+  // botón "atrás" del celular navegue dentro de la app en vez de desloguear
+  history.replaceState({view:'dashboard'},'','');
 }
 
 function volverPortalRT(){
@@ -3203,6 +3206,7 @@ function closeSidebar(){
 let PREV_VIEW='lotes';
 let formDirty=false;
 const SAFE_VIEWS=['dashboard','lotes','stock','busqueda','organizaciones','establecimientos','pacientes','reporte-reprocann'];
+let _svFromPop=false;
 function sv(id){
   closeSidebar();
   if(SAFE_VIEWS.includes(id))formDirty=false;
@@ -3264,8 +3268,25 @@ function sv(id){
     document.getElementById('nav-sub-reportes').classList.add('open');
     document.getElementById('reportes-arrow').classList.add('open');
   }
+  if(!_svFromPop) history.pushState({view:id},'','');
 }
 function volverDesdePantalla(){sv(PREV_VIEW);}
+
+// Interceptar el botón "atrás" del celular para navegar dentro de la app
+// sin salir ni desloguear al usuario
+window.addEventListener('popstate',function(e){
+  if(e.state&&e.state.view){
+    _svFromPop=true;
+    sv(e.state.view);
+    _svFromPop=false;
+  } else {
+    // Sin estado → volver al dashboard y fijar un nuevo estado
+    history.pushState({view:'dashboard'},'','');
+    _svFromPop=true;
+    sv('dashboard');
+    _svFromPop=false;
+  }
+});
 
 /* ── SIDEBAR REPORTES ── */
 function toggleReportes(){
