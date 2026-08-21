@@ -1,26 +1,38 @@
 -- ================================================
--- AgroTrace — Schema v5
--- Basado en agrotrace_prototipo_v3.html
--- Ejecutar completo en Supabase > SQL Editor
+-- AgroTrace — Schema v6
+-- Actualizado 2026-08-20
+-- RLS unificado con funciones helper SECURITY DEFINER
+-- en todas las tablas (superadmin / RT / ONG).
+--
+-- Para instalación nueva:
+--   DROP SCHEMA public CASCADE;
+--   CREATE SCHEMA public;
+--   GRANT ALL ON SCHEMA public TO postgres, public;
+--   (luego ejecutar este archivo completo)
 -- ================================================
 
 
--- ── ORGANIZACIONES (ONGs como entidades) ─────────
--- Cada ONG es una organización independiente.
--- Un RT puede tener múltiples ONG asignadas.
+-- ── ORGANIZACIONES ────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.organizaciones (
-  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  nombre      TEXT NOT NULL,
-  reprocann   TEXT,
-  creado_por  UUID REFERENCES auth.users(id),
-  activa      BOOLEAN NOT NULL DEFAULT TRUE,
-  creado_en   TIMESTAMPTZ DEFAULT NOW()
+  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  nombre            TEXT NOT NULL,
+  reprocann         TEXT,
+  cuit              TEXT,
+  localidad         TEXT,
+  direccion         TEXT,
+  email             TEXT,
+  telefono          TEXT,
+  fecha_inscripcion DATE,
+  notas             TEXT,
+  fecha_baja        TIMESTAMPTZ,
+  creado_por        UUID REFERENCES auth.users(id),
+  activa            BOOLEAN NOT NULL DEFAULT TRUE,
+  creado_en         TIMESTAMPTZ DEFAULT NOW()
 );
 ALTER TABLE public.organizaciones ENABLE ROW LEVEL SECURITY;
 
 
--- ── RT ↔ ORGANIZACIONES ───────────────────────────
--- Tabla pivote: un RT puede supervisar múltiples ONG.
+-- ── RT ↔ ORGANIZACIONES ──────────────────────────
 CREATE TABLE IF NOT EXISTS public.rt_organizaciones (
   rt_id     UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   ong_id    UUID NOT NULL REFERENCES public.organizaciones(id) ON DELETE CASCADE,
@@ -30,9 +42,7 @@ CREATE TABLE IF NOT EXISTS public.rt_organizaciones (
 ALTER TABLE public.rt_organizaciones ENABLE ROW LEVEL SECURITY;
 
 
--- ── PERFILES DE USUARIO ──────────────────────────
--- Extiende la tabla de autenticación de Supabase.
--- ong_id: solo para rol='ong'. NULL para superadmin y rt.
+-- ── PERFILES ─────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.perfiles (
   id                  UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   nombre              TEXT NOT NULL,
@@ -51,29 +61,21 @@ CREATE TABLE IF NOT EXISTS public.perfiles (
   creado_en           TIMESTAMPTZ DEFAULT NOW()
 );
 ALTER TABLE public.perfiles ENABLE ROW LEVEL SECURITY;
--- Migración: ejecutar solo si la tabla ya existe (IF NOT EXISTS es seguro)
-ALTER TABLE public.perfiles ADD COLUMN IF NOT EXISTS email TEXT;
-ALTER TABLE public.perfiles ADD COLUMN IF NOT EXISTS activo BOOLEAN DEFAULT TRUE;
-ALTER TABLE public.perfiles ADD COLUMN IF NOT EXISTS apellido TEXT;
-ALTER TABLE public.perfiles ADD COLUMN IF NOT EXISTS cuit TEXT;
-ALTER TABLE public.perfiles ADD COLUMN IF NOT EXISTS titulo_profesional TEXT;
-ALTER TABLE public.perfiles ADD COLUMN IF NOT EXISTS colegio_profesional TEXT;
-ALTER TABLE public.perfiles ADD COLUMN IF NOT EXISTS nro_matricula TEXT;
-ALTER TABLE public.perfiles ADD COLUMN IF NOT EXISTS provincia TEXT;
-ALTER TABLE public.perfiles ADD COLUMN IF NOT EXISTS ciudad TEXT;
-ALTER TABLE public.perfiles ADD COLUMN IF NOT EXISTS direccion TEXT;
 
 
--- ── FUNCIÓN HELPER — evita recursión en RLS ──────
--- SECURITY DEFINER: lee el rol del usuario actual sin activar RLS sobre perfiles.
+-- ── FUNCIONES HELPER (SECURITY DEFINER) ──────────
+-- Centralizan la lógica de acceso y evitan recursión en RLS.
+-- Al ser SECURITY DEFINER corren como owner y no activan RLS interno.
+
 CREATE OR REPLACE FUNCTION public.get_my_rol()
 RETURNS TEXT AS $$
   SELECT rol FROM public.perfiles WHERE id = auth.uid()
 $$ LANGUAGE sql SECURITY DEFINER STABLE;
 
-
--- ── FUNCIONES HELPER PARA RLS DE 3 NIVELES (superadmin / RT / ONG) ──
--- Todas son SECURITY DEFINER para evitar recursión interna de RLS.
+CREATE OR REPLACE FUNCTION public.get_my_ong_id()
+RETURNS UUID AS $$
+  SELECT ong_id FROM public.perfiles WHERE id = auth.uid()
+$$ LANGUAGE sql SECURITY DEFINER STABLE;
 
 CREATE OR REPLACE FUNCTION public.es_superadmin()
 RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
@@ -118,575 +120,58 @@ BEGIN
 END;
 $$;
 
+CREATE OR REPLACE FUNCTION public.puede_acceder_entrega(entrega_id UUID)
+RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE v_flores UUID;
+BEGIN
+  SELECT flores_id INTO v_flores FROM entregas WHERE id = entrega_id;
+  RETURN puede_acceder_flores(v_flores);
+END;
+$$;
 
--- ── POLÍTICAS RLS (se definen DESPUÉS de crear todas las tablas) ──
 
--- perfiles
-CREATE POLICY "usuario ve su propio perfil" ON public.perfiles
-  FOR ALL USING (auth.uid() = id);
-CREATE POLICY "superadmin ve todos los perfiles" ON public.perfiles
+-- ── POLÍTICAS RLS — perfiles, organizaciones, rt_org ──
+
+CREATE POLICY "perfil_propio" ON public.perfiles
+  FOR ALL USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
+CREATE POLICY "superadmin_perfiles" ON public.perfiles
   FOR ALL USING (public.get_my_rol() = 'superadmin');
-CREATE POLICY "rt ve perfiles de sus ong" ON public.perfiles
+CREATE POLICY "rt_ve_perfiles_ong" ON public.perfiles
   FOR SELECT USING (
     public.get_my_rol() = 'rt'
-    AND EXISTS (SELECT 1 FROM public.rt_organizaciones WHERE rt_id = auth.uid() AND ong_id = public.perfiles.ong_id)
+    AND EXISTS (SELECT 1 FROM public.rt_organizaciones
+                WHERE rt_id = auth.uid() AND ong_id = public.perfiles.ong_id)
   );
 
--- organizaciones
-CREATE POLICY "superadmin ve todas las organizaciones" ON public.organizaciones
+CREATE POLICY "superadmin_organizaciones" ON public.organizaciones
   FOR ALL USING (public.get_my_rol() = 'superadmin');
-CREATE POLICY "rt ve y modifica sus organizaciones" ON public.organizaciones
+CREATE POLICY "rt_organizaciones_asignadas" ON public.organizaciones
   FOR ALL USING (
     public.get_my_rol() = 'rt'
-    AND EXISTS (SELECT 1 FROM public.rt_organizaciones WHERE rt_id = auth.uid() AND ong_id = public.organizaciones.id)
+    AND EXISTS (SELECT 1 FROM public.rt_organizaciones
+                WHERE rt_id = auth.uid() AND ong_id = public.organizaciones.id)
   );
-CREATE POLICY "ong ve su organizacion" ON public.organizaciones
+CREATE POLICY "ong_ve_su_org" ON public.organizaciones
   FOR SELECT USING (
     public.get_my_rol() = 'ong'
-    AND EXISTS (SELECT 1 FROM public.perfiles WHERE id = auth.uid() AND ong_id = public.organizaciones.id)
+    AND EXISTS (SELECT 1 FROM public.perfiles
+                WHERE id = auth.uid() AND ong_id = public.organizaciones.id)
   );
 
--- rt_organizaciones
-CREATE POLICY "superadmin ve todas las asignaciones" ON public.rt_organizaciones
+CREATE POLICY "superadmin_rt_org" ON public.rt_organizaciones
   FOR ALL USING (public.get_my_rol() = 'superadmin');
-CREATE POLICY "rt ve sus asignaciones" ON public.rt_organizaciones
+CREATE POLICY "rt_ve_sus_asignaciones" ON public.rt_organizaciones
   FOR SELECT USING (rt_id = auth.uid());
-
-
--- ── MIGRACIÓN: ong_id en perfiles (si la tabla ya existía) ──
-ALTER TABLE public.perfiles
-  ADD COLUMN IF NOT EXISTS ong_id UUID REFERENCES public.organizaciones(id);
-
--- ── MIGRACIÓN: campo activo en perfiles (para desactivar RTs desde superadmin) ──
-ALTER TABLE public.perfiles
-  ADD COLUMN IF NOT EXISTS activo BOOLEAN DEFAULT TRUE;
-
-GRANT UPDATE(activo) ON public.perfiles TO authenticated;
-
--- ── MIGRACIÓN: campos extra en organizaciones ────
-ALTER TABLE public.organizaciones
-  ADD COLUMN IF NOT EXISTS cuit             TEXT,
-  ADD COLUMN IF NOT EXISTS localidad        TEXT,
-  ADD COLUMN IF NOT EXISTS direccion        TEXT,
-  ADD COLUMN IF NOT EXISTS email            TEXT,
-  ADD COLUMN IF NOT EXISTS telefono         TEXT,
-  ADD COLUMN IF NOT EXISTS reprocann        TEXT,
-  ADD COLUMN IF NOT EXISTS fecha_inscripcion DATE,
-  ADD COLUMN IF NOT EXISTS notas            TEXT;
+CREATE POLICY "ong_ve_su_rt" ON public.rt_organizaciones
+  FOR SELECT USING (ong_id = public.get_my_ong_id());
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.organizaciones TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.rt_organizaciones TO authenticated;
-
--- ── TRIGGER: auto-crear perfil al aceptar invitación ──
--- Cuando Supabase crea un usuario vía inviteUserByEmail(),
--- este trigger lee el metadata (rol, ong_id) y crea la fila en perfiles.
-CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS TRIGGER AS $$
-BEGIN
-  IF NEW.raw_user_meta_data->>'rol' IS NOT NULL THEN
-    INSERT INTO public.perfiles (id, nombre, rol, ong_id)
-    VALUES (
-      NEW.id,
-      COALESCE(
-        NEW.raw_user_meta_data->>'nombre_contacto',
-        split_part(NEW.email, '@', 1)
-      ),
-      NEW.raw_user_meta_data->>'rol',
-      NULLIF(NEW.raw_user_meta_data->>'ong_id', '')::UUID
-    )
-    ON CONFLICT (id) DO UPDATE SET
-      rol    = EXCLUDED.rol,
-      ong_id = EXCLUDED.ong_id;
-  END IF;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
-CREATE OR REPLACE TRIGGER on_auth_user_created
-  AFTER INSERT ON auth.users
-  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+GRANT SELECT ON public.perfiles TO authenticated;
+GRANT UPDATE(activo) ON public.perfiles TO authenticated;
 
 
--- ── LOTES DE SEMILLAS ────────────────────────────
-CREATE TABLE IF NOT EXISTS public.lotes_semillas (
-  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  usuario_id        UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  nombre_lote       TEXT NOT NULL,
-  fecha_adquisicion DATE NOT NULL,
-  origen_tipo       TEXT NOT NULL CHECK (origen_tipo IN ('externo','interno')),
-  proveedor         TEXT,
-  lote_origen_id    UUID REFERENCES public.lotes_semillas(id),
-  variedad          TEXT NOT NULL,
-  stock_inicial     NUMERIC NOT NULL CHECK (stock_inicial > 0),
-  unidad            TEXT NOT NULL, -- 'gramos', 'semillas', 'sobres', etc.
-  stock_actual      NUMERIC NOT NULL,
-  notas             TEXT,
-  creado_en         TIMESTAMPTZ DEFAULT NOW()
-);
-ALTER TABLE public.lotes_semillas ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "productor ve sus semillas" ON public.lotes_semillas
-  FOR ALL USING (auth.uid() = usuario_id);
-
-
--- ── LOTES DE PLANTAS MADRE ───────────────────────
--- origen_tipo:
---   'externo'                → compra externa sin registro previo en el sistema
---   'esqueje_produccion'     → esqueje extraído de un lote de producción propio (lote_origen_id → lotes_produccion.id)
---   'esqueje_material_basico'→ esqueje de un lote de esquejes registrado como Material Básico (lote_origen_id → lotes_esquejes.id)
-CREATE TABLE IF NOT EXISTS public.lotes_plantas_madre (
-  id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  usuario_id          UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  nombre_lote         TEXT NOT NULL,
-  fecha_adquisicion   DATE NOT NULL,
-  origen_tipo         TEXT NOT NULL CHECK (origen_tipo IN ('externo','esqueje_produccion','esqueje_material_basico')),
-  proveedor           TEXT,                -- solo para origen 'externo'
-  lote_origen_id      UUID,               -- referencia flexible: lotes_produccion o lotes_esquejes según origen_tipo
-  variedad            TEXT NOT NULL,
-  cantidad_inicial    INTEGER NOT NULL CHECK (cantidad_inicial > 0),
-  cantidad_actual     INTEGER NOT NULL,
-  esquejes_extraidos  INTEGER NOT NULL DEFAULT 0,
-  notas               TEXT,
-  creado_en           TIMESTAMPTZ DEFAULT NOW()
-);
-ALTER TABLE public.lotes_plantas_madre ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "productor ve sus plantas madre" ON public.lotes_plantas_madre
-  FOR ALL USING (auth.uid() = usuario_id);
-
-
--- ── LOTES DE ESQUEJES ────────────────────────────
--- RESTRICCIÓN DE NEGOCIO: origen_tipo NO puede ser 'lote_semillas_propio'
-CREATE TABLE IF NOT EXISTS public.lotes_esquejes (
-  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  usuario_id        UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  planta_madre_id   UUID REFERENCES public.lotes_plantas_madre(id),
-  nombre_lote       TEXT NOT NULL,
-  fecha_adquisicion DATE NOT NULL,
-  origen_tipo       TEXT NOT NULL CHECK (origen_tipo IN ('externo','plantas_madre_propio','lote_produccion_propio')),
-  proveedor         TEXT,
-  lote_origen_id    UUID, -- referencia flexible según origen_tipo
-  variedad          TEXT NOT NULL,
-  stock_inicial     INTEGER NOT NULL CHECK (stock_inicial > 0),
-  stock_actual      INTEGER NOT NULL,
-  notas             TEXT,
-  creado_en         TIMESTAMPTZ DEFAULT NOW()
-);
-ALTER TABLE public.lotes_esquejes ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "productor ve sus esquejes" ON public.lotes_esquejes
-  FOR ALL USING (auth.uid() = usuario_id);
-
-
--- ── BAJAS DE MATERIAL ────────────────────────────
-CREATE TABLE IF NOT EXISTS public.bajas_material (
-  id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  usuario_id   UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  lote_id      UUID NOT NULL,
-  lote_tipo    TEXT NOT NULL CHECK (lote_tipo IN ('semillas','esquejes','plantas_madre')),
-  fecha_baja   DATE NOT NULL,
-  cantidad_baja NUMERIC NOT NULL CHECK (cantidad_baja > 0),
-  motivo_baja  TEXT NOT NULL,
-  creado_en    TIMESTAMPTZ DEFAULT NOW()
-);
-ALTER TABLE public.bajas_material ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "productor ve sus bajas" ON public.bajas_material
-  FOR ALL USING (auth.uid() = usuario_id);
-
-
--- ── LOTES DE PRODUCCIÓN ──────────────────────────
-CREATE TABLE IF NOT EXISTS public.lotes_produccion (
-  id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  usuario_id            UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  -- origen del material (solo uno de los tres debe estar completado)
-  origen_semilla_id     UUID REFERENCES public.lotes_semillas(id),
-  origen_esqueje_id     UUID REFERENCES public.lotes_esquejes(id),
-  origen_pm_id          UUID REFERENCES public.lotes_plantas_madre(id),
-  -- sublotes
-  lote_padre_id         UUID REFERENCES public.lotes_produccion(id),
-  etapa_origen_division TEXT CHECK (etapa_origen_division IN ('nursery','vegetativa','floracion','cosecha')),
-  motivo_division       TEXT,
-  -- nomenclatura
-  nombre_base           TEXT NOT NULL,  -- generado automáticamente, no editable
-  nombre_agregado       TEXT,           -- obligatorio si es sublote
-  nombre_completo       TEXT NOT NULL,  -- AUTO: nombre_base + ' → ' + nombre_agregado
-  -- estado
-  etapa_actual          TEXT NOT NULL DEFAULT 'nursery'
-                          CHECK (etapa_actual IN ('nursery','vegetativa','floracion','cosecha','curado_secado','flores','completado','cerrado')),
-  cantidad_inicial      INTEGER,
-  fecha_inicio          DATE NOT NULL,
-  notas                 TEXT,
-  creado_en             TIMESTAMPTZ DEFAULT NOW()
-);
-ALTER TABLE public.lotes_produccion ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "productor ve sus lotes de produccion" ON public.lotes_produccion
-  FOR ALL USING (auth.uid() = usuario_id);
-
-
--- ── ETAPA NURSERY ────────────────────────────────
-CREATE TABLE IF NOT EXISTS public.etapa_nursery (
-  id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  lote_id            UUID NOT NULL REFERENCES public.lotes_produccion(id) ON DELETE CASCADE,
-  origen_material    TEXT NOT NULL CHECK (origen_material IN ('semillas','esquejes','plantas_madre')),
-  fecha_inicio       DATE NOT NULL,
-  fecha_fin          DATE,
-  metodo_ingreso     TEXT NOT NULL CHECK (metodo_ingreso IN ('bandejas','directo')),
-  bandejas           INTEGER,  -- solo si metodo_ingreso = 'bandejas'
-  alveolos           INTEGER,  -- solo si metodo_ingreso = 'bandejas'
-  cantidad_ingreso   INTEGER NOT NULL,
-  material_utilizado NUMERIC,  -- solo para semillas (cantidad descontada del stock)
-  cantidad_egreso    INTEGER,
-  bajas              INTEGER DEFAULT 0,
-  notas              TEXT,
-  creado_en          TIMESTAMPTZ DEFAULT NOW()
-);
-ALTER TABLE public.etapa_nursery ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "nursery_select" ON public.etapa_nursery
-  FOR SELECT USING (EXISTS (SELECT 1 FROM public.lotes_produccion WHERE id = lote_id AND usuario_id = auth.uid()));
-CREATE POLICY "nursery_insert" ON public.etapa_nursery
-  FOR INSERT WITH CHECK (EXISTS (SELECT 1 FROM public.lotes_produccion WHERE id = lote_id AND usuario_id = auth.uid()));
-CREATE POLICY "nursery_update" ON public.etapa_nursery
-  FOR UPDATE USING (EXISTS (SELECT 1 FROM public.lotes_produccion WHERE id = lote_id AND usuario_id = auth.uid()));
-CREATE POLICY "nursery_delete" ON public.etapa_nursery
-  FOR DELETE USING (EXISTS (SELECT 1 FROM public.lotes_produccion WHERE id = lote_id AND usuario_id = auth.uid()));
-
-
--- ── ETAPA VEGETATIVA ─────────────────────────────
-CREATE TABLE IF NOT EXISTS public.etapa_vegetativa (
-  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  lote_id          UUID NOT NULL REFERENCES public.lotes_produccion(id) ON DELETE CASCADE,
-  fecha_inicio     DATE NOT NULL,  -- Trasplante
-  fecha_fin        DATE,           -- Inicio de inducción
-  cantidad_ingreso INTEGER NOT NULL, -- tomada del egreso de Nursery, confirmada por usuario
-  cantidad_egreso  INTEGER,
-  bajas            INTEGER DEFAULT 0,
-  notas            TEXT,
-  creado_en        TIMESTAMPTZ DEFAULT NOW()
-);
-ALTER TABLE public.etapa_vegetativa ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "vegetativa_select" ON public.etapa_vegetativa
-  FOR SELECT USING (EXISTS (SELECT 1 FROM public.lotes_produccion WHERE id = lote_id AND usuario_id = auth.uid()));
-CREATE POLICY "vegetativa_insert" ON public.etapa_vegetativa
-  FOR INSERT WITH CHECK (EXISTS (SELECT 1 FROM public.lotes_produccion WHERE id = lote_id AND usuario_id = auth.uid()));
-CREATE POLICY "vegetativa_update" ON public.etapa_vegetativa
-  FOR UPDATE USING (EXISTS (SELECT 1 FROM public.lotes_produccion WHERE id = lote_id AND usuario_id = auth.uid()));
-CREATE POLICY "vegetativa_delete" ON public.etapa_vegetativa
-  FOR DELETE USING (EXISTS (SELECT 1 FROM public.lotes_produccion WHERE id = lote_id AND usuario_id = auth.uid()));
-
-
--- ── ETAPA FLORACIÓN ──────────────────────────────
-CREATE TABLE IF NOT EXISTS public.etapa_floracion (
-  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  lote_id          UUID NOT NULL REFERENCES public.lotes_produccion(id) ON DELETE CASCADE,
-  fecha_inicio     DATE NOT NULL,  -- tomada de fecha_fin Vegetativa, confirmada por usuario
-  fecha_fin        DATE,           -- Cosecha
-  cantidad_ingreso INTEGER NOT NULL, -- tomada del egreso de Vegetativa, confirmada por usuario
-  cantidad_egreso  INTEGER,
-  bajas            INTEGER DEFAULT 0,
-  notas            TEXT,
-  creado_en        TIMESTAMPTZ DEFAULT NOW()
-);
-ALTER TABLE public.etapa_floracion ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "floracion_select" ON public.etapa_floracion
-  FOR SELECT USING (EXISTS (SELECT 1 FROM public.lotes_produccion WHERE id = lote_id AND usuario_id = auth.uid()));
-CREATE POLICY "floracion_insert" ON public.etapa_floracion
-  FOR INSERT WITH CHECK (EXISTS (SELECT 1 FROM public.lotes_produccion WHERE id = lote_id AND usuario_id = auth.uid()));
-CREATE POLICY "floracion_update" ON public.etapa_floracion
-  FOR UPDATE USING (EXISTS (SELECT 1 FROM public.lotes_produccion WHERE id = lote_id AND usuario_id = auth.uid()));
-CREATE POLICY "floracion_delete" ON public.etapa_floracion
-  FOR DELETE USING (EXISTS (SELECT 1 FROM public.lotes_produccion WHERE id = lote_id AND usuario_id = auth.uid()));
-
-
--- ── ETAPA COSECHA ────────────────────────────────
-CREATE TABLE IF NOT EXISTS public.etapa_cosecha (
-  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  lote_id           UUID NOT NULL REFERENCES public.lotes_produccion(id) ON DELETE CASCADE,
-  fecha_inicio      DATE NOT NULL,   -- propagada desde fecha_fin floración
-  fecha_fin         DATE,
-  peso_humedo_total NUMERIC,         -- peso post-cosecha (informativo, opcional)
-  notas             TEXT,
-  creado_en         TIMESTAMPTZ DEFAULT NOW()
-);
-ALTER TABLE public.etapa_cosecha ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "cosecha_select" ON public.etapa_cosecha
-  FOR SELECT USING (EXISTS (SELECT 1 FROM public.lotes_produccion WHERE id = lote_id AND usuario_id = auth.uid()));
-CREATE POLICY "cosecha_insert" ON public.etapa_cosecha
-  FOR INSERT WITH CHECK (EXISTS (SELECT 1 FROM public.lotes_produccion WHERE id = lote_id AND usuario_id = auth.uid()));
-CREATE POLICY "cosecha_update" ON public.etapa_cosecha
-  FOR UPDATE USING (EXISTS (SELECT 1 FROM public.lotes_produccion WHERE id = lote_id AND usuario_id = auth.uid()));
-CREATE POLICY "cosecha_delete" ON public.etapa_cosecha
-  FOR DELETE USING (EXISTS (SELECT 1 FROM public.lotes_produccion WHERE id = lote_id AND usuario_id = auth.uid()));
-
-
--- ── ETAPA CURADO/SECADO ───────────────────────────
-CREATE TABLE IF NOT EXISTS public.etapa_curado_secado (
-  id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  lote_id             UUID NOT NULL REFERENCES public.lotes_produccion(id) ON DELETE CASCADE,
-  fecha_inicio        DATE,
-  fecha_fin           DATE,
-  peso_inicial_humedo NUMERIC,        -- opcional
-  tiene_empaque       BOOLEAN NOT NULL DEFAULT FALSE,
-  tara_empaque        NUMERIC,        -- solo si tiene_empaque = true
-  unidad              TEXT NOT NULL DEFAULT 'gramos' CHECK (unidad IN ('gramos','kg')),
-  peso_seco_final     NUMERIC,        -- siempre almacenado en gramos; pasa a stock_inicial de flores_cosechadas
-  notas               TEXT,
-  creado_en           TIMESTAMPTZ DEFAULT NOW()
-);
-ALTER TABLE public.etapa_curado_secado ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "curado_select" ON public.etapa_curado_secado
-  FOR SELECT USING (EXISTS (SELECT 1 FROM public.lotes_produccion WHERE id = lote_id AND usuario_id = auth.uid()));
-CREATE POLICY "curado_insert" ON public.etapa_curado_secado
-  FOR INSERT WITH CHECK (EXISTS (SELECT 1 FROM public.lotes_produccion WHERE id = lote_id AND usuario_id = auth.uid()));
-CREATE POLICY "curado_update" ON public.etapa_curado_secado
-  FOR UPDATE USING (EXISTS (SELECT 1 FROM public.lotes_produccion WHERE id = lote_id AND usuario_id = auth.uid()));
-CREATE POLICY "curado_delete" ON public.etapa_curado_secado
-  FOR DELETE USING (EXISTS (SELECT 1 FROM public.lotes_produccion WHERE id = lote_id AND usuario_id = auth.uid()));
-
-
--- ── FLORES COSECHADAS ────────────────────────────
-CREATE TABLE IF NOT EXISTS public.flores_cosechadas (
-  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  lote_id          UUID NOT NULL REFERENCES public.lotes_produccion(id) ON DELETE CASCADE,
-  stock_inicial    NUMERIC NOT NULL,  -- de peso_seco_final (confirmado) o ingresado manualmente
-  stock_actual     NUMERIC NOT NULL,  -- se descuenta automáticamente con cada entrega
-  fecha_disponible DATE,
-  notas            TEXT,
-  creado_en        TIMESTAMPTZ DEFAULT NOW()
-);
-ALTER TABLE public.flores_cosechadas ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "flores_select" ON public.flores_cosechadas
-  FOR SELECT USING (EXISTS (SELECT 1 FROM public.lotes_produccion WHERE id = lote_id AND usuario_id = auth.uid()));
-CREATE POLICY "flores_insert" ON public.flores_cosechadas
-  FOR INSERT WITH CHECK (EXISTS (SELECT 1 FROM public.lotes_produccion WHERE id = lote_id AND usuario_id = auth.uid()));
-CREATE POLICY "flores_update" ON public.flores_cosechadas
-  FOR UPDATE USING (EXISTS (SELECT 1 FROM public.lotes_produccion WHERE id = lote_id AND usuario_id = auth.uid()));
-CREATE POLICY "flores_delete" ON public.flores_cosechadas
-  FOR DELETE USING (EXISTS (SELECT 1 FROM public.lotes_produccion WHERE id = lote_id AND usuario_id = auth.uid()));
-
-
--- ── ANÁLISIS DE CALIDAD ──────────────────────────
-CREATE TABLE IF NOT EXISTS public.analisis_calidad (
-  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  flores_id        UUID NOT NULL REFERENCES public.flores_cosechadas(id) ON DELETE CASCADE,
-  fecha_analisis   DATE NOT NULL,
-  preparado_por    TEXT,              -- nombre de quien preparó la muestra
-  thc_pct          NUMERIC(5,2),     -- porcentaje THC (0-100)
-  cbd_pct          NUMERIC(5,2),     -- porcentaje CBD (0-100)
-  humedad_pct      NUMERIC(5,2),     -- porcentaje humedad (0-100)
-  otro_compuesto   TEXT,             -- nombre del compuesto adicional
-  otro_valor       NUMERIC(10,4),    -- valor numérico del compuesto adicional
-  otro_unidad      TEXT,             -- unidad definida por el usuario (%, mg, ppm, etc.)
-  informe_url      TEXT,             -- URL al archivo en Supabase Storage
-  informe_nombre   TEXT,             -- nombre original del archivo
-  creado_en        TIMESTAMPTZ DEFAULT NOW()
-);
-ALTER TABLE public.analisis_calidad ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "analisis_select" ON public.analisis_calidad
-  FOR SELECT USING (EXISTS (SELECT 1 FROM public.flores_cosechadas fc JOIN public.lotes_produccion lp ON lp.id = fc.lote_id WHERE fc.id = flores_id AND lp.usuario_id = auth.uid()));
-CREATE POLICY "analisis_insert" ON public.analisis_calidad
-  FOR INSERT WITH CHECK (EXISTS (SELECT 1 FROM public.flores_cosechadas fc JOIN public.lotes_produccion lp ON lp.id = fc.lote_id WHERE fc.id = flores_id AND lp.usuario_id = auth.uid()));
-CREATE POLICY "analisis_update" ON public.analisis_calidad
-  FOR UPDATE USING (EXISTS (SELECT 1 FROM public.flores_cosechadas fc JOIN public.lotes_produccion lp ON lp.id = fc.lote_id WHERE fc.id = flores_id AND lp.usuario_id = auth.uid()));
-CREATE POLICY "analisis_delete" ON public.analisis_calidad
-  FOR DELETE USING (EXISTS (SELECT 1 FROM public.flores_cosechadas fc JOIN public.lotes_produccion lp ON lp.id = fc.lote_id WHERE fc.id = flores_id AND lp.usuario_id = auth.uid()));
-
-
--- ── ENTREGAS A PACIENTES ─────────────────────────
-CREATE TABLE IF NOT EXISTS public.entregas (
-  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  flores_id         UUID NOT NULL REFERENCES public.flores_cosechadas(id) ON DELETE CASCADE,
-  nro_reprocann     TEXT NOT NULL,  -- OBLIGATORIO por regulación REPROCANN
-  cantidad_otorgada NUMERIC NOT NULL CHECK (cantidad_otorgada > 0),
-  fecha_entrega     DATE NOT NULL,
-  notas             TEXT,
-  creado_en         TIMESTAMPTZ DEFAULT NOW()
-);
-ALTER TABLE public.entregas ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "entregas_select" ON public.entregas
-  FOR SELECT USING (EXISTS (SELECT 1 FROM public.flores_cosechadas fc JOIN public.lotes_produccion lp ON lp.id = fc.lote_id WHERE fc.id = flores_id AND lp.usuario_id = auth.uid()));
-CREATE POLICY "entregas_insert" ON public.entregas
-  FOR INSERT WITH CHECK (EXISTS (SELECT 1 FROM public.flores_cosechadas fc JOIN public.lotes_produccion lp ON lp.id = fc.lote_id WHERE fc.id = flores_id AND lp.usuario_id = auth.uid()));
-CREATE POLICY "entregas_update" ON public.entregas
-  FOR UPDATE USING (EXISTS (SELECT 1 FROM public.flores_cosechadas fc JOIN public.lotes_produccion lp ON lp.id = fc.lote_id WHERE fc.id = flores_id AND lp.usuario_id = auth.uid()));
-CREATE POLICY "entregas_delete" ON public.entregas
-  FOR DELETE USING (EXISTS (SELECT 1 FROM public.flores_cosechadas fc JOIN public.lotes_produccion lp ON lp.id = fc.lote_id WHERE fc.id = flores_id AND lp.usuario_id = auth.uid()));
-
-
--- ================================================
--- MIGRACIONES — ejecutar en Supabase > SQL Editor
--- sobre una base ya existente (no recrear desde cero)
--- ================================================
-
--- ── MIGRACIÓN: lotes_plantas_madre ──────────────
--- Amplía origen_tipo y corrige lote_origen_id
-ALTER TABLE public.lotes_plantas_madre
-  DROP CONSTRAINT IF EXISTS lotes_plantas_madre_origen_tipo_check;
-
-ALTER TABLE public.lotes_plantas_madre
-  ADD CONSTRAINT lotes_plantas_madre_origen_tipo_check
-    CHECK (origen_tipo IN ('externo','esqueje_produccion','esqueje_material_basico'));
-
--- Elimina la FK auto-referencial incorrecta y deja lote_origen_id como UUID libre
-ALTER TABLE public.lotes_plantas_madre
-  DROP CONSTRAINT IF EXISTS lotes_plantas_madre_lote_origen_id_fkey;
-
--- ── MIGRACIÓN: lotes_produccion — campos de cierre ──
-ALTER TABLE public.lotes_produccion
-  ADD COLUMN IF NOT EXISTS fecha_cierre DATE,
-  ADD COLUMN IF NOT EXISTS motivo_cierre TEXT;
-
--- ── MIGRACIÓN: analisis_calidad — nuevos campos ──
-ALTER TABLE public.analisis_calidad
-  ADD COLUMN IF NOT EXISTS preparado_por  TEXT,
-  ADD COLUMN IF NOT EXISTS thc_pct        NUMERIC(5,2),
-  ADD COLUMN IF NOT EXISTS cbd_pct        NUMERIC(5,2),
-  ADD COLUMN IF NOT EXISTS humedad_pct    NUMERIC(5,2),
-  ADD COLUMN IF NOT EXISTS otro_compuesto TEXT,
-  ADD COLUMN IF NOT EXISTS otro_valor     NUMERIC(10,4),
-  ADD COLUMN IF NOT EXISTS otro_unidad    TEXT,
-  ADD COLUMN IF NOT EXISTS informe_nombre TEXT;
--- Nota: informe_url ya existía — solo se agregan los campos nuevos
-
--- ── MIGRACIÓN: Supabase Storage — bucket analisis-calidad ──
--- Ejecutar en Supabase Dashboard > Storage > New bucket:
---   Nombre: analisis-calidad
---   Public: NO (privado)
--- Luego ejecutar esta policy para que usuarios autenticados puedan subir/leer sus archivos:
-INSERT INTO storage.buckets (id, name, public)
-  VALUES ('analisis-calidad', 'analisis-calidad', false)
-  ON CONFLICT (id) DO NOTHING;
-
-CREATE POLICY "usuarios pueden subir sus analisis"
-  ON storage.objects FOR INSERT
-  TO authenticated
-  WITH CHECK (bucket_id = 'analisis-calidad');
-
-CREATE POLICY "usuarios pueden leer sus analisis"
-  ON storage.objects FOR SELECT
-  TO authenticated
-  USING (bucket_id = 'analisis-calidad');
-
-
--- ── TABLA: material_documentos ────────────────────
--- Documentos de origen adjuntos a lotes de material básico
--- (Rótulo/Estampilla INASE y Facturas de compra)
-CREATE TABLE IF NOT EXISTS public.material_documentos (
-  id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  lote_id        UUID NOT NULL,
-  lote_tipo      TEXT NOT NULL CHECK (lote_tipo IN ('semillas','esquejes','pm')),
-  tipo_doc       TEXT NOT NULL CHECK (tipo_doc IN ('rotulo_estampilla','factura')),
-  archivo_url    TEXT NOT NULL,
-  archivo_nombre TEXT,
-  creado_en      TIMESTAMPTZ DEFAULT NOW()
-);
-ALTER TABLE public.material_documentos ENABLE ROW LEVEL SECURITY;
--- RLS: el usuario solo ve documentos de sus propios lotes
--- (verificamos via la tabla correspondiente según lote_tipo)
-CREATE POLICY "usuario ve sus material_documentos"
-  ON public.material_documentos FOR ALL
-  USING (
-    (lote_tipo = 'semillas'  AND EXISTS (SELECT 1 FROM public.lotes_semillas      WHERE id = lote_id AND usuario_id = auth.uid()))
-    OR
-    (lote_tipo = 'esquejes'  AND EXISTS (SELECT 1 FROM public.lotes_esquejes      WHERE id = lote_id AND usuario_id = auth.uid()))
-    OR
-    (lote_tipo = 'pm'        AND EXISTS (SELECT 1 FROM public.lotes_plantas_madre WHERE id = lote_id AND usuario_id = auth.uid()))
-  );
-
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.material_documentos TO anon;
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.material_documentos TO authenticated;
-
-
--- ── MIGRACIÓN: Supabase Storage — bucket material-basico-docs ──
--- Bucket privado para documentos de Material Básico
-INSERT INTO storage.buckets (id, name, public)
-  VALUES ('material-basico-docs', 'material-basico-docs', false)
-  ON CONFLICT (id) DO NOTHING;
-
-CREATE POLICY "usuarios pueden subir docs material basico"
-  ON storage.objects FOR INSERT
-  TO authenticated
-  WITH CHECK (bucket_id = 'material-basico-docs');
-
-CREATE POLICY "usuarios pueden leer docs material basico"
-  ON storage.objects FOR SELECT
-  TO authenticated
-  USING (bucket_id = 'material-basico-docs');
-
-
--- ── MIGRACIÓN: Supabase Storage — bucket documentos-ong ──
--- Bucket privado para documentos adjuntos a ONGs/Asociaciones Civiles
-INSERT INTO storage.buckets (id, name, public)
-  VALUES ('documentos-ong', 'documentos-ong', false)
-  ON CONFLICT (id) DO NOTHING;
-
-CREATE POLICY "rt puede subir docs ong"
-  ON storage.objects FOR INSERT TO authenticated
-  WITH CHECK (bucket_id = 'documentos-ong');
-
-CREATE POLICY "rt puede leer docs ong"
-  ON storage.objects FOR SELECT TO authenticated
-  USING (bucket_id = 'documentos-ong');
-
-CREATE POLICY "rt puede eliminar docs ong"
-  ON storage.objects FOR DELETE TO authenticated
-  USING (bucket_id = 'documentos-ong');
-
--- ── TABLA: documentos_ong ────────────────────────
-CREATE TABLE IF NOT EXISTS public.documentos_ong (
-  id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  ong_id         UUID NOT NULL REFERENCES public.organizaciones(id) ON DELETE CASCADE,
-  nombre_archivo TEXT NOT NULL,
-  descripcion    TEXT,
-  storage_path   TEXT NOT NULL,
-  subido_por     UUID REFERENCES auth.users(id),
-  created_at     TIMESTAMPTZ DEFAULT NOW()
-);
-ALTER TABLE public.documentos_ong ENABLE ROW LEVEL SECURITY;
-GRANT ALL ON public.documentos_ong TO authenticated;
-
-CREATE POLICY "rt ve docs de sus ongs" ON public.documentos_ong FOR SELECT
-  USING (EXISTS (SELECT 1 FROM rt_organizaciones WHERE ong_id = documentos_ong.ong_id AND rt_id = auth.uid()));
-CREATE POLICY "rt inserta docs" ON public.documentos_ong FOR INSERT
-  WITH CHECK (EXISTS (SELECT 1 FROM rt_organizaciones WHERE ong_id = documentos_ong.ong_id AND rt_id = auth.uid()));
-CREATE POLICY "rt elimina sus docs" ON public.documentos_ong FOR DELETE
-  USING (subido_por = auth.uid());
-
--- ── MIGRACIÓN: fecha_baja en organizaciones ──────
-ALTER TABLE public.organizaciones
-  ADD COLUMN IF NOT EXISTS fecha_baja TIMESTAMPTZ;
-
--- ── MIGRACIÓN: correcciones de entregas ──
--- Guarda valores anteriores y nuevos de cada corrección de una entrega
-CREATE TABLE IF NOT EXISTS public.entregas_correcciones (
-  id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  entrega_id          UUID NOT NULL REFERENCES public.entregas(id) ON DELETE CASCADE,
-  nro_reprocann_ant   TEXT,
-  cantidad_ant        NUMERIC,
-  notas_ant           TEXT,
-  registrado_por_ant  TEXT,
-  nro_reprocann_nvo   TEXT,
-  cantidad_nvo        NUMERIC,
-  notas_nvo           TEXT,
-  corregido_por       TEXT,
-  fecha_correccion    TIMESTAMPTZ DEFAULT NOW()
-);
-ALTER TABLE public.entregas_correcciones ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "via entregas correcciones" ON public.entregas_correcciones
-  FOR ALL USING (
-    EXISTS (
-      SELECT 1 FROM public.entregas e
-      JOIN public.flores_cosechadas fc ON fc.id = e.flores_id
-      JOIN public.lotes_produccion lp ON lp.id = fc.lote_id
-      WHERE e.id = entrega_id AND lp.usuario_id = auth.uid()
-    )
-  );
-
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.entregas_correcciones TO anon;
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.entregas_correcciones TO authenticated;
-
-
--- ── MIGRACIÓN: email en perfiles (requerido por portal_superadmin para listar RTs) ──
-ALTER TABLE public.perfiles
-  ADD COLUMN IF NOT EXISTS email TEXT;
-
--- Actualizar trigger para guardar email al crear usuario
+-- ── TRIGGER: crear perfil al registrar usuario ────
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -708,10 +193,13 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-GRANT SELECT ON public.perfiles TO authenticated;
+CREATE OR REPLACE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
 
--- ── VARIEDADES RNC (catálogo INASE, gestionado por superadmin) ──
+-- ── VARIEDADES RNC ────────────────────────────────
+-- (definida antes de lotes_produccion por la FK rnc_id)
 CREATE TABLE IF NOT EXISTS public.variedades_rnc (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   nro_rnc     TEXT UNIQUE NOT NULL,
@@ -721,17 +209,347 @@ CREATE TABLE IF NOT EXISTS public.variedades_rnc (
   fecha_carga TIMESTAMPTZ DEFAULT NOW()
 );
 ALTER TABLE public.variedades_rnc ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "autenticados pueden leer variedades" ON public.variedades_rnc
+CREATE POLICY "rnc_select" ON public.variedades_rnc
   FOR SELECT TO authenticated USING (true);
-CREATE POLICY "solo superadmin gestiona variedades" ON public.variedades_rnc
+CREATE POLICY "rnc_manage" ON public.variedades_rnc
   FOR ALL TO authenticated
-  USING (EXISTS (SELECT 1 FROM public.perfiles WHERE id = auth.uid() AND rol = 'superadmin'))
-  WITH CHECK (EXISTS (SELECT 1 FROM public.perfiles WHERE id = auth.uid() AND rol = 'superadmin'));
-GRANT SELECT ON public.variedades_rnc TO authenticated;
-GRANT INSERT, UPDATE, DELETE ON public.variedades_rnc TO authenticated;
+  USING (es_superadmin()) WITH CHECK (es_superadmin());
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.variedades_rnc TO authenticated;
 
 
--- ── ESTABLECIMIENTOS (predios/campos por usuario ONG) ──
+-- ── MATERIAL BÁSICO ───────────────────────────────
+
+CREATE TABLE IF NOT EXISTS public.lotes_semillas (
+  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  usuario_id        UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  nombre_lote       TEXT NOT NULL,
+  fecha_adquisicion DATE NOT NULL,
+  origen_tipo       TEXT NOT NULL CHECK (origen_tipo IN ('externo','interno')),
+  proveedor         TEXT,
+  lote_origen_id    UUID REFERENCES public.lotes_semillas(id),
+  variedad          TEXT NOT NULL,
+  stock_inicial     NUMERIC NOT NULL CHECK (stock_inicial > 0),
+  unidad            TEXT NOT NULL,
+  stock_actual      NUMERIC NOT NULL,
+  notas             TEXT,
+  creado_en         TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE public.lotes_semillas ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "semillas_all" ON public.lotes_semillas
+  FOR ALL USING (puede_acceder_usuario(usuario_id)) WITH CHECK (puede_acceder_usuario(usuario_id));
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.lotes_semillas TO authenticated;
+
+
+CREATE TABLE IF NOT EXISTS public.lotes_plantas_madre (
+  id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  usuario_id          UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  nombre_lote         TEXT NOT NULL,
+  fecha_adquisicion   DATE NOT NULL,
+  origen_tipo         TEXT NOT NULL CHECK (origen_tipo IN ('externo','esqueje_produccion','esqueje_material_basico')),
+  proveedor           TEXT,
+  lote_origen_id      UUID,
+  variedad            TEXT NOT NULL,
+  cantidad_inicial    INTEGER NOT NULL CHECK (cantidad_inicial > 0),
+  cantidad_actual     INTEGER NOT NULL,
+  esquejes_extraidos  INTEGER NOT NULL DEFAULT 0,
+  notas               TEXT,
+  creado_en           TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE public.lotes_plantas_madre ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "pm_all" ON public.lotes_plantas_madre
+  FOR ALL USING (puede_acceder_usuario(usuario_id)) WITH CHECK (puede_acceder_usuario(usuario_id));
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.lotes_plantas_madre TO authenticated;
+
+
+CREATE TABLE IF NOT EXISTS public.lotes_esquejes (
+  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  usuario_id        UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  planta_madre_id   UUID REFERENCES public.lotes_plantas_madre(id),
+  nombre_lote       TEXT NOT NULL,
+  fecha_adquisicion DATE NOT NULL,
+  origen_tipo       TEXT NOT NULL CHECK (origen_tipo IN ('externo','plantas_madre_propio','lote_produccion_propio')),
+  proveedor         TEXT,
+  lote_origen_id    UUID,
+  variedad          TEXT NOT NULL,
+  stock_inicial     INTEGER NOT NULL CHECK (stock_inicial > 0),
+  stock_actual      INTEGER NOT NULL,
+  notas             TEXT,
+  creado_en         TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE public.lotes_esquejes ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "esquejes_all" ON public.lotes_esquejes
+  FOR ALL USING (puede_acceder_usuario(usuario_id)) WITH CHECK (puede_acceder_usuario(usuario_id));
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.lotes_esquejes TO authenticated;
+
+
+CREATE TABLE IF NOT EXISTS public.bajas_material (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  usuario_id    UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  lote_id       UUID NOT NULL,
+  lote_tipo     TEXT NOT NULL CHECK (lote_tipo IN ('semillas','esquejes','plantas_madre')),
+  fecha_baja    DATE NOT NULL,
+  cantidad_baja NUMERIC NOT NULL CHECK (cantidad_baja > 0),
+  motivo_baja   TEXT NOT NULL,
+  creado_en     TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE public.bajas_material ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "bajas_all" ON public.bajas_material
+  FOR ALL USING (puede_acceder_usuario(usuario_id)) WITH CHECK (puede_acceder_usuario(usuario_id));
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.bajas_material TO authenticated;
+
+
+-- ── LOTES DE PRODUCCIÓN ───────────────────────────
+CREATE TABLE IF NOT EXISTS public.lotes_produccion (
+  id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  usuario_id            UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  origen_semilla_id     UUID REFERENCES public.lotes_semillas(id),
+  origen_esqueje_id     UUID REFERENCES public.lotes_esquejes(id),
+  origen_pm_id          UUID REFERENCES public.lotes_plantas_madre(id),
+  lote_padre_id         UUID REFERENCES public.lotes_produccion(id),
+  etapa_origen_division TEXT CHECK (etapa_origen_division IN ('nursery','vegetativa','floracion','cosecha')),
+  motivo_division       TEXT,
+  nombre_base           TEXT NOT NULL,
+  nombre_agregado       TEXT,
+  nombre_completo       TEXT NOT NULL,
+  etapa_actual          TEXT NOT NULL DEFAULT 'nursery'
+                          CHECK (etapa_actual IN ('nursery','vegetativa','floracion','cosecha','curado_secado','flores','completado','cerrado')),
+  cantidad_inicial      INTEGER,
+  fecha_inicio          DATE NOT NULL,
+  fecha_cierre          DATE,
+  motivo_cierre         TEXT,
+  rnc_id                UUID REFERENCES public.variedades_rnc(id),
+  plantas_descartadas   INTEGER DEFAULT 0,
+  notas                 TEXT,
+  creado_en             TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE public.lotes_produccion ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "lotes_produccion_all" ON public.lotes_produccion
+  FOR ALL USING (puede_acceder_usuario(usuario_id)) WITH CHECK (puede_acceder_usuario(usuario_id));
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.lotes_produccion TO authenticated;
+
+
+-- ── ETAPAS ────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS public.etapa_nursery (
+  id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  lote_id             UUID NOT NULL REFERENCES public.lotes_produccion(id) ON DELETE CASCADE,
+  origen_material     TEXT NOT NULL CHECK (origen_material IN ('semillas','esquejes','plantas_madre')),
+  fecha_inicio        DATE NOT NULL,
+  fecha_fin           DATE,
+  metodo_ingreso      TEXT NOT NULL CHECK (metodo_ingreso IN ('bandejas','directo')),
+  bandejas            INTEGER,
+  alveolos            INTEGER,
+  cantidad_ingreso    INTEGER NOT NULL,
+  material_utilizado  NUMERIC,
+  cantidad_egreso     INTEGER,
+  bajas               INTEGER DEFAULT 0,
+  plantas_descartadas INTEGER DEFAULT 0,
+  notas               TEXT,
+  creado_en           TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE public.etapa_nursery ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "nursery_all" ON public.etapa_nursery
+  FOR ALL USING (puede_acceder_lote(lote_id)) WITH CHECK (puede_acceder_lote(lote_id));
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.etapa_nursery TO authenticated;
+
+
+CREATE TABLE IF NOT EXISTS public.etapa_vegetativa (
+  id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  lote_id             UUID NOT NULL REFERENCES public.lotes_produccion(id) ON DELETE CASCADE,
+  fecha_inicio        DATE NOT NULL,
+  fecha_fin           DATE,
+  cantidad_ingreso    INTEGER NOT NULL,
+  cantidad_egreso     INTEGER,
+  bajas               INTEGER DEFAULT 0,
+  plantas_descartadas INTEGER DEFAULT 0,
+  notas               TEXT,
+  creado_en           TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE public.etapa_vegetativa ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "vegetativa_all" ON public.etapa_vegetativa
+  FOR ALL USING (puede_acceder_lote(lote_id)) WITH CHECK (puede_acceder_lote(lote_id));
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.etapa_vegetativa TO authenticated;
+
+
+CREATE TABLE IF NOT EXISTS public.etapa_floracion (
+  id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  lote_id             UUID NOT NULL REFERENCES public.lotes_produccion(id) ON DELETE CASCADE,
+  fecha_inicio        DATE NOT NULL,
+  fecha_fin           DATE,
+  cantidad_ingreso    INTEGER NOT NULL,
+  cantidad_egreso     INTEGER,
+  bajas               INTEGER DEFAULT 0,
+  plantas_descartadas INTEGER DEFAULT 0,
+  notas               TEXT,
+  creado_en           TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE public.etapa_floracion ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "floracion_all" ON public.etapa_floracion
+  FOR ALL USING (puede_acceder_lote(lote_id)) WITH CHECK (puede_acceder_lote(lote_id));
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.etapa_floracion TO authenticated;
+
+
+CREATE TABLE IF NOT EXISTS public.etapa_cosecha (
+  id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  lote_id             UUID NOT NULL REFERENCES public.lotes_produccion(id) ON DELETE CASCADE,
+  fecha_inicio        DATE NOT NULL,
+  fecha_fin           DATE,
+  peso_humedo_total   NUMERIC,
+  plantas_descartadas INTEGER DEFAULT 0,
+  notas               TEXT,
+  creado_en           TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE public.etapa_cosecha ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "cosecha_all" ON public.etapa_cosecha
+  FOR ALL USING (puede_acceder_lote(lote_id)) WITH CHECK (puede_acceder_lote(lote_id));
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.etapa_cosecha TO authenticated;
+
+
+CREATE TABLE IF NOT EXISTS public.etapa_curado_secado (
+  id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  lote_id             UUID NOT NULL REFERENCES public.lotes_produccion(id) ON DELETE CASCADE,
+  fecha_inicio        DATE,
+  fecha_fin           DATE,
+  peso_inicial_humedo NUMERIC,
+  tiene_empaque       BOOLEAN NOT NULL DEFAULT FALSE,
+  tara_empaque        NUMERIC,
+  unidad              TEXT NOT NULL DEFAULT 'gramos' CHECK (unidad IN ('gramos','kg')),
+  peso_seco_final     NUMERIC,
+  notas               TEXT,
+  creado_en           TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE public.etapa_curado_secado ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "curado_all" ON public.etapa_curado_secado
+  FOR ALL USING (puede_acceder_lote(lote_id)) WITH CHECK (puede_acceder_lote(lote_id));
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.etapa_curado_secado TO authenticated;
+
+
+-- ── FLORES COSECHADAS ─────────────────────────────
+CREATE TABLE IF NOT EXISTS public.flores_cosechadas (
+  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  lote_id          UUID NOT NULL REFERENCES public.lotes_produccion(id) ON DELETE CASCADE,
+  stock_inicial    NUMERIC NOT NULL,
+  stock_actual     NUMERIC NOT NULL,
+  fecha_disponible DATE,
+  notas            TEXT,
+  creado_en        TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE public.flores_cosechadas ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "flores_all" ON public.flores_cosechadas
+  FOR ALL USING (puede_acceder_lote(lote_id)) WITH CHECK (puede_acceder_lote(lote_id));
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.flores_cosechadas TO authenticated;
+
+
+-- ── ANÁLISIS DE CALIDAD ───────────────────────────
+CREATE TABLE IF NOT EXISTS public.analisis_calidad (
+  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  flores_id         UUID NOT NULL REFERENCES public.flores_cosechadas(id) ON DELETE CASCADE,
+  fecha_analisis    DATE NOT NULL,
+  preparado_por     TEXT,
+  thc_pct           NUMERIC(5,2),
+  cbd_pct           NUMERIC(5,2),
+  cbn_pct           NUMERIC(5,2),
+  cbg_pct           NUMERIC(5,2),
+  humedad_pct       NUMERIC(5,2),
+  tipo_analitica    TEXT,
+  entidad_analitica TEXT,
+  id_cromatografia  TEXT,
+  otro_compuesto    TEXT,
+  otro_valor        NUMERIC(10,4),
+  otro_unidad       TEXT,
+  informe_url       TEXT,
+  informe_nombre    TEXT,
+  creado_en         TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE public.analisis_calidad ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "analisis_all" ON public.analisis_calidad
+  FOR ALL USING (puede_acceder_flores(flores_id)) WITH CHECK (puede_acceder_flores(flores_id));
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.analisis_calidad TO authenticated;
+
+
+-- ── ENTREGAS ──────────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.entregas (
+  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  flores_id         UUID NOT NULL REFERENCES public.flores_cosechadas(id) ON DELETE CASCADE,
+  nro_reprocann     TEXT NOT NULL,
+  cantidad_otorgada NUMERIC NOT NULL CHECK (cantidad_otorgada > 0),
+  fecha_entrega     DATE NOT NULL,
+  notas             TEXT,
+  creado_en         TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE public.entregas ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "entregas_all" ON public.entregas
+  FOR ALL USING (puede_acceder_flores(flores_id)) WITH CHECK (puede_acceder_flores(flores_id));
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.entregas TO authenticated;
+
+
+CREATE TABLE IF NOT EXISTS public.entregas_correcciones (
+  id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  entrega_id          UUID NOT NULL REFERENCES public.entregas(id) ON DELETE CASCADE,
+  nro_reprocann_ant   TEXT,
+  cantidad_ant        NUMERIC,
+  notas_ant           TEXT,
+  registrado_por_ant  TEXT,
+  nro_reprocann_nvo   TEXT,
+  cantidad_nvo        NUMERIC,
+  notas_nvo           TEXT,
+  corregido_por       TEXT,
+  fecha_correccion    TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE public.entregas_correcciones ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "correcciones_all" ON public.entregas_correcciones
+  FOR ALL USING (puede_acceder_entrega(entrega_id)) WITH CHECK (puede_acceder_entrega(entrega_id));
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.entregas_correcciones TO authenticated;
+
+
+-- ── MATERIAL DOCUMENTOS ───────────────────────────
+CREATE TABLE IF NOT EXISTS public.material_documentos (
+  id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  lote_id        UUID NOT NULL,
+  lote_tipo      TEXT NOT NULL CHECK (lote_tipo IN ('semillas','esquejes','pm')),
+  tipo_doc       TEXT NOT NULL CHECK (tipo_doc IN ('rotulo_estampilla','factura')),
+  archivo_url    TEXT NOT NULL,
+  archivo_nombre TEXT,
+  creado_en      TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE public.material_documentos ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "material_docs_all" ON public.material_documentos
+  FOR ALL USING (
+    es_superadmin()
+    OR (lote_tipo = 'semillas' AND EXISTS (SELECT 1 FROM public.lotes_semillas      WHERE id = lote_id AND puede_acceder_usuario(usuario_id)))
+    OR (lote_tipo = 'esquejes' AND EXISTS (SELECT 1 FROM public.lotes_esquejes      WHERE id = lote_id AND puede_acceder_usuario(usuario_id)))
+    OR (lote_tipo = 'pm'       AND EXISTS (SELECT 1 FROM public.lotes_plantas_madre WHERE id = lote_id AND puede_acceder_usuario(usuario_id)))
+  );
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.material_documentos TO authenticated;
+
+
+-- ── DOCUMENTOS ONG ────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.documentos_ong (
+  id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  ong_id         UUID NOT NULL REFERENCES public.organizaciones(id) ON DELETE CASCADE,
+  nombre_archivo TEXT NOT NULL,
+  descripcion    TEXT,
+  storage_path   TEXT NOT NULL,
+  subido_por     UUID REFERENCES auth.users(id),
+  created_at     TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE public.documentos_ong ENABLE ROW LEVEL SECURITY;
+GRANT ALL ON public.documentos_ong TO authenticated;
+CREATE POLICY "docs_ong_select" ON public.documentos_ong
+  FOR SELECT USING (
+    es_superadmin()
+    OR EXISTS (SELECT 1 FROM rt_organizaciones WHERE ong_id = documentos_ong.ong_id AND rt_id = auth.uid())
+  );
+CREATE POLICY "docs_ong_insert" ON public.documentos_ong
+  FOR INSERT WITH CHECK (
+    es_superadmin()
+    OR EXISTS (SELECT 1 FROM rt_organizaciones WHERE ong_id = documentos_ong.ong_id AND rt_id = auth.uid())
+  );
+CREATE POLICY "docs_ong_delete" ON public.documentos_ong
+  FOR DELETE USING (subido_por = auth.uid() OR es_superadmin());
+
+
+-- ── ESTABLECIMIENTOS ──────────────────────────────
 CREATE TABLE IF NOT EXISTS public.establecimientos (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   usuario_id  UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -752,7 +570,7 @@ CREATE POLICY "establecimientos_all" ON public.establecimientos
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.establecimientos TO authenticated;
 
 
--- ── ACTIVIDADES LOG (historial de acciones por usuario) ──
+-- ── PACIENTES ─────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.pacientes (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   usuario_id    UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -769,6 +587,8 @@ CREATE POLICY "pacientes_all" ON public.pacientes
   FOR ALL USING (puede_acceder_usuario(usuario_id)) WITH CHECK (puede_acceder_usuario(usuario_id));
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.pacientes TO authenticated;
 
+
+-- ── ACTIVIDADES LOG ───────────────────────────────
 CREATE TABLE IF NOT EXISTS public.actividades_log (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   usuario_id  UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -782,3 +602,32 @@ ALTER TABLE public.actividades_log ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "actividades_all" ON public.actividades_log
   FOR ALL USING (puede_acceder_usuario(usuario_id)) WITH CHECK (puede_acceder_usuario(usuario_id));
 GRANT SELECT, INSERT ON public.actividades_log TO authenticated;
+
+
+-- ── STORAGE BUCKETS ───────────────────────────────
+INSERT INTO storage.buckets (id, name, public)
+  VALUES ('analisis-calidad', 'analisis-calidad', false)
+  ON CONFLICT (id) DO NOTHING;
+INSERT INTO storage.buckets (id, name, public)
+  VALUES ('material-basico-docs', 'material-basico-docs', false)
+  ON CONFLICT (id) DO NOTHING;
+INSERT INTO storage.buckets (id, name, public)
+  VALUES ('documentos-ong', 'documentos-ong', false)
+  ON CONFLICT (id) DO NOTHING;
+
+CREATE POLICY "storage_analisis_insert" ON storage.objects
+  FOR INSERT TO authenticated WITH CHECK (bucket_id = 'analisis-calidad');
+CREATE POLICY "storage_analisis_select" ON storage.objects
+  FOR SELECT TO authenticated USING (bucket_id = 'analisis-calidad');
+
+CREATE POLICY "storage_matdocs_insert" ON storage.objects
+  FOR INSERT TO authenticated WITH CHECK (bucket_id = 'material-basico-docs');
+CREATE POLICY "storage_matdocs_select" ON storage.objects
+  FOR SELECT TO authenticated USING (bucket_id = 'material-basico-docs');
+
+CREATE POLICY "storage_docong_insert" ON storage.objects
+  FOR INSERT TO authenticated WITH CHECK (bucket_id = 'documentos-ong');
+CREATE POLICY "storage_docong_select" ON storage.objects
+  FOR SELECT TO authenticated USING (bucket_id = 'documentos-ong');
+CREATE POLICY "storage_docong_delete" ON storage.objects
+  FOR DELETE TO authenticated USING (bucket_id = 'documentos-ong');
