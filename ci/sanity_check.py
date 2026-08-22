@@ -21,6 +21,17 @@ APP_FILES = [
     "index.html",
     "agrotrace_prototipo_v3.html",
     "portal_rt.html",
+    "portal_superadmin.html",
+]
+
+# Credenciales por entorno — el CI verifica que cada branch use las correctas
+PROD_URL = "jqkyifuyaxxwugrnjfnq.supabase.co"
+DEV_URL  = "aitodoqcsawntgznwtvj.supabase.co"
+CRED_FILES = [
+    "index.html",
+    "agrotrace_prototipo_v3.html",
+    "portal_rt.html",
+    "portal_superadmin.html",
 ]
 
 # Funciones globales del navegador, SDKs de CDN y palabras clave de JS
@@ -107,6 +118,41 @@ def check_file(name):
             err(name, f"showView('{v}') navega a una vista inexistente (falta id=\"{v}\")")
 
 
+def check_supabase_credentials():
+    """Verifica que cada branch use las credenciales de Supabase correctas.
+
+    main → debe tener URL de PROD, nunca la de DEV.
+    dev  → debe tener URL de DEV, nunca la de PROD.
+    Atrapa merges accidentales que pisarían el entorno equivocado.
+    """
+    try:
+        branch = subprocess.run(
+            ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+            capture_output=True, text=True, cwd=ROOT,
+        ).stdout.strip()
+    except Exception:
+        return
+
+    if branch == "main":
+        expected, forbidden, label_ok, label_bad = PROD_URL, DEV_URL, "PROD", "DEV"
+    elif branch == "dev":
+        expected, forbidden, label_ok, label_bad = DEV_URL, PROD_URL, "DEV", "PROD"
+    else:
+        return
+
+    for name in CRED_FILES:
+        path = ROOT / name
+        if not path.exists():
+            continue
+        src = path.read_text(encoding="utf-8")
+        if forbidden in src:
+            err(name, f"branch '{branch}': contiene URL de {label_bad} ({forbidden})"
+                      f" — merge accidental de credenciales. Este branch debe usar {label_ok}.")
+        if expected not in src:
+            err(name, f"branch '{branch}': no contiene la URL de {label_ok} ({expected})"
+                      f" — credenciales faltantes o incorrectas.")
+
+
 def check_supabase_tables():
     """Cada sb.from('tabla') del código debe existir en supabase_schema.sql.
 
@@ -133,6 +179,7 @@ def check_supabase_tables():
 def main():
     for f in APP_FILES:
         check_file(f)
+    check_supabase_credentials()
     check_supabase_tables()
     if errors:
         print(f"✗ Sanity check falló ({len(errors)} problema/s):\n")
