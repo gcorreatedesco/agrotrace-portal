@@ -1,0 +1,13 @@
+{
+  "name": "AgroTrace",
+  "short_name": "AgroTrace",
+  "description": "Plataforma de trazabilidad de producción de cannabis medicinal REPROCANN",
+  "start_url": "index.html",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#2C1F0E",
+  "theme_color": "#4E7C3F",
+  "lang": "es",
+  "icons": []
+}
