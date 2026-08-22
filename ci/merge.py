@@ -29,7 +29,7 @@ KEY_RE = re.compile(r'(?:eyJ[A-Za-z0-9._\-]+|sb_publishable_[A-Za-z0-9._\-]+)')
 
 
 def run(cmd):
-    return subprocess.run(cmd, capture_output=True, text=True, cwd=ROOT)
+    return subprocess.run(cmd, capture_output=True, text=True, encoding='utf-8', errors='replace', cwd=ROOT)
 
 
 def die(msg):
