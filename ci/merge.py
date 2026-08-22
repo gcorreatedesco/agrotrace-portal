@@ -149,7 +149,7 @@ def main():
     if r.returncode != 0:
         die(f'Push falló:\n{r.stderr}')
 
-    print(f'\n✓ Listo: {source} -> {target} completado correctamente')
+    print(f'\nOK: {source} -> {target} completado correctamente')
 
 
 if __name__ == '__main__':
