@@ -1663,6 +1663,8 @@ async function guardarEditarPac(){
 }
 
 async function toggleEstadoPac(id){
+  if(_g.tep)return; _g.tep=true;
+  try{
   const p=PAC_DATA.find(x=>x.id===id);
   if(!p)return;
   const accion=p.activo?'desactivar':'activar';
@@ -1670,6 +1672,7 @@ async function toggleEstadoPac(id){
   const{error}=await sb.from('pacientes').update({activo:!p.activo}).eq('id',id);
   if(error){alert('Error: '+error.message);return;}
   await cargarPacientes();
+  }finally{_g.tep=false;}
 }
 
 async function abrirEntregasPac(id){
@@ -1857,9 +1860,9 @@ function initVariedadCombobox(inputId){
       drop.innerHTML=`<div class="var-combo-empty">Sin resultados — podés ingresar la variedad manualmente.</div>`;
     } else {
       drop.innerHTML=matches.slice(0,10).map((v,i)=>
-        `<div class="var-combo-item" data-val="${v.cultivar.replace(/"/g,'&quot;')}" data-rnc-id="${v.id||''}" data-nro-rnc="${v.nro_rnc||''}" data-idx="${i}">
-          <div class="var-combo-item-name">${v.cultivar}</div>
-          <div class="var-combo-item-rnc">Nº RNC ${v.nro_rnc||'—'}${v.especie?' · '+v.especie:''}</div>
+        `<div class="var-combo-item" data-val="${esc(v.cultivar)}" data-rnc-id="${esc(v.id||'')}" data-nro-rnc="${esc(v.nro_rnc||'')}" data-idx="${i}">
+          <div class="var-combo-item-name">${esc(v.cultivar)}</div>
+          <div class="var-combo-item-rnc">Nº RNC ${esc(v.nro_rnc)||'—'}${v.especie?' · '+esc(v.especie):''}</div>
         </div>`
       ).join('');
     }
@@ -1875,7 +1878,7 @@ function initVariedadCombobox(inputId){
     const hint=document.getElementById('nm-variedad-hint');
     if(hint){
       if(nroRnc){
-        hint.innerHTML='✓ Nro RNC <strong>'+nroRnc+'</strong> vinculado al catálogo INASE.';
+        hint.innerHTML='✓ Nro RNC <strong>'+esc(nroRnc)+'</strong> vinculado al catálogo INASE.';
         hint.style.display='block';
       } else {
         hint.style.display='none';
@@ -1961,7 +1964,7 @@ async function renderActividad(){
       .order('creado_en',{ascending:false})
       .limit(7);
     if(data&&data.length){
-      panel.innerHTML=data.map(e=>`<div class="ait"><span class="ad">${fmtActividadDate(new Date(e.creado_en))}</span><span style="color:var(--sage);">${e.descripcion}</span></div>`).join('');
+      panel.innerHTML=data.map(e=>`<div class="ait"><span class="ad">${fmtActividadDate(new Date(e.creado_en))}</span><span style="color:var(--sage);">${esc(e.descripcion)}</span></div>`).join('');
       return;
     }
   }
@@ -1983,7 +1986,7 @@ function renderActividadLocal(){
   eventos.sort((a,b)=>b.ts-a.ts);
   const rec=eventos.slice(0,5);
   if(!rec.length){panel.innerHTML='<div class="alertas-ok">Sin actividad registrada</div>';return;}
-  panel.innerHTML=rec.map(e=>`<div class="ait"><span class="ad">${fmtActividadDate(e.ts)}</span><span style="color:var(--sage);">${e.texto}</span></div>`).join('');
+  panel.innerHTML=rec.map(e=>`<div class="ait"><span class="ad">${fmtActividadDate(e.ts)}</span><span style="color:var(--sage);">${esc(e.texto)}</span></div>`).join('');
 }
 function actualizarMetricasStock(){
   const s=document.getElementById('m-sem'),e=document.getElementById('m-esq'),p=document.getElementById('m-pm');
@@ -2134,7 +2137,7 @@ async function cargarHistorialMaterial(){
   if(!bajas||bajas.length===0){
     bajasHtml='<div class="hist-empty">Sin bajas registradas para este lote.</div>';
   } else {
-    bajas.forEach(b=>{bajasHtml+=`<div class="hist-item"><div class="hist-item-desc">− ${b.cantidad_baja} unidades<br><span style="color:var(--sage);">${b.motivo_baja}</span></div><div class="hist-item-meta">${fmtDate(b.fecha_baja)}</div></div>`;});
+    bajas.forEach(b=>{bajasHtml+=`<div class="hist-item"><div class="hist-item-desc">− ${b.cantidad_baja} unidades<br><span style="color:var(--sage);">${esc(b.motivo_baja)}</span></div><div class="hist-item-meta">${fmtDate(b.fecha_baja)}</div></div>`;});
   }
   if(bajasEl)bajasEl.innerHTML=bajasHtml;
 }
@@ -2233,7 +2236,7 @@ async function openLote(id){
     renderTimeline(lote.etapaRaw);
     renderPanelActivo();
   }catch(e){
-    document.getElementById('det-panel').innerHTML=`<div class="panel"><div style="color:var(--error);padding:24px;font-size:0.82rem;"><strong>Error al cargar el panel:</strong> ${e.message}</div></div>`;
+    document.getElementById('det-panel').innerHTML=`<div class="panel"><div style="color:var(--error);padding:24px;font-size:0.82rem;"><strong>Error al cargar el panel:</strong> ${esc(e.message)}</div></div>`;
     console.error('renderPanelActivo error:',e);
   }
 }
@@ -2277,7 +2280,7 @@ function panelCerrado(){
   return`<div class="panel">
     <div class="pt">Lote cerrado anticipadamente</div>
     <div class="field"><label>Fecha de cierre</label><div class="ro-val">${fecha}</div></div>
-    <div class="field"><label>Motivo de cierre</label><div class="ro-val">${motivo}</div></div>
+    <div class="field"><label>Motivo de cierre</label><div class="ro-val">${esc(motivo)}</div></div>
     <div style="margin-top:10px;font-size:0.72rem;color:var(--sage);">Este lote fue cerrado antes de completar su ciclo productivo. Los datos de las etapas completadas son consultables en la línea de tiempo.</div>
   </div>`;
 }
@@ -2336,32 +2339,38 @@ function renderStockHistorico(){
 }
 
 async function cerrarLoteAgotado(){
+  if(_g.cla)return; _g.cla=true;
+  try{
   if(!confirm('¿Confirmás que querés cerrar este lote?\n\nSe moverá a "Lotes Productivos Terminados" en el historial.'))return;
   const fecha=new Date().toISOString().split('T')[0];
   const{error}=await sb.from('lotes_produccion').update({etapa_actual:'completado',fecha_cierre:fecha}).eq('id',LOTE_ACTIVO.id);
   if(error){alert('Error al cerrar el lote: '+error.message);return;}
-  logActividad('completado', LOTE_ACTIVO.n+' — ciclo completado', LOTE_ACTIVO.id);
+  logActividad('completado', LOTE_ACTIVO.n+' — ciclo completado', LOTE_ACTIVO.id).catch(()=>{});
   LOTE_ACTIVO.etapaRaw='completado';
   LOTE_ACTIVO.fecha_cierre=fecha;
   await cargarLotes();actualizarMetricasDash();calcularAlertas();
   alert('Lote cerrado y movido al historial de lotes terminados.');
   sv('lotes');
+  }finally{_g.cla=false;}
 }
 
 async function cerrarLoteAnticipado(){
+  if(_g.clan)return; _g.clan=true;
+  try{
   const motivo=prompt('Motivo de cierre anticipado:\n(Ej: pérdida por plaga, decisión del productor, accidente)');
   if(!motivo||!motivo.trim()){alert('El motivo de cierre es obligatorio.');return;}
   if(!confirm(`¿Confirmás el cierre anticipado de "${LOTE_ACTIVO.n}"?\n\nMotivo: ${motivo}\n\nEl lote se moverá a "Lotes Cerrados Sin Terminar".`))return;
   const fecha=new Date().toISOString().split('T')[0];
   const{error}=await sb.from('lotes_produccion').update({etapa_actual:'cerrado',fecha_cierre:fecha,motivo_cierre:motivo.trim()}).eq('id',LOTE_ACTIVO.id);
   if(error){alert('Error al cerrar el lote: '+error.message);return;}
-  logActividad('cerrado', LOTE_ACTIVO.n+' — cerrado: '+motivo.trim(), LOTE_ACTIVO.id);
+  logActividad('cerrado', LOTE_ACTIVO.n+' — cerrado: '+motivo.trim(), LOTE_ACTIVO.id).catch(()=>{});
   LOTE_ACTIVO.etapaRaw='cerrado';
   LOTE_ACTIVO.fecha_cierre=fecha;
   LOTE_ACTIVO.motivo_cierre=motivo.trim();
   await cargarLotes();actualizarMetricasDash();calcularAlertas();
   alert('Lote cerrado y movido al historial.');
   sv('lotes');
+  }finally{_g.clan=false;}
 }
 
 function panelNursery(hist=false){
@@ -2784,15 +2793,15 @@ async function cargarAnalisis(){
     if(a.cbn_pct!=null)vals.push(`<div class="analisis-val"><div class="analisis-val-num">${a.cbn_pct}%</div><div class="analisis-val-lbl">CBN</div></div>`);
     if(a.cbg_pct!=null)vals.push(`<div class="analisis-val"><div class="analisis-val-num">${a.cbg_pct}%</div><div class="analisis-val-lbl">CBG</div></div>`);
     if(a.humedad_pct!=null)vals.push(`<div class="analisis-val"><div class="analisis-val-num">${a.humedad_pct}%</div><div class="analisis-val-lbl">Humedad</div></div>`);
-    if(a.otro_compuesto&&a.otro_valor!=null)vals.push(`<div class="analisis-val"><div class="analisis-val-num">${a.otro_valor}${a.otro_unidad?' '+a.otro_unidad:''}</div><div class="analisis-val-lbl">${a.otro_compuesto}</div></div>`);
+    if(a.otro_compuesto&&a.otro_valor!=null)vals.push(`<div class="analisis-val"><div class="analisis-val-num">${a.otro_valor}${a.otro_unidad?' '+esc(a.otro_unidad):''}</div><div class="analisis-val-lbl">${esc(a.otro_compuesto)}</div></div>`);
     const meta=[];
-    if(a.tipo_analitica)meta.push(a.tipo_analitica);
-    if(a.entidad_analitica)meta.push(a.entidad_analitica);
-    if(a.id_cromatografia)meta.push('Ref: '+a.id_cromatografia);
-    const linkArchivo=a.informe_url?`<a class="analisis-link" href="${a.informe_url}" target="_blank" download="${a.informe_nombre||'informe'}">📄 ${a.informe_nombre||'Ver informe'} ↗</a>`:'';
+    if(a.tipo_analitica)meta.push(esc(a.tipo_analitica));
+    if(a.entidad_analitica)meta.push(esc(a.entidad_analitica));
+    if(a.id_cromatografia)meta.push('Ref: '+esc(a.id_cromatografia));
+    const linkArchivo=a.informe_url?`<a class="analisis-link" href="${esc(a.informe_url)}" target="_blank" download="${esc(a.informe_nombre||'informe')}">📄 ${esc(a.informe_nombre)||'Ver informe'} ↗</a>`:'';
     return`<div class="analisis-card">
       <div class="analisis-card-header">
-        <div class="analisis-card-title">${fmtDate(a.fecha_analisis)}${a.preparado_por?' · Preparado por: '+a.preparado_por:''}</div>
+        <div class="analisis-card-title">${fmtDate(a.fecha_analisis)}${a.preparado_por?' · Preparado por: '+esc(a.preparado_por):''}</div>
       </div>
       ${vals.length>0?`<div class="analisis-valores">${vals.join('')}</div>`:''}
       ${meta.length>0?`<div style="font-size:0.68rem;color:var(--sage);margin-top:4px;">${meta.join(' · ')}</div>`:''}
@@ -2905,15 +2914,19 @@ async function guardarCorreccion(entregaId,fcId){
     // validación previa con cache local (UI check)
     const stockEstimado=Math.round((HIST_DATA.flores.stock_actual-diff)*100)/100;
     if(stockEstimado<0){alert(`La corrección dejaría el stock en ${stockEstimado} g. No es posible.`);return;}
-    const{error:corrErr}=await sb.from('entregas_correcciones').insert({
+    const{data:corrData,error:corrErr}=await sb.from('entregas_correcciones').insert({
       entrega_id:entregaId,
       nro_reprocann_ant:e.nro_reprocann,cantidad_ant:e.cantidad_otorgada,notas_ant:e.notas,registrado_por_ant:e.registrado_por,
       nro_reprocann_nvo:nuevoReprocann,cantidad_nvo:nuevaCant,notas_nvo:notas,
       corregido_por:corregidoPor
-    });
+    }).select().single();
     if(corrErr){alert('Error al guardar la corrección: '+corrErr.message);return;}
     const{error:entErr}=await sb.from('entregas').update({nro_reprocann:nuevoReprocann,cantidad_otorgada:nuevaCant,notas:notas??e.notas}).eq('id',entregaId);
-    if(entErr){alert('Error al actualizar la entrega: '+entErr.message);return;}
+    if(entErr){
+      // rollback: eliminar el registro de corrección huérfano
+      if(corrData?.id)await sb.from('entregas_correcciones').delete().eq('id',corrData.id);
+      alert('Error al actualizar la entrega: '+entErr.message);return;
+    }
     if(diff!==0){
       // leer stock fresco de DB para evitar stale cache (B-3)
       const{data:floresFresh}=await sb.from('flores_cosechadas').select('stock_actual').eq('id',HIST_DATA.flores.id).single();
@@ -3413,7 +3426,7 @@ async function generarReporteReprocann(){
       });
 
       // Render HTML
-      const td=(v,pend)=>`<td style="padding:7px 10px;border-bottom:1px solid rgba(0,0,0,0.05);white-space:nowrap;${pend?'color:#bbb;font-style:italic;':''}">${v??''}</td>`;
+      const td=(v,pend)=>`<td style="padding:7px 10px;border-bottom:1px solid rgba(0,0,0,0.05);white-space:nowrap;${pend?'color:#bbb;font-style:italic;':''}">${esc(v??'')}</td>`;
       tbody.innerHTML=rows.map(r=>
         `<tr>${r.cells.map((v,i)=>td(v===''&&r.pendCols.includes(i)?'⏳':v,r.pendCols.includes(i))).join('')}</tr>`
       ).join('');
@@ -3718,7 +3731,7 @@ async function cargarEstablecimientosSelect(selectId){
     sel.innerHTML='<option value="">— Sin establecimientos registrados —</option>';
     return;
   }
-  sel.innerHTML='<option value="">— Elegí el establecimiento —</option>'+data.map(e=>`<option value="${e.id}">${e.nombre}</option>`).join('');
+  sel.innerHTML='<option value="">— Elegí el establecimiento —</option>'+data.map(e=>`<option value="${esc(e.id)}">${esc(e.nombre)}</option>`).join('');
 }
 
 /* ── ESTABLECIMIENTOS ── */
@@ -3797,6 +3810,8 @@ async function cambiarEstadoEstabl(id, activo){
 }
 
 async function darDeBajaEstabl(id,nombre){
+  if(_g.dbe)return; _g.dbe=true;
+  try{
   const[lotesR,semR,esqR,pmR]=await Promise.all([
     sb.from('lotes_produccion').select('id',{count:'exact',head:true}).eq('establecimiento_id',id).not('etapa_actual','in','(completado,cerrado)'),
     sb.from('lotes_semillas').select('id',{count:'exact',head:true}).eq('establecimiento_id',id).gt('stock_actual',0),
@@ -3816,12 +3831,16 @@ async function darDeBajaEstabl(id,nombre){
   if(!confirm(msg))return;
   const ok=await cambiarEstadoEstabl(id,false);
   if(ok) cargarEstablecimientos();
+  }finally{_g.dbe=false;}
 }
 
 async function reactivarEstabl(id,nombre){
+  if(_g.rbe)return; _g.rbe=true;
+  try{
   if(!confirm(`¿Reactivar "${nombre}"?\n\nVolverá a aparecer en los listados para nuevos lotes y materiales.`))return;
   const ok=await cambiarEstadoEstabl(id,true);
   if(ok) cargarEstablecimientos();
+  }finally{_g.rbe=false;}
 }
 
 function abrirFormEstabl(id){
@@ -3852,8 +3871,9 @@ function abrirFormEstabl(id){
 }
 
 async function guardarEstabl(){
+  if(_g.ge)return; _g.ge=true;
   const errEl=document.getElementById('establ-form-err');
-  function showErr(msg){errEl.textContent=msg;errEl.style.display='block';}
+  function showErr(msg){_g.ge=false;errEl.textContent=msg;errEl.style.display='block';}
   errEl.style.display='none';
   const nombre=document.getElementById('ef-nombre').value.trim();
   const calle=document.getElementById('ef-calle').value.trim();
@@ -3888,6 +3908,7 @@ async function guardarEstabl(){
   } catch (e) {
     showErr('Error guardando: ' + e.message);
   }
+  _g.ge=false;
 }
 
 /* ── BÚSQUEDA ── */
@@ -4034,7 +4055,7 @@ function onLC(v){if(!v||!OA){LA=null;return;}LA=LM[OA].find(l=>l.v===v)||null;if
 function onUM(v){document.getElementById('mpred').style.display=v==='pred'?'block':'none';document.getElementById('mman').style.display=v==='man'?'block':'none';UI=false;document.getElementById('uiw').style.display='none';}
 function chkUC(){if(!LA)return;const s=document.getElementById('um2').value;const inc=s&&s!==LA.u;UI=inc;document.getElementById('uiw').style.display=inc?'block':'none';}
 function uS(v){if(!LA){document.getElementById('sp').style.display='none';return;}const val=parseInt(v)||0;const r=Math.max(0,LA.stock-val);document.getElementById('spa').textContent=LA.stock+' '+LA.u;const hideDesc=OA!=='semillas';document.getElementById('spu').textContent=hideDesc?'':('− '+val+' '+LA.u);document.getElementById('spf').textContent=hideDesc?'':( r+' '+LA.u);const spRows=document.getElementById('sp').querySelectorAll('.sr:not(:first-child)');spRows.forEach(el=>el.style.display=hideDesc?'none':'flex');document.getElementById('sp').style.display='block';}
-function uNW(){const w=document.getElementById('nw');if(!w)return;if(OA==='pm'){w.className='wb';w.innerHTML='Plantas Madre: el stock de plantas <strong>no se modifica</strong>. Solo se registra el vínculo con el lote de origen.';return;}const c=gC();if(LA&&!UI){w.className='wb';w.innerHTML='Al confirmar se descontarán <strong>'+c+' '+LA.u+'</strong> del stock de "'+LA.l+'". Stock resultante: <strong>'+Math.max(0,LA.stock-c)+' '+LA.u+'</strong>';}else if(UI){w.className='erb';w.innerHTML='⚠ Unidades no compatibles. El stock <strong>NO será descontado</strong> automáticamente.';}}
+function uNW(){const w=document.getElementById('nw');if(!w)return;if(OA==='pm'){w.className='wb';w.innerHTML='Plantas Madre: el stock de plantas <strong>no se modifica</strong>. Solo se registra el vínculo con el lote de origen.';return;}const c=gC();if(LA&&!UI){w.className='wb';w.innerHTML='Al confirmar se descontarán <strong>'+c+' '+esc(LA.u)+'</strong> del stock de "'+esc(LA.l)+'". Stock resultante: <strong>'+Math.max(0,LA.stock-c)+' '+esc(LA.u)+'</strong>';}else if(UI){w.className='erb';w.innerHTML='⚠ Unidades no compatibles. El stock <strong>NO será descontado</strong> automáticamente.';}}
 function sm(m){
   document.getElementById('mcb').classList.toggle('sel',m==='b');
   document.getElementById('mcd').classList.toggle('sel',m==='d');
@@ -4058,6 +4079,8 @@ function tc(di,ci){const cb=document.getElementById(ci);cb.checked=!cb.checked;d
 
 /* ── CREAR LOTE ── */
 async function cL(){
+  if(_g.cL)return; _g.cL=true;
+  try{
   if(UI&&!document.getElementById('cbi').checked){alert('Por favor confirmá el checkbox de unidades incompatibles.');return;}
   if(OA!=='pm'&&!document.getElementById('cb2').checked){alert('Por favor confirmá el descuento de stock.');return;}
   if(!UI&&OA!=='pm'){const c=gC();if(c>LA.stock){alert('La cantidad a utilizar ('+c+' '+LA.u+') supera el stock disponible ('+LA.stock+' '+LA.u+'). No es posible crear el lote.');return;}}
@@ -4117,11 +4140,12 @@ async function cL(){
   }
   NUEVO_LOTE_ID=lote.id;
   formDirty=false;
-  logActividad('nuevo_lote', nombre+' — inicio en Nursery', lote.id);
+  logActividad('nuevo_lote', nombre+' — inicio en Nursery', lote.id).catch(()=>{});
   document.getElementById('cpanel').style.display='none';
   document.getElementById('sscreen').style.display='block';
-  document.getElementById('smsg').innerHTML='<strong>'+nombre+'</strong> fue creado y está activo en Nursery.';
+  document.getElementById('smsg').innerHTML='<strong>'+esc(nombre)+'</strong> fue creado y está activo en Nursery.';
   await cargarLotes();await cargarMaterial();rebuildSearchIndex();actualizarMetricasDash();calcularAlertas();
+  }finally{_g.cL=false;}
 }
 
 function wizPaso2Siguiente(){
@@ -4409,11 +4433,11 @@ async function cargarDocumentosMB(){
   let html='';
   if(rotulos.length){
     html+=`<div class="mb-doc-subtitle">Rótulo / Estampilla INASE</div>`;
-    rotulos.forEach(d=>{html+=`<div class="mb-doc-view">📎 ${esc(d.archivo_nombre||'Archivo')}<a href="${d.archivo_url}" target="_blank">Ver / Descargar</a></div>`;});
+    rotulos.forEach(d=>{html+=`<div class="mb-doc-view">📎 ${esc(d.archivo_nombre||'Archivo')}<a href="${esc(d.archivo_url)}" target="_blank">Ver / Descargar</a></div>`;});
   }
   if(facturas.length){
     html+=`<div class="mb-doc-subtitle" style="margin-top:10px;">Factura de compra</div>`;
-    facturas.forEach(d=>{html+=`<div class="mb-doc-view">📄 ${esc(d.archivo_nombre||'Archivo')}<a href="${d.archivo_url}" target="_blank">Ver / Descargar</a></div>`;});
+    facturas.forEach(d=>{html+=`<div class="mb-doc-view">📄 ${esc(d.archivo_nombre||'Archivo')}<a href="${esc(d.archivo_url)}" target="_blank">Ver / Descargar</a></div>`;});
   }
   if(!rotulos.length&&!facturas.length){html='<div class="hist-empty">Sin documentos cargados.</div>';}
   html+=`
@@ -4788,19 +4812,19 @@ function renderAlertas(alertas){
     <div class="al warn">
       <div class="ald dw"></div>
       <div class="al-body">
-        <div class="al-nombre">${a.nombre}</div>
-        <div class="al-desc">${a.desc}</div>
+        <div class="al-nombre">${esc(a.nombre)}</div>
+        <div class="al-desc">${esc(a.desc)}</div>
         <div class="al-actions">
           ${a.accion==='lote'
-            ?`<button class="al-btn-ver" onclick="openLote('${a.loteId}')">Ver lote ↗</button>`
-            :`<button class="al-btn-ver" onclick="irAStock('${a.matId}','${a.matTipo}')">Ver stock ↗</button>`
+            ?`<button class="al-btn-ver" onclick="openLote('${esc(a.loteId)}')">Ver lote ↗</button>`
+            :`<button class="al-btn-ver" onclick="irAStock('${esc(a.matId)}','${esc(a.matTipo)}')">Ver stock ↗</button>`
           }
           <div class="snooze-wrap">
             <button class="al-btn-pos" onclick="toggleSnooze(this)">··· Posponer</button>
             <div class="snooze-dd">
-              <div onclick="snoozeAlerta('${a.id}',7)">7 días</div>
-              <div onclick="snoozeAlerta('${a.id}',15)">15 días</div>
-              <div onclick="snoozeAlerta('${a.id}',30)">30 días</div>
+              <div onclick="snoozeAlerta('${esc(a.id)}',7)">7 días</div>
+              <div onclick="snoozeAlerta('${esc(a.id)}',15)">15 días</div>
+              <div onclick="snoozeAlerta('${esc(a.id)}',30)">30 días</div>
             </div>
           </div>
         </div>

@@ -728,6 +728,9 @@ const SUPABASE_URL  = 'https://jqkyifuyaxxwugrnjfnq.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impxa3lpZnV5YXh4d3Vncm5qZm5xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyMjE1NjgsImV4cCI6MjA5Njc5NzU2OH0.0r2A5wC4hZ6sg0TAC9_pEdvit5PMHj8XB1wsXWdDVww';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
+/* ── SANITIZACIÓN XSS ── */
+function esc(v){if(v==null)return'';return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+
 let ALL_RTS = [];
 let ALL_ONGS = [];
 let ALL_VARIEDADES = [];
@@ -950,18 +953,18 @@ function renderRTs(gridId, countId, limit) {
   }
 
   grid.innerHTML = lista.map(rt => {
-    const ini = (rt.nombre || rt.email || 'RT').split(' ').map(p=>p[0]).join('').toUpperCase().slice(0,2);
+    const ini = esc((rt.nombre || rt.email || 'RT').split(' ').map(p=>p[0]).join('').toUpperCase().slice(0,2));
     const nombre = rt.nombre || rt.email || '—';
     const email  = rt.nombre ? (rt.email||'—') : '—';
     const inactivo = rt.activo === false;
-    const idStr = rt.id;
-    const nomStr = nombre.replace(/'/g,"\\'");
+    const idStr = esc(rt.id);
+    const nomStr = esc(nombre);
     return `<div class="rt-card${inactivo ? ' inactiva' : ''}">
       <div class="rt-card-header">
         <div class="rt-av">${ini}</div>
         <div>
-          <div class="rt-card-nombre">${nombre}</div>
-          <div class="rt-card-email">${email}</div>
+          <div class="rt-card-nombre">${esc(nombre)}</div>
+          <div class="rt-card-email">${esc(email)}</div>
         </div>
       </div>
       <div class="rt-card-stats">
@@ -1018,22 +1021,23 @@ function renderONGs() {
     return;
   }
   tbody.innerHTML = lista.map(o => {
-    const nomStr = o.nombre.replace(/'/g,"\\'");
+    const nomStr = esc(o.nombre);
+    const idStr  = esc(o.id);
     const btnToggle = o.activa !== false
-      ? `<button class="btn-sm desactivar" onclick="toggleONG('${o.id}','${nomStr}',false)">Dar de baja</button>`
-      : `<button class="btn-sm reactivar"  onclick="toggleONG('${o.id}','${nomStr}',true)">Reactivar</button>`;
+      ? `<button class="btn-sm desactivar" onclick="toggleONG('${idStr}','${nomStr}',false)">Dar de baja</button>`
+      : `<button class="btn-sm reactivar"  onclick="toggleONG('${idStr}','${nomStr}',true)">Reactivar</button>`;
     return `<tr>
-      <td style="font-weight:500;color:var(--soil);">${o.nombre}</td>
-      <td>${o.localidad || '—'}</td>
+      <td style="font-weight:500;color:var(--soil);">${esc(o.nombre)}</td>
+      <td>${esc(o.localidad) || '—'}</td>
       <td>${o.rt_nombre
-        ? `<span style="color:var(--bark);">${o.rt_nombre}</span>`
+        ? `<span style="color:var(--bark);">${esc(o.rt_nombre)}</span>`
         : `<span class="badge badge-sin-rt">Sin RT asignado</span>`
       }</td>
-      <td style="font-family:monospace;font-size:0.78rem;">${o.reprocann || '—'}</td>
+      <td style="font-family:monospace;font-size:0.78rem;">${esc(o.reprocann) || '—'}</td>
       <td><span class="badge ${o.activa !== false ? 'badge-activa' : 'badge-inactiva'}">${o.activa !== false ? 'Activa' : 'Inactiva'}</span></td>
       <td style="text-align:right;">
         <div style="display:flex;gap:6px;justify-content:flex-end;">
-          <button class="btn-sm ver" onclick="verONG('${o.id}')">Ver datos</button>
+          <button class="btn-sm ver" onclick="verONG('${idStr}')">Ver datos</button>
           ${btnToggle}
         </div>
       </td>
@@ -1065,9 +1069,9 @@ function renderVariedades() {
   tbody.innerHTML = lista.map(v => {
     const fecha = v.fecha_carga ? new Date(v.fecha_carga).toLocaleDateString('es-AR') : '—';
     return `<tr>
-      <td style="font-family:monospace;font-size:0.78rem;color:var(--soil);">${v.nro_rnc}</td>
-      <td style="font-weight:500;">${v.cultivar}</td>
-      <td style="font-size:0.75rem;color:var(--sage);">${v.especie || '—'}</td>
+      <td style="font-family:monospace;font-size:0.78rem;color:var(--soil);">${esc(v.nro_rnc)}</td>
+      <td style="font-weight:500;">${esc(v.cultivar)}</td>
+      <td style="font-size:0.75rem;color:var(--sage);">${esc(v.especie) || '—'}</td>
       <td><span class="badge ${v.activa ? 'badge-activa' : 'badge-inactiva'}">${v.activa ? 'Activa' : 'Inactiva'}</span></td>
       <td style="font-size:0.75rem;color:var(--sage);">${fecha}</td>
     </tr>`;
@@ -1102,7 +1106,11 @@ function switchTabONGs(tab) {
 }
 
 /* ── TOGGLE ESTADO ── */
+let _gSA = {};
 async function toggleRT(id, nombre, activar) {
+  const gKey = 'tRT_' + id;
+  if (_gSA[gKey]) return; _gSA[gKey] = true;
+  try {
   const accion = activar ? 'reactivar' : 'desactivar';
   const msg = activar
     ? `¿Reactivar a ${nombre}?\n\nEl RT volverá a aparecer como activo en el sistema.`
@@ -1122,9 +1130,13 @@ async function toggleRT(id, nombre, activar) {
       actualizarMetricas();
     }
   }
+  } finally { _gSA[gKey] = false; }
 }
 
 async function toggleONG(id, nombre, activar) {
+  const gKey = 'tONG_' + id;
+  if (_gSA[gKey]) return; _gSA[gKey] = true;
+  try {
   const msg = activar
     ? `¿Reactivar "${nombre}"?\n\nLa organización volverá a aparecer como activa.`
     : `¿Dar de baja "${nombre}"?\n\nLa organización quedará marcada como inactiva.`;
@@ -1144,6 +1156,7 @@ async function toggleONG(id, nombre, activar) {
       actualizarMetricas();
     }
   }
+  } finally { _gSA[gKey] = false; }
 }
 
 /* ── MODAL CSV ── */
@@ -1484,7 +1497,11 @@ async function guardarAsignacionRT() {
 
     if (nuevoRtId) {
       const { error: errIns } = await sb.from('rt_organizaciones').insert({ rt_id: nuevoRtId, ong_id: VER_ONG_ID });
-      if (errIns) throw errIns;
+      if (errIns) {
+        // rollback: restaurar la asignación anterior si el insert falla
+        if (rtActualId) await sb.from('rt_organizaciones').insert({ rt_id: rtActualId, ong_id: VER_ONG_ID });
+        throw errIns;
+      }
     }
 
     ong.rt_id = nuevoRtId;

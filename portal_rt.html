@@ -943,23 +943,24 @@ function renderDetallesONGs() {
 
   const renderRow = (o, isActiva) => {
     const meta = [
-      o.cuit ? `CUIT ${o.cuit}` : null,
-      o.localidad || null,
-      o.reprocann ? `REPROCANN ${o.reprocann}` : null,
+      o.cuit ? `CUIT ${esc(o.cuit)}` : null,
+      o.localidad ? esc(o.localidad) : null,
+      o.reprocann ? `REPROCANN ${esc(o.reprocann)}` : null,
       (o.creado_en || o.created_at) ? `Alta ${fmtDate(o.creado_en || o.created_at)}` : null,
       (!isActiva && o.fecha_baja) ? `<span style="color:var(--error);">Baja ${fmtDate(o.fecha_baja)}</span>` : null,
     ].filter(Boolean).join(' · ');
-    const safeName = (o.nombre || '').replace(/'/g, "\\'");
+    const safeName = esc(o.nombre || '');
+    const safeId   = esc(o.id);
     return `<div class="det-row">
       <div class="det-row-info">
-        <div class="det-row-nombre">${o.nombre || '—'}</div>
+        <div class="det-row-nombre">${esc(o.nombre) || '—'}</div>
         ${meta ? `<div class="det-row-meta">${meta}</div>` : ''}
       </div>
       <div class="det-row-actions">
-        <button class="btn-det ver" onclick="abrirModalONG('${o.id}',${isActiva})">Ver datos</button>
+        <button class="btn-det ver" onclick="abrirModalONG('${safeId}',${isActiva})">Ver datos</button>
         ${isActiva
-          ? `<button class="btn-det baja" onclick="confirmarBajaONG('${o.id}','${safeName}')">Dar de baja</button>`
-          : `<button class="btn-det alta" onclick="reactivarONG('${o.id}','${safeName}')">Reactivar</button>`}
+          ? `<button class="btn-det baja" onclick="confirmarBajaONG('${safeId}','${safeName}')">Dar de baja</button>`
+          : `<button class="btn-det alta" onclick="reactivarONG('${safeId}','${safeName}')">Reactivar</button>`}
       </div>
     </div>`;
   };
@@ -1108,11 +1109,11 @@ function renderDocumentos() {
       <div class="doc-item-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg></div>
       <div class="doc-item-info">
         <div class="doc-item-name">
-          <a href="#" onclick="abrirDoc('${d.storage_path}');return false;" style="color:var(--accent);text-decoration:none;">${d.nombre_archivo}</a>
+          <a href="#" onclick="abrirDoc('${esc(d.storage_path)}');return false;" style="color:var(--accent);text-decoration:none;">${esc(d.nombre_archivo)}</a>
         </div>
-        <div class="doc-item-meta">${d.descripcion ? d.descripcion + ' · ' : ''}${fmt(d.created_at)}</div>
+        <div class="doc-item-meta">${d.descripcion ? esc(d.descripcion) + ' · ' : ''}${fmt(d.created_at)}</div>
       </div>
-      <button class="doc-item-del" onclick="eliminarDocumento('${d.id}','${d.storage_path}')" title="Eliminar archivo">
+      <button class="doc-item-del" onclick="eliminarDocumento('${esc(d.id)}','${esc(d.storage_path)}')" title="Eliminar archivo">
         <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
       </button>
     </div>`).join('');
@@ -1125,10 +1126,11 @@ async function abrirDoc(storagePath) {
 }
 
 async function subirDocumentos() {
+  if (_gRT.subDoc) return; _gRT.subDoc = true;
   const fileInput = document.getElementById('doc-file');
   const desc = document.getElementById('doc-desc').value.trim();
   const msg = document.getElementById('doc-upload-msg');
-  if (!fileInput.files.length) { msg.textContent = 'Seleccioná al menos un archivo.'; return; }
+  if (!fileInput.files.length) { _gRT.subDoc = false; msg.textContent = 'Seleccioná al menos un archivo.'; return; }
   const { data: { session } } = await sb.auth.getSession();
   if (!session) { msg.textContent = 'Requiere sesión activa.'; return; }
   msg.textContent = 'Subiendo…';
@@ -1153,9 +1155,12 @@ async function subirDocumentos() {
   fileInput.value = '';
   document.getElementById('doc-desc').value = '';
   await cargarDocumentosONG(MODAL_ONG_ID);
+  _gRT.subDoc = false;
 }
 
 async function eliminarDocumento(docId, storagePath) {
+  if (_gRT.elDoc) return; _gRT.elDoc = true;
+  try {
   if (!confirm('¿Eliminar este archivo? La acción no se puede deshacer.')) return;
   const { data: { session } } = await sb.auth.getSession();
   if (!session) return;
@@ -1165,6 +1170,7 @@ async function eliminarDocumento(docId, storagePath) {
   await sb.storage.from('documentos-ong').remove([storagePath]);
   DOCS_ONG = DOCS_ONG.filter(d => d.id !== docId);
   renderDocumentos();
+  } finally { _gRT.elDoc = false; }
 }
 
 /* ── ALERTAS RT ── */
@@ -1360,17 +1366,17 @@ function renderAlertasRT(alertas) {
     <div class="rt-al ${a.tipo}">
       <div class="rt-al-dot"></div>
       <div class="rt-al-body">
-        <div class="rt-al-ong">${a.ong}</div>
-        <div class="rt-al-desc">${a.desc}</div>
+        <div class="rt-al-ong">${esc(a.ong)}</div>
+        <div class="rt-al-desc">${esc(a.desc)}</div>
       </div>
       <div class="rt-al-actions">
-        <button class="rt-al-btn" onclick="accionAlertaRT('${a.id}')">Supervisar ↗</button>
+        <button class="rt-al-btn" onclick="accionAlertaRT('${esc(a.id)}')">Supervisar ↗</button>
         <div class="snooze-wrap">
           <button class="rt-al-btn" onclick="toggleSnoozeRT(this)">··· Posponer</button>
           <div class="snooze-dd">
-            <div onclick="snoozeAlertaRT('${a.id}',7)">7 días</div>
-            <div onclick="snoozeAlertaRT('${a.id}',15)">15 días</div>
-            <div onclick="snoozeAlertaRT('${a.id}',30)">30 días</div>
+            <div onclick="snoozeAlertaRT('${esc(a.id)}',7)">7 días</div>
+            <div onclick="snoozeAlertaRT('${esc(a.id)}',15)">15 días</div>
+            <div onclick="snoozeAlertaRT('${esc(a.id)}',30)">30 días</div>
           </div>
         </div>
       </div>
