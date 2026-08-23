@@ -169,6 +169,8 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON public.organizaciones TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.rt_organizaciones TO authenticated;
 GRANT SELECT ON public.perfiles TO authenticated;
 GRANT UPDATE(activo) ON public.perfiles TO authenticated;
+GRANT UPDATE(nombre, apellido, cuit, titulo_profesional, colegio_profesional, nro_matricula, provincia, ciudad, direccion)
+  ON public.perfiles TO authenticated;
 
 
 -- ── TRIGGER: crear perfil al registrar usuario ────
