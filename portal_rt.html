@@ -607,6 +607,7 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
 let ONGS = [];
 let CURRENT_USER_ID = null;
+let IS_SUPERADMIN_SESSION = false;
 
 /* ── INIT ── */
 async function init() {
@@ -623,13 +624,15 @@ async function init() {
       document.getElementById('sa-bar').classList.add('visible');
       document.getElementById('sa-bar-rt-nombre').textContent = saRtNombre || 'RT';
       // Sidebar: identidad del superadmin (quien está logueado), no del RT supervisado
-      const { data: perfilAdmin } = await sb.from('perfiles').select('nombre').eq('id', session.user.id).single();
+      const { data: perfilAdmin } = await sb.from('perfiles').select('nombre, rol').eq('id', session.user.id).single();
+      IS_SUPERADMIN_SESSION = perfilAdmin?.rol === 'superadmin';
       document.getElementById('sb-av').textContent = 'SA';
       document.getElementById('sb-nombre').textContent = perfilAdmin?.nombre || 'Superadmin';
       document.getElementById('sb-email').textContent = session.user.email || '—';
     } else {
       CURRENT_USER_ID = session.user.id;
-      const { data: perfil } = await sb.from('perfiles').select('nombre').eq('id', session.user.id).single();
+      const { data: perfil } = await sb.from('perfiles').select('nombre, rol').eq('id', session.user.id).single();
+      IS_SUPERADMIN_SESSION = perfil?.rol === 'superadmin';
       const nombre = perfil?.nombre || session.user.email || 'Responsable Técnico';
       document.getElementById('sb-nombre').textContent = nombre;
       document.getElementById('sb-email').textContent = session.user.email || '—';
@@ -958,9 +961,11 @@ function renderDetallesONGs() {
       </div>
       <div class="det-row-actions">
         <button class="btn-det ver" onclick="abrirModalONG('${safeId}',${isActiva})">Ver datos</button>
-        ${isActiva
-          ? `<button class="btn-det baja" onclick="confirmarBajaONG('${safeId}','${safeName}')">Dar de baja</button>`
-          : `<button class="btn-det alta" onclick="reactivarONG('${safeId}','${safeName}')">Reactivar</button>`}
+        ${IS_SUPERADMIN_SESSION
+          ? (isActiva
+            ? `<button class="btn-det baja" onclick="confirmarBajaONG('${safeId}','${safeName}')">Dar de baja</button>`
+            : `<button class="btn-det alta" onclick="reactivarONG('${safeId}','${safeName}')">Reactivar</button>`)
+          : ''}
       </div>
     </div>`;
   };
@@ -1011,8 +1016,9 @@ function _renderFooterModal(isActiva, editando) {
         <button class="btn-secondary" onclick="cerrarModalONG()">Cancelar</button>
       </div>`;
   } else {
-    footer.innerHTML = `<button class="btn-habilitar" onclick="habilitarEdicionONG()">🔓 Habilitar modificación</button>
-      <button class="btn-secondary" onclick="cerrarModalONG()">Cerrar</button>`;
+    footer.innerHTML = (IS_SUPERADMIN_SESSION
+      ? `<button class="btn-habilitar" onclick="habilitarEdicionONG()">🔓 Habilitar modificación</button>`
+      : '') + `<button class="btn-secondary" onclick="cerrarModalONG()">Cerrar</button>`;
   }
 }
 
@@ -1030,6 +1036,7 @@ let _gRT = {}; // guards doble-submit portal RT
 
 async function guardarCambiosONG() {
   if (!MODAL_ONG_ID) return;
+  if (!IS_SUPERADMIN_SESSION) return;
   if (_gRT.cambios) return; _gRT.cambios = true;
   try {
   const { data: { session } } = await sb.auth.getSession();

@@ -148,7 +148,7 @@ CREATE POLICY "rt ve perfiles de sus ong" ON public.perfiles
 CREATE POLICY "superadmin_organizaciones" ON public.organizaciones
   FOR ALL USING (public.get_my_rol() = 'superadmin');
 CREATE POLICY "rt_organizaciones_asignadas" ON public.organizaciones
-  FOR ALL USING (
+  FOR SELECT USING (
     public.get_my_rol() = 'rt'
     AND EXISTS (SELECT 1 FROM public.rt_organizaciones
                 WHERE rt_id = auth.uid() AND ong_id = public.organizaciones.id)
@@ -517,8 +517,35 @@ CREATE TABLE IF NOT EXISTS public.material_documentos (
   creado_en      TIMESTAMPTZ DEFAULT NOW()
 );
 ALTER TABLE public.material_documentos ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "material_docs_all" ON public.material_documentos
-  FOR ALL USING (
+CREATE POLICY "material_docs_select" ON public.material_documentos
+  FOR SELECT USING (
+    es_superadmin()
+    OR (lote_tipo = 'semillas' AND EXISTS (SELECT 1 FROM public.lotes_semillas      WHERE id = lote_id AND puede_acceder_usuario(usuario_id)))
+    OR (lote_tipo = 'esquejes' AND EXISTS (SELECT 1 FROM public.lotes_esquejes      WHERE id = lote_id AND puede_acceder_usuario(usuario_id)))
+    OR (lote_tipo = 'pm'       AND EXISTS (SELECT 1 FROM public.lotes_plantas_madre WHERE id = lote_id AND puede_acceder_usuario(usuario_id)))
+  );
+CREATE POLICY "material_docs_insert" ON public.material_documentos
+  FOR INSERT WITH CHECK (
+    es_superadmin()
+    OR (lote_tipo = 'semillas' AND EXISTS (SELECT 1 FROM public.lotes_semillas      WHERE id = lote_id AND puede_acceder_usuario(usuario_id)))
+    OR (lote_tipo = 'esquejes' AND EXISTS (SELECT 1 FROM public.lotes_esquejes      WHERE id = lote_id AND puede_acceder_usuario(usuario_id)))
+    OR (lote_tipo = 'pm'       AND EXISTS (SELECT 1 FROM public.lotes_plantas_madre WHERE id = lote_id AND puede_acceder_usuario(usuario_id)))
+  );
+CREATE POLICY "material_docs_update" ON public.material_documentos
+  FOR UPDATE
+  USING (
+    es_superadmin()
+    OR (lote_tipo = 'semillas' AND EXISTS (SELECT 1 FROM public.lotes_semillas      WHERE id = lote_id AND puede_acceder_usuario(usuario_id)))
+    OR (lote_tipo = 'esquejes' AND EXISTS (SELECT 1 FROM public.lotes_esquejes      WHERE id = lote_id AND puede_acceder_usuario(usuario_id)))
+    OR (lote_tipo = 'pm'       AND EXISTS (SELECT 1 FROM public.lotes_plantas_madre WHERE id = lote_id AND puede_acceder_usuario(usuario_id)))
+  ) WITH CHECK (
+    es_superadmin()
+    OR (lote_tipo = 'semillas' AND EXISTS (SELECT 1 FROM public.lotes_semillas      WHERE id = lote_id AND puede_acceder_usuario(usuario_id)))
+    OR (lote_tipo = 'esquejes' AND EXISTS (SELECT 1 FROM public.lotes_esquejes      WHERE id = lote_id AND puede_acceder_usuario(usuario_id)))
+    OR (lote_tipo = 'pm'       AND EXISTS (SELECT 1 FROM public.lotes_plantas_madre WHERE id = lote_id AND puede_acceder_usuario(usuario_id)))
+  );
+CREATE POLICY "material_docs_delete" ON public.material_documentos
+  FOR DELETE USING (
     es_superadmin()
     OR (lote_tipo = 'semillas' AND EXISTS (SELECT 1 FROM public.lotes_semillas      WHERE id = lote_id AND puede_acceder_usuario(usuario_id)))
     OR (lote_tipo = 'esquejes' AND EXISTS (SELECT 1 FROM public.lotes_esquejes      WHERE id = lote_id AND puede_acceder_usuario(usuario_id)))
