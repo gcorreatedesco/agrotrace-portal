@@ -132,11 +132,13 @@ $$;
 
 -- ── POLÍTICAS RLS — perfiles, organizaciones, rt_org ──
 
-CREATE POLICY "perfil_propio" ON public.perfiles
-  FOR ALL USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
-CREATE POLICY "superadmin_perfiles" ON public.perfiles
+CREATE POLICY "usuario ve su propio perfil" ON public.perfiles
+  FOR SELECT USING (auth.uid() = id);
+CREATE POLICY "usuario actualiza su propio perfil" ON public.perfiles
+  FOR UPDATE USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
+CREATE POLICY "superadmin ve todos los perfiles" ON public.perfiles
   FOR ALL USING (public.get_my_rol() = 'superadmin');
-CREATE POLICY "rt_ve_perfiles_ong" ON public.perfiles
+CREATE POLICY "rt ve perfiles de sus ong" ON public.perfiles
   FOR SELECT USING (
     public.get_my_rol() = 'rt'
     AND EXISTS (SELECT 1 FROM public.rt_organizaciones
