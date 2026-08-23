@@ -83,9 +83,10 @@ def main():
     target = sys.argv[1]
     source = 'dev' if target == 'main' else 'main'
     label  = 'deploy' if target == 'main' else 'sync'
+    origin = current_branch()
 
     # Cambiar al branch destino si hace falta
-    if current_branch() != target:
+    if origin != target:
         r = run(['git', 'checkout', target])
         if r.returncode != 0:
             die(f'No se pudo cambiar a \'{target}\':\n{r.stderr}')
@@ -150,6 +151,11 @@ def main():
         die(f'Push falló:\n{r.stderr}')
 
     print(f'\nOK: {source} -> {target} completado correctamente')
+
+    # Volver al branch original
+    if origin != target:
+        run(['git', 'checkout', origin])
+        print(f"Vuelto a branch '{origin}'")
 
 
 if __name__ == '__main__':
