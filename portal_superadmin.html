@@ -639,8 +639,12 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);c
       <button class="modal-close" onclick="cerrarModalNuevoRT()">×</button>
     </div>
     <div class="form-row">
-      <label class="form-label">Nombre completo <span class="form-req">*</span></label>
-      <input id="rt-nombre" class="form-input" type="text" placeholder="Ej: Juan Pérez"/>
+      <label class="form-label">Nombre <span class="form-req">*</span></label>
+      <input id="rt-nombre" class="form-input" type="text" placeholder="Ej: Juan"/>
+    </div>
+    <div class="form-row">
+      <label class="form-label">Apellido <span class="form-req">*</span></label>
+      <input id="rt-apellido" class="form-input" type="text" placeholder="Ej: Pérez"/>
     </div>
     <div class="form-row">
       <label class="form-label">Email <span class="form-req">*</span></label>
@@ -1267,6 +1271,7 @@ async function confirmarCSV() {
 /* ── MODAL NUEVO RT ── */
 function abrirModalNuevoRT() {
   document.getElementById('rt-nombre').value = '';
+  document.getElementById('rt-apellido').value = '';
   document.getElementById('rt-email').value  = '';
   document.getElementById('rt-password').value = '';
   const errEl = document.getElementById('rt-err');
@@ -1282,14 +1287,15 @@ function cerrarModalNuevoRT() {
 }
 
 async function crearRT() {
-  const nombre = document.getElementById('rt-nombre').value.trim();
-  const email  = document.getElementById('rt-email').value.trim();
+  const nombre   = document.getElementById('rt-nombre').value.trim();
+  const apellido = document.getElementById('rt-apellido').value.trim();
+  const email    = document.getElementById('rt-email').value.trim();
   const password = document.getElementById('rt-password').value.trim();
   const errEl  = document.getElementById('rt-err');
   errEl.style.display = 'none';
 
-  if (!nombre || !email || !password) {
-    errEl.textContent = 'Nombre, email y contraseña son obligatorios.';
+  if (!nombre || !apellido || !email || !password) {
+    errEl.textContent = 'Nombre, apellido, email y contraseña son obligatorios.';
     errEl.style.display = 'block'; return;
   }
 
@@ -1321,7 +1327,10 @@ async function crearRT() {
     if (!res.ok) throw new Error(data.error || 'Error al crear RT');
 
     cerrarModalNuevoRT();
-    alert(`✓ RT "${nombre}" creado exitosamente.\n\nEmail: ${email}\nPuede loguearse inmediatamente con estas credenciales.`);
+    if (data.user_id) {
+      await sb.from('perfiles').update({ apellido }).eq('id', data.user_id);
+    }
+    alert(`✓ RT "${nombre} ${apellido}" creado exitosamente.\n\nEmail: ${email}\nPuede loguearse inmediatamente con estas credenciales.`);
     await cargarRTs();
     actualizarMetricas();
   } catch (e) {
