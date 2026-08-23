@@ -1396,6 +1396,10 @@ function mdSetBlocked(blocked) {
   document.getElementById('md-actions').style.display = blocked ? 'none' : 'flex';
   document.getElementById('md-err').classList.remove('show');
   document.getElementById('md-ok').style.display = 'none';
+  if (!blocked) {
+    const btn = document.querySelector('#view-mis-datos .btn-primary');
+    if (btn) { btn.textContent = 'Guardar datos'; btn.disabled = false; }
+  }
 }
 
 function habilitarEdicionMD() {
