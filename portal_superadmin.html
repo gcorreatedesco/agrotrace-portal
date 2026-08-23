@@ -953,17 +953,18 @@ function renderRTs(gridId, countId, limit) {
   }
 
   grid.innerHTML = lista.map(rt => {
-    const ini = esc((rt.nombre || rt.email || 'RT').split(' ').map(p=>p[0]).join('').toUpperCase().slice(0,2));
-    const nombre = rt.nombre || rt.email || '—';
+    const nombreCompleto = [rt.nombre, rt.apellido].filter(Boolean).join(' ') || rt.email || '—';
+    const ini = esc((nombreCompleto === '—' ? 'RT' : nombreCompleto).split(' ').map(p=>p[0]).join('').toUpperCase().slice(0,2));
     const email  = rt.nombre ? (rt.email||'—') : '—';
     const inactivo = rt.activo === false;
     const idStr = esc(rt.id);
-    const nomStr = esc(nombre);
+    const nomStr = esc(nombreCompleto);
+    const fs = nombreCompleto.length > 24 ? '0.72rem' : nombreCompleto.length > 18 ? '0.8rem' : '0.9rem';
     return `<div class="rt-card${inactivo ? ' inactiva' : ''}">
       <div class="rt-card-header">
         <div class="rt-av">${ini}</div>
         <div>
-          <div class="rt-card-nombre">${esc(nombre)}</div>
+          <div class="rt-card-nombre" style="font-size:${fs}">${esc(nombreCompleto)}</div>
           <div class="rt-card-email">${esc(email)}</div>
         </div>
       </div>
