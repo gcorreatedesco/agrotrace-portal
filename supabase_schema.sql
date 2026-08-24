@@ -166,6 +166,15 @@ CREATE POLICY "rt_ve_sus_asignaciones" ON public.rt_organizaciones
   FOR SELECT USING (rt_id = auth.uid());
 CREATE POLICY "ong_ve_su_rt" ON public.rt_organizaciones
   FOR SELECT USING (ong_id = public.get_my_ong_id());
+CREATE POLICY "ong_ve_perfil_de_su_rt" ON public.perfiles
+  FOR SELECT USING (
+    public.get_my_rol() = 'ong'
+    AND EXISTS (
+      SELECT 1 FROM public.rt_organizaciones
+      WHERE rt_id = public.perfiles.id
+        AND ong_id = public.get_my_ong_id()
+    )
+  );
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.organizaciones TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.rt_organizaciones TO authenticated;
