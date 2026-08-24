@@ -4673,6 +4673,7 @@ function calcRestantesSublote(){
 async function crearSublote(){
   if(_g.sub)return; _g.sub=true;
   try{
+  const et=LOTE_ACTIVO.etapaRaw;
   const nombreCompleto=document.getElementById('msub-nombre').value.trim();
   const plantasVal=parseInt(document.getElementById('msub-plantas').value)||0;
   const fecha=document.getElementById('msub-fecha').value;
@@ -4690,7 +4691,6 @@ async function crearSublote(){
   const prefix=nombreBase+' → ';
   const nombreFinal=nombreCompleto.startsWith(nombreBase)?nombreCompleto:prefix+nombreCompleto;
   const nombreAgregado=nombreFinal.startsWith(prefix)?nombreFinal.slice(prefix.length):nombreFinal;
-  const et=LOTE_ACTIVO.etapaRaw;
   const uid=await ensureActiveOngUserContext();
   if(!uid){showMErr('No se pudo identificar el usuario de la ONG activa.');return;}
   const{error}=await sb.from('lotes_produccion').insert({
