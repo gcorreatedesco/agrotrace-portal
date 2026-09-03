@@ -110,8 +110,8 @@ pre{background:var(--soil);border-radius:var(--radius-lg);padding:18px 20px;over
   <div class="doc-header-inner">
     <div class="doc-brand">AgroTrace · Documentación técnica</div>
     <h1 class="doc-title">Guía de Bugs:<br>Concurrencia y Estado</h1>
-    <p class="doc-subtitle">Las 8 categorías de errores encontrados en las auditorías de agosto 2026 — explicadas en lenguaje claro, con ejemplos reales del código.</p>
-    <div class="doc-meta">Auditorías: 2026-08-04 y 2026-08-24 · actualizada septiembre 2026</div>
+    <p class="doc-subtitle">Las 11 categorías de errores encontrados en las auditorías de código — concurrencia, estado y otros patrones estructurales — explicadas en lenguaje claro, con ejemplos reales.</p>
+    <div class="doc-meta">Auditorías: 2026-08-04, 2026-08-24 y septiembre 2026</div>
   </div>
 </div>
 
@@ -122,7 +122,7 @@ pre{background:var(--soil);border-radius:var(--radius-lg);padding:18px 20px;over
     <h2 style="font-family:'DM Serif Display',serif;font-size:1.4rem;margin-bottom:16px;">¿Qué es una auditoría de concurrencia?</h2>
     <p>En un sistema web, muchas cosas pueden pasar al mismo tiempo: dos clicks seguidos en el mismo botón, dos personas usando la app, una operación que tarda y el usuario que no espera. Los bugs de <strong>concurrencia</strong> son los que aparecen en esos momentos — no cuando todo va bien, sino cuando el tiempo importa.</p>
     <p>Los bugs de <strong>sincronización de estado</strong> son los primos cercanos: ocurren cuando el programa "recuerda" algo que ya no es verdad. Usás un dato viejo sin saber que cambió.</p>
-    <p>Esta guía clasifica los bugs encontrados en AgroTrace (auditorías de agosto 2026) en 8 categorías. Para cada una: qué es, por qué ocurre, cómo se veía antes y cómo quedó después de la corrección.</p>
+    <p>Esta guía clasifica los bugs encontrados en AgroTrace en 11 categorías. Las primeras (A–H) son de concurrencia y estado; las últimas (I–K) son otros patrones estructurales que fueron apareciendo en auditorías posteriores. Para cada una: qué es, por qué ocurre, sus consecuencias, y cómo se veía antes y después de la corrección. Es un documento vivo: cada vez que una auditoría encuentra un <strong>tipo nuevo</strong> de bug, se suma acá.</p>
   </div>
 
   <!-- ── TOC ── -->
@@ -137,6 +137,9 @@ pre{background:var(--soil);border-radius:var(--radius-lg);padding:18px 20px;over
       <li><a href="#cat-f"><span class="toc-badge baja">Baja</span> F — Fire-and-forget: tareas secundarias sin vigilancia</a></li>
       <li><a href="#cat-g"><span class="toc-badge sql">SQL</span> G — RLS incorrecto: seguridad de base de datos mal configurada</a></li>
       <li><a href="#cat-h"><span class="toc-badge media">Media</span> H — Inactividad de botones: el guardado que no guarda</a></li>
+      <li><a href="#cat-i"><span class="toc-badge baja">Baja</span> I — Referencia CSS rota: clase usada pero no definida</a></li>
+      <li><a href="#cat-j"><span class="toc-badge media">Media</span> J — Selección no determinística: tomar "uno" sin ordenar</a></li>
+      <li><a href="#cat-k"><span class="toc-badge media">Media</span> K — Excepción silenciosa: el error que nadie ve</a></li>
     </ul>
   </div>
 
@@ -646,6 +649,159 @@ alert(<span class="c-str">'Guardado correctamente.'</span>);  <span class="c-com
   </div>
 
   <!-- ══════════════════════════════════════════════ -->
+  <!-- CAT I -->
+  <!-- ══════════════════════════════════════════════ -->
+  <div class="cat" id="cat-i">
+    <div class="cat-header">
+      <div class="cat-number n-baja">I</div>
+      <div class="cat-title-wrap">
+        <div class="cat-title">Referencia CSS rota</div>
+        <div class="cat-english">Dangling CSS class · Undefined style hook · No-op class toggle</div>
+      </div>
+    </div>
+
+    <span class="severity sev-baja">● Severidad Baja — elementos visibles o sin estilo de forma incorrecta</span>
+
+    <div class="analogy">
+      <div class="analogy-label">En palabras simples</div>
+      <p>Un interruptor de luz que no está conectado a ninguna lámpara. Lo prendés y apagás, pero no pasa nada. En la interfaz: el código muestra u oculta un elemento cambiando una clase CSS que no existe, así que el cambio no tiene ningún efecto.</p>
+    </div>
+
+    <h3>Por qué ocurre</h3>
+    <p>El HTML referencia una clase (<code>class="error-msg"</code>) que nunca se definió en el <code>&lt;style&gt;</code>. El navegador ignora la clase desconocida y renderiza el elemento con los estilos por defecto (visible, sin formato). La lógica JS que agrega o quita esa clase (<code>classList.add('show')</code>) tampoco tiene efecto, porque no existe ninguna regla <code>.error-msg</code> ni <code>.error-msg.show</code> que responda al cambio.</p>
+
+    <h3>Consecuencias</h3>
+    <ul>
+      <li>Elementos que deberían estar ocultos quedan <strong>pegados en pantalla</strong> (ej: un cartel de validación siempre visible).</li>
+      <li>El usuario ve "carteles" sin contexto y cree que son parte del diseño o un error.</li>
+      <li>La validación parece existir pero es una fachada: nunca aparece ni desaparece cuando debería.</li>
+    </ul>
+
+    <div class="code-wrap">
+      <div class="code-label before">Antes — clase sin regla CSS</div>
+      <pre><span class="c-comment">&lt;!-- HTML usa .error-msg, pero no existe en el &lt;style&gt; --&gt;</span>
+&lt;div class=<span class="c-str">"error-msg"</span> id=<span class="c-str">"an-error"</span>&gt;Completá la fecha.&lt;/div&gt;
+<span class="c-comment">// JS togglea 'show', pero sin .error-msg ni .error-msg.show no hay efecto</span>
+errEl.classList.add(<span class="c-str">'show'</span>);</pre>
+    </div>
+    <div class="code-wrap">
+      <div class="code-label after">Después — definir la regla que la clase promete</div>
+      <pre><span class="c-kw">.error-msg</span>      { display:none; background:var(--error-bg); color:var(--error); }
+<span class="c-kw">.error-msg.show</span> { display:block; }</pre>
+    </div>
+
+    <div class="affected">
+      <div class="affected-label">Corregido en</div>
+      <div class="affected-list">
+        <span class="affected-item">Formulario de Análisis de Calidad (.error-msg)</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <!-- CAT J -->
+  <!-- ══════════════════════════════════════════════ -->
+  <div class="cat" id="cat-j">
+    <div class="cat-header">
+      <div class="cat-number n-media">J</div>
+      <div class="cat-title-wrap">
+        <div class="cat-title">Selección no determinística de un registro</div>
+        <div class="cat-english">Non-deterministic row selection · Missing ORDER BY · Implicit [0]</div>
+      </div>
+    </div>
+
+    <span class="severity sev-media">● Severidad Media — se muestra un registro viejo o equivocado</span>
+
+    <div class="analogy">
+      <div class="analogy-label">En palabras simples</div>
+      <p>Pedís "un" papel de una pila desordenada. Te dan cualquiera — no necesariamente el último. Si esperabas el más reciente, te llevás uno viejo sin darte cuenta.</p>
+    </div>
+
+    <h3>Por qué ocurre</h3>
+    <p>Cuando una entidad tiene <strong>varios</strong> registros relacionados (un lote con varios análisis) y el código toma "uno solo" — el primer elemento del array, un <code>one(...)</code>, o un <code>[0]</code> — <strong>sin un <code>ORDER BY</code> explícito</strong>, el orden en que la base de datos (o PostgREST) devuelve las filas no está garantizado. El "primero" es arbitrario y puede cambiar entre consultas.</p>
+
+    <h3>Consecuencias</h3>
+    <ul>
+      <li>Reportes o pantallas muestran un registro <strong>arbitrario</strong>, a veces desactualizado, en lugar del vigente.</li>
+      <li>Especialmente grave con <strong>datos regulatorios</strong> (ej: un análisis REPROCANN viejo en vez del último cargado).</li>
+      <li>Inconsistencia entre lo que ve el usuario en un lado (que sí ordena) y lo que sale en otro (que no).</li>
+    </ul>
+
+    <div class="code-wrap">
+      <div class="code-label before">Antes — toma el primero sin ordenar</div>
+      <pre><span class="c-comment">// analisis_calidad puede tener varias filas; one() devuelve la [0] sin orden</span>
+<span class="c-kw">const</span> anal = one(flores.analisis_calidad);</pre>
+    </div>
+    <div class="code-wrap">
+      <div class="code-label after">Después — ordenar por orden de carga y tomar el último</div>
+      <pre><span class="c-kw">const</span> arr = Array.isArray(flores.analisis_calidad) ? flores.analisis_calidad : [];
+<span class="c-kw">const</span> anal = arr.slice()
+  .sort((a,b) =&gt; String(b.creado_en||<span class="c-str">''</span>).localeCompare(String(a.creado_en||<span class="c-str">''</span>)))[<span class="c-num">0</span>] || {};</pre>
+    </div>
+
+    <div class="affected">
+      <div class="affected-label">Corregido en</div>
+      <div class="affected-list">
+        <span class="affected-item">Reporte REPROCANN (selección de análisis)</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <!-- CAT K -->
+  <!-- ══════════════════════════════════════════════ -->
+  <div class="cat" id="cat-k">
+    <div class="cat-header">
+      <div class="cat-number n-media">K</div>
+      <div class="cat-title-wrap">
+        <div class="cat-title">Excepción silenciosa</div>
+        <div class="cat-english">Silent exception · Swallowed error · Temporal Dead Zone (TDZ)</div>
+      </div>
+    </div>
+
+    <span class="severity sev-media">● Severidad Media — la acción falla sin ningún aviso</span>
+
+    <div class="analogy">
+      <div class="analogy-label">En palabras simples</div>
+      <p>Una alarma que suena en un cuarto vacío. Algo falló, pero nadie se entera. Apretás un botón, no pasa nada, y no hay ni un mensaje de error que explique por qué.</p>
+    </div>
+
+    <h3>Por qué ocurre</h3>
+    <p>Una excepción se lanza en medio de una función (dentro de un <code>try</code>, o un <strong>ReferenceError</strong> por usar una variable <code>const</code>/<code>let</code> <em>antes</em> de declararla — la <em>temporal dead zone</em>). La ejecución se corta ahí, pero el error nunca llega al usuario: no hay <code>alert</code>, el <code>catch</code> lo traga, o queda solo en la consola del navegador.</p>
+
+    <h3>Consecuencias</h3>
+    <ul>
+      <li>El botón "no hace nada": el modal queda abierto o el formulario no responde, sin explicación.</li>
+      <li>El usuario cree que la app está colgada o rota, y reintenta.</li>
+      <li>Muy difícil de diagnosticar sin abrir la consola del navegador.</li>
+    </ul>
+
+    <div class="code-wrap">
+      <div class="code-label before">Antes — const usado antes de declararse (TDZ)</div>
+      <pre><span class="c-kw">async function</span> <span class="c-fn">crearSublote</span>() {
+  <span class="c-kw">try</span> {
+    <span class="c-err">if (HIST_DATA[et]?. ...) { ... }   // 'et' se usa acá...</span>
+    ...
+    <span class="c-kw">const</span> et = LOTE_ACTIVO.etapaRaw;  <span class="c-comment">// ...pero se declara después → ReferenceError</span>
+  } <span class="c-kw">catch</span> (e) { <span class="c-comment">/* el error muere acá, sin avisar */</span> }
+}</pre>
+    </div>
+    <div class="code-wrap">
+      <div class="code-label after">Después — declarar antes de usar</div>
+      <pre><span class="c-kw">const</span> et = LOTE_ACTIVO.etapaRaw;   <span class="c-comment">// al inicio del try, antes de cualquier uso</span>
+<span class="c-comment">// Regla: si algo falla, mostralo — un botón que "no hace nada" esconde una excepción</span></pre>
+    </div>
+
+    <div class="affected">
+      <div class="affected-label">Corregido en</div>
+      <div class="affected-list">
+        <span class="affected-item">crearSublote (TDZ)</span>
+      </div>
+    </div>
+    <p style="font-size:0.82rem;color:var(--sage);margin-top:10px;">Emparentada con la categoría H: mismo síntoma visible (botón inactivo), distinta raíz — H es lógica de guardado incompleta; K es una excepción en tiempo de ejecución.</p>
+  </div>
+
+  <!-- ══════════════════════════════════════════════ -->
   <!-- RESUMEN -->
   <!-- ══════════════════════════════════════════════ -->
   <div style="margin-top:16px;">
@@ -725,6 +881,27 @@ alert(<span class="c-str">'Guardado correctamente.'</span>);  <span class="c-com
             <td>El botón corre pero no persiste; a veces "éxito" falso</td>
             <td>Rama INSERT + flag savedOk + if(d?.id)</td>
           </tr>
+          <tr>
+            <td>I</td>
+            <td>Referencia CSS rota</td>
+            <td><span class="toc-badge baja">Baja</span></td>
+            <td>Elementos siempre visibles / sin estilo; toggles sin efecto</td>
+            <td>Definir la clase en el CSS</td>
+          </tr>
+          <tr>
+            <td>J</td>
+            <td>Selección no determinística</td>
+            <td><span class="toc-badge media">Media</span></td>
+            <td>Muestra un registro arbitrario/viejo entre varios</td>
+            <td>ORDER BY explícito antes de tomar uno</td>
+          </tr>
+          <tr>
+            <td>K</td>
+            <td>Excepción silenciosa (TDZ)</td>
+            <td><span class="toc-badge media">Media</span></td>
+            <td>La acción falla sin aviso; el botón "no hace nada"</td>
+            <td>Declarar antes de usar; no tragar errores</td>
+          </tr>
         </tbody>
       </table>
     </div>
@@ -741,24 +918,16 @@ alert(<span class="c-str">'Guardado correctamente.'</span>);  <span class="c-com
       <li>Al cambiar de ONG, resetear todos los globals</li>
       <li>El logging nunca debe poder romper el flujo principal</li>
       <li>Toda función de guardado necesita rama INSERT y rama UPDATE, y no debe declarar éxito si no persistió nada</li>
-    </ul>
-  </div>
-
-  <!-- ── HALLAZGOS POSTERIORES ── -->
-  <div style="margin-top:32px;padding:24px 28px;background:var(--white);border:1px solid rgba(0,0,0,0.07);border-radius:var(--radius-lg);">
-    <h3 style="font-family:'DM Serif Display',serif;font-size:1.05rem;color:var(--soil);margin-bottom:10px;">Hallazgos posteriores (septiembre 2026)</h3>
-    <p style="color:var(--bark);font-size:0.875rem;margin-bottom:10px;">Bugs corregidos después de las auditorías — no todos de concurrencia, pero del mismo espíritu: errores silenciosos y datos que no reflejan la última versión.</p>
-    <ul style="color:var(--bark);font-size:0.875rem;margin-left:18px;line-height:1.8;">
-      <li><strong>Cartel de validación siempre visible</strong> — la clase CSS <code>.error-msg</code> nunca se definió, así que el mensaje "Completá la fecha de análisis" quedaba fijo como texto plano bajo el formulario. Fix: definir la regla (oculta por defecto, visible al fallar).</li>
-      <li><strong>Reporte REPROCANN tomaba un análisis arbitrario</strong> — <code>one(flores.analisis_calidad)</code> devolvía el primer elemento sin ordenar. Con varios análisis por lote podía mostrar uno viejo. Fix: ordenar por <code>creado_en</code> (orden real de carga) y tomar el último; las correcciones se reflejan porque hacen UPDATE in situ.</li>
-      <li><strong>ReferenceError silencioso en <code>crearSublote</code></strong> — <code>const</code> usado antes de declararse (temporal dead zone). Mismo síntoma que la categoría H (botón inactivo sin feedback). Fix: mover la declaración al inicio del <code>try</code>.</li>
+      <li>Toda clase CSS usada en el HTML debe existir en el &lt;style&gt;: si togglés una clase, verificá que tenga regla</li>
+      <li>Al tomar "uno" de varios registros, ordenar siempre de forma explícita — nunca confiar en el orden implícito de la base de datos</li>
+      <li>Ningún error debe morir en silencio: un botón que "no hace nada" casi siempre esconde una excepción sin feedback</li>
     </ul>
   </div>
 
 </div>
 
 <div class="doc-footer">
-  AgroTrace · Guía de Bugs: Concurrencia y Estado · Auditorías 2026-08-04 y 2026-08-24 · actualizada septiembre 2026
+  AgroTrace · Guía de Bugs: Concurrencia, Estado y patrones estructurales · Auditorías 2026-08-04, 2026-08-24 y septiembre 2026
 </div>
 
 </body>
