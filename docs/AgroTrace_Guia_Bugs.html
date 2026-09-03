@@ -110,8 +110,8 @@ pre{background:var(--soil);border-radius:var(--radius-lg);padding:18px 20px;over
   <div class="doc-header-inner">
     <div class="doc-brand">AgroTrace · Documentación técnica</div>
     <h1 class="doc-title">Guía de Bugs:<br>Concurrencia y Estado</h1>
-    <p class="doc-subtitle">Las 7 categorías de errores encontrados en la auditoría de agosto 2026 — explicadas en lenguaje claro, con ejemplos reales del código.</p>
-    <div class="doc-meta">Auditoría realizada: 2026-08-04 · 18 bugs corregidos en 5 archivos</div>
+    <p class="doc-subtitle">Las 8 categorías de errores encontrados en las auditorías de agosto 2026 — explicadas en lenguaje claro, con ejemplos reales del código.</p>
+    <div class="doc-meta">Auditorías: 2026-08-04 y 2026-08-24 · actualizada septiembre 2026</div>
   </div>
 </div>
 
@@ -122,7 +122,7 @@ pre{background:var(--soil);border-radius:var(--radius-lg);padding:18px 20px;over
     <h2 style="font-family:'DM Serif Display',serif;font-size:1.4rem;margin-bottom:16px;">¿Qué es una auditoría de concurrencia?</h2>
     <p>En un sistema web, muchas cosas pueden pasar al mismo tiempo: dos clicks seguidos en el mismo botón, dos personas usando la app, una operación que tarda y el usuario que no espera. Los bugs de <strong>concurrencia</strong> son los que aparecen en esos momentos — no cuando todo va bien, sino cuando el tiempo importa.</p>
     <p>Los bugs de <strong>sincronización de estado</strong> son los primos cercanos: ocurren cuando el programa "recuerda" algo que ya no es verdad. Usás un dato viejo sin saber que cambió.</p>
-    <p>Esta guía clasifica los 18 bugs encontrados en AgroTrace en 7 categorías. Para cada una: qué es, por qué ocurre, cómo se veía antes y cómo quedó después de la corrección.</p>
+    <p>Esta guía clasifica los bugs encontrados en AgroTrace (auditorías de agosto 2026) en 8 categorías. Para cada una: qué es, por qué ocurre, cómo se veía antes y cómo quedó después de la corrección.</p>
   </div>
 
   <!-- ── TOC ── -->
@@ -136,6 +136,7 @@ pre{background:var(--soil);border-radius:var(--radius-lg);padding:18px 20px;over
       <li><a href="#cat-e"><span class="toc-badge media">Media</span> E — Contaminación entre organizaciones: globals que no se resetean</a></li>
       <li><a href="#cat-f"><span class="toc-badge baja">Baja</span> F — Fire-and-forget: tareas secundarias sin vigilancia</a></li>
       <li><a href="#cat-g"><span class="toc-badge sql">SQL</span> G — RLS incorrecto: seguridad de base de datos mal configurada</a></li>
+      <li><a href="#cat-h"><span class="toc-badge media">Media</span> H — Inactividad de botones: el guardado que no guarda</a></li>
     </ul>
   </div>
 
@@ -546,6 +547,105 @@ pre{background:var(--soil);border-radius:var(--radius-lg);padding:18px 20px;over
   </div>
 
   <!-- ══════════════════════════════════════════════ -->
+  <!-- CAT H -->
+  <!-- ══════════════════════════════════════════════ -->
+  <div class="cat" id="cat-h">
+    <div class="cat-header">
+      <div class="cat-number n-media">H</div>
+      <div class="cat-title-wrap">
+        <div class="cat-title">Inactividad de botones por guardado incompleto</div>
+        <div class="cat-english">Silent no-op save · Missing INSERT branch · False success alert</div>
+      </div>
+    </div>
+
+    <span class="severity sev-media">● Severidad Media — el botón "no hace nada" (con un caso de corrupción en H-3)</span>
+
+    <div class="analogy">
+      <div class="analogy-label">En palabras simples</div>
+      <p>Apretás "Guardar", la pantalla no protesta, pero cuando volvés a mirar, nada se guardó. Y a veces aparece un cartel de "Guardado correctamente" aunque en realidad no se escribió nada. El botón parece funcionar, pero es una fachada.</p>
+    </div>
+
+    <h3>Por qué ocurre en AgroTrace</h3>
+    <p>Los paneles de etapas (Nursery, Vegetativa, Floración…) comparten funciones de guardado que deciden entre <strong>actualizar</strong> un registro existente o <strong>crear</strong> uno nuevo. Cuando esa lógica tiene un hueco — falta la rama de creación, o confunde "hay un objeto en memoria" con "hay un registro en la base" — el guardado corre pero no persiste. Apareció sobre todo en <strong>sublotes</strong>, que a menudo todavía no tienen registro propio de etapa. Esta categoría se sumó en la auditoría del 2026-08-24.</p>
+
+    <h3>H-1 · Rama UPDATE sin rama INSERT</h3>
+    <p>La función tiene <code>if(d?.id){ UPDATE }</code> pero le falta el <code>else { INSERT }</code>. Si el registro aún no existe (lote nuevo, sublote, primer guardado de una etapa), el botón corre pero no escribe nada.</p>
+    <div class="code-wrap">
+      <div class="code-label before">Antes — solo actualiza</div>
+      <pre><span class="c-kw">const</span> d = HIST_DATA.nursery;
+<span class="c-kw">if</span> (d?.id) {
+  <span class="c-kw">await</span> sb.from(<span class="c-str">'etapa_nursery'</span>).update({ ... }).eq(<span class="c-str">'id'</span>, d.id);
+}
+<span class="c-comment">// Si es un sublote sin etapa_nursery propia, no pasa NADA</span></pre>
+    </div>
+    <div class="code-wrap">
+      <div class="code-label after">Después — actualiza o inserta</div>
+      <pre><span class="c-kw">if</span> (d?.id) {
+  <span class="c-kw">await</span> sb.from(<span class="c-str">'etapa_nursery'</span>).update({ ... }).eq(<span class="c-str">'id'</span>, d.id);
+} <span class="c-kw">else</span> {
+  <span class="c-comment">// El sublote no tenía registro: crearlo derivando datos del lote</span>
+  <span class="c-kw">await</span> sb.from(<span class="c-str">'etapa_nursery'</span>).insert({
+    lote_id: LOTE_ACTIVO.id,
+    fecha_inicio: LOTE_ACTIVO.fechaInicioRaw,
+    origen_material: origenDerivado, ...
+  });
+}</pre>
+    </div>
+
+    <h3>H-2 · Alert falso de éxito</h3>
+    <p>El <code>alert('Guardado correctamente.')</code> del final aparece aunque ninguna rama haya ejecutado una operación real en la base. Se resuelve con una bandera <code>savedOk</code> que solo se enciende dentro de una rama que sí escribe.</p>
+    <div class="code-wrap">
+      <div class="code-label after">Después — no declarar éxito sin escribir</div>
+      <pre><span class="c-kw">let</span> savedOk = <span class="c-num">false</span>;
+<span class="c-kw">if</span> (d?.id)         { savedOk = <span class="c-num">true</span>; ({error} = <span class="c-kw">await</span> sb.from(...).update(...)); }
+<span class="c-kw">else if</span> (fi && ci) { savedOk = <span class="c-num">true</span>; ({error} = <span class="c-kw">await</span> sb.from(...).insert(...)); }
+<span class="c-kw">if</span> (!savedOk) <span class="c-kw">return</span>;              <span class="c-comment">// ninguna rama guardó → no mentir</span>
+<span class="c-kw">if</span> (error) { alert(<span class="c-str">'Error: '</span> + error.message); <span class="c-kw">return</span>; }
+alert(<span class="c-str">'Guardado correctamente.'</span>);  <span class="c-comment">// solo si de verdad se guardó</span></pre>
+    </div>
+
+    <h3>H-3 · <code>if(d)</code> en vez de <code>if(d?.id)</code> — el UUID "undefined"</h3>
+    <span class="severity sev-alta">● Este sub-caso es Severidad Alta — la query falla o corrompe</span>
+    <p>Cuando <code>HIST_DATA</code> se pre-llena con un objeto por defecto <em>sin</em> <code>id</code> (por ejemplo <code>{ cantidad_ingreso: 30 }</code>), la condición <code>if(d)</code> da verdadero igual. El código entra a la rama UPDATE con <code>d.id === undefined</code>, y Supabase recibe el UUID literal <code>'undefined'</code> → error de tipo o escritura en el registro equivocado.</p>
+    <div class="code-wrap">
+      <div class="code-label before">Antes — truthiness engañosa</div>
+      <pre><span class="c-kw">if</span> (d) {                       <span class="c-comment">// entra aunque d.id sea undefined</span>
+  <span class="c-kw">await</span> sb.from(<span class="c-str">'etapa_vegetativa'</span>).update({...}).eq(<span class="c-str">'id'</span>, d.id);
+  <span class="c-err">// d.id = undefined → Supabase recibe el UUID 'undefined'</span>
+}</pre>
+    </div>
+    <div class="code-wrap">
+      <div class="code-label after">Después — exigir id real</div>
+      <pre><span class="c-kw">if</span> (d?.id) { <span class="c-comment">/* UPDATE */</span> }
+<span class="c-kw">else</span>      { <span class="c-comment">/* INSERT */</span> }</pre>
+    </div>
+
+    <h3>H-4 · Clave null en el estado global</h3>
+    <p>Usar una variable como clave de objeto sin verificar que no sea <code>null</code>: <code>HIST_DATA[divKey] = {...}</code> cuando <code>divKey</code> puede ser <code>null</code> crea la entrada basura <code>HIST_DATA['null']</code>. En AgroTrace, <code>etapa_origen_division</code> es null para sublotes creados desde Nursery.</p>
+    <div class="code-wrap">
+      <div class="code-label after">Después — guard explícito</div>
+      <pre><span class="c-kw">if</span> (divKey && condicion) {     <span class="c-comment">// no crear HIST_DATA['null']</span>
+  HIST_DATA[divKey] = { ... };
+}</pre>
+    </div>
+
+    <div class="analogy" style="border-left-color:var(--amber);background:var(--amber-bg);">
+      <div class="analogy-label" style="color:var(--amber);">Variante emparentada (sept 2026)</div>
+      <p><code>crearSublote</code> tenía el mismo síntoma — el botón no hacía nada y el modal quedaba abierto sin aviso — pero por otra causa: un <strong>ReferenceError silencioso</strong> por usar <code>const et</code> antes de su declaración (temporal dead zone). Mismo resultado visible, distinta raíz. Lección: un botón que "no hace nada" casi siempre esconde un error que nadie está mostrando.</p>
+    </div>
+
+    <div class="affected">
+      <div class="affected-label">Corregido en</div>
+      <div class="affected-list">
+        <span class="affected-item">guardarBorrador (H-1, H-2, H-3)</span>
+        <span class="affected-item">guardarAvanzar (H-1, H-3)</span>
+        <span class="affected-item">openLote (H-4)</span>
+        <span class="affected-item">crearSublote (variante TDZ)</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════ -->
   <!-- RESUMEN -->
   <!-- ══════════════════════════════════════════════ -->
   <div style="margin-top:16px;">
@@ -618,6 +718,13 @@ pre{background:var(--soil);border-radius:var(--radius-lg);padding:18px 20px;over
             <td>Acceso bloqueado o habilitado incorrectamente</td>
             <td>Políticas separadas por operación</td>
           </tr>
+          <tr>
+            <td>H</td>
+            <td>Inactividad de botón (guardado incompleto)</td>
+            <td><span class="toc-badge media">Media</span></td>
+            <td>El botón corre pero no persiste; a veces "éxito" falso</td>
+            <td>Rama INSERT + flag savedOk + if(d?.id)</td>
+          </tr>
         </tbody>
       </table>
     </div>
@@ -633,13 +740,25 @@ pre{background:var(--soil);border-radius:var(--radius-lg);padding:18px 20px;over
       <li>Si una operación tiene 2 pasos en DB, el primero necesita poder deshacerse</li>
       <li>Al cambiar de ONG, resetear todos los globals</li>
       <li>El logging nunca debe poder romper el flujo principal</li>
+      <li>Toda función de guardado necesita rama INSERT y rama UPDATE, y no debe declarar éxito si no persistió nada</li>
+    </ul>
+  </div>
+
+  <!-- ── HALLAZGOS POSTERIORES ── -->
+  <div style="margin-top:32px;padding:24px 28px;background:var(--white);border:1px solid rgba(0,0,0,0.07);border-radius:var(--radius-lg);">
+    <h3 style="font-family:'DM Serif Display',serif;font-size:1.05rem;color:var(--soil);margin-bottom:10px;">Hallazgos posteriores (septiembre 2026)</h3>
+    <p style="color:var(--bark);font-size:0.875rem;margin-bottom:10px;">Bugs corregidos después de las auditorías — no todos de concurrencia, pero del mismo espíritu: errores silenciosos y datos que no reflejan la última versión.</p>
+    <ul style="color:var(--bark);font-size:0.875rem;margin-left:18px;line-height:1.8;">
+      <li><strong>Cartel de validación siempre visible</strong> — la clase CSS <code>.error-msg</code> nunca se definió, así que el mensaje "Completá la fecha de análisis" quedaba fijo como texto plano bajo el formulario. Fix: definir la regla (oculta por defecto, visible al fallar).</li>
+      <li><strong>Reporte REPROCANN tomaba un análisis arbitrario</strong> — <code>one(flores.analisis_calidad)</code> devolvía el primer elemento sin ordenar. Con varios análisis por lote podía mostrar uno viejo. Fix: ordenar por <code>creado_en</code> (orden real de carga) y tomar el último; las correcciones se reflejan porque hacen UPDATE in situ.</li>
+      <li><strong>ReferenceError silencioso en <code>crearSublote</code></strong> — <code>const</code> usado antes de declararse (temporal dead zone). Mismo síntoma que la categoría H (botón inactivo sin feedback). Fix: mover la declaración al inicio del <code>try</code>.</li>
     </ul>
   </div>
 
 </div>
 
 <div class="doc-footer">
-  AgroTrace · Guía de Bugs: Concurrencia y Estado · Auditoría 2026-08-04
+  AgroTrace · Guía de Bugs: Concurrencia y Estado · Auditorías 2026-08-04 y 2026-08-24 · actualizada septiembre 2026
 </div>
 
 </body>
