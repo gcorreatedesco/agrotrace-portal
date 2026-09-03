@@ -2913,7 +2913,7 @@ async function cargarAnalisis(){
     const meta=[];
     if(a.tipo_analitica)meta.push(esc(a.tipo_analitica));
     if(a.entidad_analitica)meta.push(esc(a.entidad_analitica));
-    if(a.id_cromatografia)meta.push('Ref: '+esc(a.id_cromatografia));
+    if(a.id_cromatografia)meta.push(esc(a.id_cromatografia));
     const linkArchivo=a.informe_url?`<a class="analisis-link" href="${esc(a.informe_url)}" target="_blank" download="${esc(a.informe_nombre||'informe')}">📄 ${esc(a.informe_nombre)||'Ver informe'} ↗</a>`:'';
     const cc=corrs[i]?.data||[];
     const acId='ac-'+a.id.replace(/-/g,'');
