@@ -646,7 +646,8 @@ CREATE TABLE IF NOT EXISTS public.pacientes (
   nro_reprocann TEXT,
   tel_contacto  TEXT,
   activo        BOOLEAN DEFAULT TRUE,
-  creado_en     TIMESTAMPTZ DEFAULT NOW()
+  creado_en     TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE (usuario_id, numero)   -- evita numeros de paciente duplicados por ONG (TOCTOU)
 );
 ALTER TABLE public.pacientes ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "pacientes_all" ON public.pacientes
