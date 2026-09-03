@@ -2663,6 +2663,7 @@ function panelFlores(){
         <button class="btn btn-secondary" style="font-size:0.72rem;padding:5px 10px;" onclick="abrirFormAnalisis()">+ Agregar análisis</button>
       </div>
       <div id="form-analisis" style="display:none;border-top:1px solid rgba(0,0,0,0.07);padding-top:14px;margin-bottom:14px;">
+        <div id="an-form-title" style="display:none;font-size:0.68rem;font-weight:500;color:var(--amber);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.06em;">Corrección de análisis</div>
         <div class="g2">
           <div class="field"><label>Fecha de análisis<span class="req">*</span></label><input type="date" id="an-fecha"/></div>
           <div class="field"><label>Muestra preparada por<span class="opt">opcional</span></label><input type="text" id="an-preparador" placeholder="Nombre del responsable"/></div>
@@ -2707,10 +2708,16 @@ function panelFlores(){
           <div class="file-selected" id="an-file-selected">✓ <span id="an-file-nombre"></span></div>
           <input type="file" id="an-file-input" style="display:none;" accept=".pdf,.jpg,.jpeg,.png,.docx" onchange="onFileSelected(this)"/>
         </div>
+        <div id="an-corr-meta" style="display:none;">
+          <div class="g2">
+            <div class="field"><label>Corregido por<span class="opt">opcional</span></label><input type="text" id="an-corr-por" placeholder="Nombre del responsable"/></div>
+            <div class="field"><label>Motivo de la corrección<span class="opt">opcional</span></label><input type="text" id="an-corr-motivo" placeholder="Motivo del cambio..."/></div>
+          </div>
+        </div>
         <div class="error-msg" id="an-error">Completá la fecha de análisis.</div>
         <div class="ab" style="margin-top:10px;">
           <button class="btn btn-secondary" onclick="cerrarFormAnalisis()">Cancelar</button>
-          <button class="btn btn-primary" onclick="guardarAnalisis()">Guardar análisis</button>
+          <button class="btn btn-primary" id="an-btn-guardar" onclick="guardarAnalisis()">Guardar análisis</button>
         </div>
       </div>
       <div id="lista-analisis"><div class="hist-empty">Cargando análisis...</div></div>
@@ -2721,19 +2728,62 @@ function panelFlores(){
 
 /* ── ANÁLISIS DE CALIDAD ── */
 let _archivoAnalisis = null;
+let _editAnalisisId = null; // id del análisis en modo corrección (null = alta nueva)
+// Campos versionados en el snapshot de corrección + etiqueta para el historial
+const AN_LBL={fecha_analisis:'Fecha',preparado_por:'Preparado por',thc_pct:'THC %',cbd_pct:'CBD %',cbn_pct:'CBN %',cbg_pct:'CBG %',humedad_pct:'Humedad %',tipo_analitica:'Tipo analítica',entidad_analitica:'Entidad',id_cromatografia:'ID Cromatografía',otro_compuesto:'Otro compuesto',otro_valor:'Otro valor',otro_unidad:'Otra unidad'};
+
+function _limpiarCamposAnalisis(){
+  ['an-preparador','an-thc','an-cbd','an-cbn','an-cbg','an-hum','an-entidad','an-id-croma','an-otro-nombre','an-otro-val','an-otro-unidad','an-corr-por','an-corr-motivo'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  const ta=document.getElementById('an-tipo-analitica');if(ta)ta.selectedIndex=0;
+  _archivoAnalisis=null;
+  const fs=document.getElementById('an-file-selected');if(fs)fs.style.display='none';
+  const fd=document.getElementById('an-file-drop');if(fd)fd.classList.remove('drag');
+  document.getElementById('an-error').classList.remove('show');
+}
 
 function abrirFormAnalisis(){
+  _editAnalisisId=null;
+  _limpiarCamposAnalisis();
+  document.getElementById('an-fecha').value=new Date().toISOString().split('T')[0];
+  document.getElementById('an-form-title').style.display='none';
+  document.getElementById('an-corr-meta').style.display='none';
+  document.getElementById('an-btn-guardar').textContent='Guardar análisis';
   document.getElementById('form-analisis').style.display='block';
-  const hoy=new Date().toISOString().split('T')[0];
-  document.getElementById('an-fecha').value=hoy;
-  document.getElementById('an-error').classList.remove('show');
-  _archivoAnalisis=null;
-  document.getElementById('an-file-selected').style.display='none';
+}
+
+function editarAnalisis(id){
+  const a=(HIST_DATA._analisis||[]).find(x=>x.id===id);
+  if(!a){alert('No se encontró el análisis a corregir.');return;}
+  _editAnalisisId=id;
+  _limpiarCamposAnalisis();
+  document.getElementById('an-fecha').value=a.fecha_analisis||'';
+  document.getElementById('an-preparador').value=a.preparado_por||'';
+  document.getElementById('an-thc').value=a.thc_pct??'';
+  document.getElementById('an-cbd').value=a.cbd_pct??'';
+  document.getElementById('an-cbn').value=a.cbn_pct??'';
+  document.getElementById('an-cbg').value=a.cbg_pct??'';
+  document.getElementById('an-hum').value=a.humedad_pct??'';
+  if(a.tipo_analitica)document.getElementById('an-tipo-analitica').value=a.tipo_analitica;
+  document.getElementById('an-entidad').value=a.entidad_analitica||'';
+  document.getElementById('an-id-croma').value=a.id_cromatografia||'';
+  document.getElementById('an-otro-nombre').value=a.otro_compuesto||'';
+  document.getElementById('an-otro-val').value=a.otro_valor??'';
+  document.getElementById('an-otro-unidad').value=a.otro_unidad||'';
+  document.getElementById('an-form-title').style.display='block';
+  document.getElementById('an-corr-meta').style.display='block';
+  document.getElementById('an-btn-guardar').textContent='Guardar corrección';
+  const form=document.getElementById('form-analisis');
+  form.style.display='block';
+  form.scrollIntoView({behavior:'smooth',block:'nearest'});
 }
 
 function cerrarFormAnalisis(){
   document.getElementById('form-analisis').style.display='none';
   _archivoAnalisis=null;
+  _editAnalisisId=null;
+  document.getElementById('an-form-title').style.display='none';
+  document.getElementById('an-corr-meta').style.display='none';
+  document.getElementById('an-btn-guardar').textContent='Guardar análisis';
 }
 
 function onFileSelected(input){
@@ -2781,21 +2831,8 @@ async function guardarAnalisis(){
   const otroVal=document.getElementById('an-otro-val').value||null;
   const otroUnidad=document.getElementById('an-otro-unidad').value.trim()||null;
 
-  let informe_url=null, informe_nombre=null;
-
-  // Subir archivo a Storage si fue seleccionado
-  if(_archivoAnalisis){
-    const ext=_archivoAnalisis.name.split('.').pop();
-    const path=`${floresId}/${Date.now()}_${_archivoAnalisis.name}`;
-    const{data:upData,error:upErr}=await sb.storage.from('analisis-calidad').upload(path,_archivoAnalisis,{upsert:false});
-    if(upErr){alert('Error al subir el archivo: '+upErr.message);return;}
-    const{data:urlData}=sb.storage.from('analisis-calidad').getPublicUrl(path);
-    informe_url=urlData?.publicUrl||null;
-    informe_nombre=_archivoAnalisis.name;
-  }
-
-  const{error}=await sb.from('analisis_calidad').insert({
-    flores_id:floresId,
+  // Valores nuevos parseados (mismas claves que AN_LBL)
+  const valoresNvo={
     fecha_analisis:fecha,
     preparado_por:preparador,
     thc_pct:thc?parseFloat(thc):null,
@@ -2808,19 +2845,50 @@ async function guardarAnalisis(){
     id_cromatografia:idCroma,
     otro_compuesto:otroNombre,
     otro_valor:otroVal?parseFloat(otroVal):null,
-    otro_unidad:otroUnidad,
-    informe_url,
-    informe_nombre
-  });
-  if(error){alert('Error al guardar análisis: '+error.message);return;}
+    otro_unidad:otroUnidad
+  };
+
+  // Subir archivo a Storage si fue seleccionado (aplica a alta y corrección)
+  let informe_url=null, informe_nombre=null, archivoNuevo=false;
+  if(_archivoAnalisis){
+    const path=`${floresId}/${Date.now()}_${_archivoAnalisis.name}`;
+    const{error:upErr}=await sb.storage.from('analisis-calidad').upload(path,_archivoAnalisis,{upsert:false});
+    if(upErr){alert('Error al subir el archivo: '+upErr.message);return;}
+    const{data:urlData}=sb.storage.from('analisis-calidad').getPublicUrl(path);
+    informe_url=urlData?.publicUrl||null;
+    informe_nombre=_archivoAnalisis.name;
+    archivoNuevo=true;
+  }
+
+  if(_editAnalisisId){
+    // ── CORRECCIÓN: audit trail (snapshot antes/después) + UPDATE con rollback ──
+    const orig=(HIST_DATA._analisis||[]).find(x=>x.id===_editAnalisisId);
+    if(!orig){alert('No se encontró el análisis original a corregir.');return;}
+    const datosAnt={}, datosNvo={};
+    Object.keys(AN_LBL).forEach(k=>{ datosAnt[k]=orig[k]??null; datosNvo[k]=valoresNvo[k]??null; });
+    const huboCambio=Object.keys(AN_LBL).some(k=>String(datosAnt[k]??'')!==String(datosNvo[k]??''))||archivoNuevo;
+    if(!huboCambio){alert('No hay cambios para guardar.');return;}
+    const corregidoPor=document.getElementById('an-corr-por').value.trim()||null;
+    const motivo=document.getElementById('an-corr-motivo').value.trim()||null;
+    const{data:corrData,error:corrErr}=await sb.from('analisis_correcciones').insert({
+      analisis_id:_editAnalisisId,datos_ant:datosAnt,datos_nvo:datosNvo,corregido_por:corregidoPor,motivo
+    }).select().single();
+    if(corrErr){alert('Error al guardar la corrección: '+corrErr.message);return;}
+    const updateObj={...valoresNvo};
+    if(archivoNuevo){updateObj.informe_url=informe_url;updateObj.informe_nombre=informe_nombre;}
+    const{error:updErr}=await sb.from('analisis_calidad').update(updateObj).eq('id',_editAnalisisId);
+    if(updErr){
+      if(corrData?.id)await sb.from('analisis_correcciones').delete().eq('id',corrData.id); // rollback del audit huérfano
+      alert('Error al actualizar el análisis: '+updErr.message);return;
+    }
+    logActividad('correccion_analisis', 'Análisis de calidad corregido', HIST_DATA.flores?.lote_id).catch(()=>{});
+  } else {
+    // ── ALTA ──
+    const{error}=await sb.from('analisis_calidad').insert({flores_id:floresId,...valoresNvo,informe_url,informe_nombre});
+    if(error){alert('Error al guardar análisis: '+error.message);return;}
+  }
 
   cerrarFormAnalisis();
-  // limpiar inputs
-  ['an-fecha','an-preparador','an-thc','an-cbd','an-cbn','an-cbg','an-hum','an-entidad','an-id-croma','an-otro-nombre','an-otro-val','an-otro-unidad'].forEach(id=>{
-    const el=document.getElementById(id);if(el)el.value='';
-  });
-  document.getElementById('an-tipo-analitica').value='Gases - GC';
-  document.getElementById('an-file-drop').classList.remove('drag');
   cargarAnalisis();
   }finally{_g.an=false;}
 }
@@ -2831,8 +2899,10 @@ async function cargarAnalisis(){
   const floresId=HIST_DATA.flores?.id;
   if(!floresId){el.innerHTML='<div class="hist-empty">Sin datos de flores.</div>';return;}
   const{data,error}=await sb.from('analisis_calidad').select('*').eq('flores_id',floresId).order('fecha_analisis',{ascending:false});
-  if(error||!data||data.length===0){el.innerHTML='<div class="hist-empty">Sin análisis registrados.</div>';return;}
-  el.innerHTML=data.map(a=>{
+  if(error||!data||data.length===0){HIST_DATA._analisis=[];el.innerHTML='<div class="hist-empty">Sin análisis registrados.</div>';return;}
+  HIST_DATA._analisis=data; // cache para correcciones
+  const corrs=await Promise.all(data.map(a=>sb.from('analisis_correcciones').select('*').eq('analisis_id',a.id).order('fecha_correccion',{ascending:false})));
+  el.innerHTML=data.map((a,i)=>{
     const vals=[];
     if(a.thc_pct!=null)vals.push(`<div class="analisis-val"><div class="analisis-val-num">${a.thc_pct}%</div><div class="analisis-val-lbl">THC</div></div>`);
     if(a.cbd_pct!=null)vals.push(`<div class="analisis-val"><div class="analisis-val-num">${a.cbd_pct}%</div><div class="analisis-val-lbl">CBD</div></div>`);
@@ -2845,15 +2915,51 @@ async function cargarAnalisis(){
     if(a.entidad_analitica)meta.push(esc(a.entidad_analitica));
     if(a.id_cromatografia)meta.push('Ref: '+esc(a.id_cromatografia));
     const linkArchivo=a.informe_url?`<a class="analisis-link" href="${esc(a.informe_url)}" target="_blank" download="${esc(a.informe_nombre||'informe')}">📄 ${esc(a.informe_nombre)||'Ver informe'} ↗</a>`:'';
+    const cc=corrs[i]?.data||[];
+    const acId='ac-'+a.id.replace(/-/g,'');
+    const desplegable=cc.length>0?renderCorreccionesAnalisis(cc,acId):'';
     return`<div class="analisis-card">
-      <div class="analisis-card-header">
+      <div class="analisis-card-header" style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
         <div class="analisis-card-title">${fmtDate(a.fecha_analisis)}${a.preparado_por?' · Preparado por: '+esc(a.preparado_por):''}</div>
+        <button onclick="editarAnalisis('${a.id}')" style="flex-shrink:0;font-size:0.6rem;color:var(--accent);background:none;border:1px solid var(--accent);border-radius:4px;padding:1px 6px;cursor:pointer;">✏ Corregir</button>
       </div>
       ${vals.length>0?`<div class="analisis-valores">${vals.join('')}</div>`:''}
       ${meta.length>0?`<div style="font-size:0.68rem;color:var(--sage);margin-top:4px;">${meta.join(' · ')}</div>`:''}
       ${linkArchivo}
+      ${desplegable}
     </div>`;
   }).join('');
+}
+
+// Formatea un valor del snapshot de corrección para mostrar en el diff
+function _fmtValAnalisis(k,v){
+  if(v==null||v==='')return '—';
+  if(k==='fecha_analisis')return fmtDate(v);
+  const pct=['thc_pct','cbd_pct','cbn_pct','cbg_pct','humedad_pct'];
+  return esc(String(v))+(pct.includes(k)?'%':'');
+}
+
+// Historial de correcciones de un análisis: diff antes→después por campo cambiado
+function renderCorreccionesAnalisis(cc,acId){
+  const bloques=cc.map((c,ci)=>{
+    const ant=c.datos_ant||{}, nvo=c.datos_nvo||{};
+    const filas=Object.keys(AN_LBL).filter(k=>String(ant[k]??'')!==String(nvo[k]??'')).map(k=>
+      `<div style="color:var(--sage);">${AN_LBL[k]}: <span style="text-decoration:line-through;">${_fmtValAnalisis(k,ant[k])}</span> → <strong>${_fmtValAnalisis(k,nvo[k])}</strong></div>`
+    ).join('');
+    return`<div style="padding:6px 0 4px;border-bottom:1px solid rgba(0,0,0,0.04);font-size:0.68rem;">
+      <div style="color:var(--amber);font-weight:500;margin-bottom:3px;">↳ Corrección ${cc.length-ci} — ${fmtDate(c.fecha_correccion?.split('T')[0])}${c.corregido_por?' — '+esc(c.corregido_por):''}</div>
+      ${filas||'<div style="color:var(--sage);">(sin cambios en los valores registrados)</div>'}
+      ${c.motivo?`<div style="color:var(--sage);">Motivo: ${esc(c.motivo)}</div>`:''}
+    </div>`;
+  }).join('');
+  return`<div style="margin-top:6px;">
+    <div onclick="toggleCorrecciones('${acId}')" style="font-size:0.65rem;color:var(--amber);cursor:pointer;display:flex;align-items:center;gap:4px;">
+      <span id="${acId}-arrow">▶</span> Correcciones (${cc.length})
+    </div>
+    <div id="${acId}" style="display:none;margin-top:6px;padding:6px 10px;background:var(--cream);border-radius:var(--radius);">
+      ${bloques}
+    </div>
+  </div>`;
 }
 
 async function cargarHistorialEntregas(){

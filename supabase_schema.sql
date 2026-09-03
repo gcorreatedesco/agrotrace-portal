@@ -129,6 +129,15 @@ BEGIN
 END;
 $$;
 
+CREATE OR REPLACE FUNCTION public.puede_acceder_analisis(analisis_id UUID)
+RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE v_flores UUID;
+BEGIN
+  SELECT flores_id INTO v_flores FROM analisis_calidad WHERE id = analisis_id;
+  RETURN puede_acceder_flores(v_flores);
+END;
+$$;
+
 
 -- ── POLÍTICAS RLS — perfiles, organizaciones, rt_org ──
 
@@ -513,6 +522,23 @@ ALTER TABLE public.entregas_correcciones ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "correcciones_all" ON public.entregas_correcciones
   FOR ALL USING (puede_acceder_entrega(entrega_id)) WITH CHECK (puede_acceder_entrega(entrega_id));
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.entregas_correcciones TO authenticated;
+
+
+-- Historial de correcciones de análisis de calidad (audit trail).
+-- Snapshots antes/después en JSONB para no acoplarse a las columnas de analisis_calidad.
+CREATE TABLE IF NOT EXISTS public.analisis_correcciones (
+  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  analisis_id       UUID NOT NULL REFERENCES public.analisis_calidad(id) ON DELETE CASCADE,
+  datos_ant         JSONB,
+  datos_nvo         JSONB,
+  corregido_por     TEXT,
+  motivo            TEXT,
+  fecha_correccion  TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE public.analisis_correcciones ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "analisis_correcciones_all" ON public.analisis_correcciones
+  FOR ALL USING (puede_acceder_analisis(analisis_id)) WITH CHECK (puede_acceder_analisis(analisis_id));
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.analisis_correcciones TO authenticated;
 
 
 -- ── MATERIAL DOCUMENTOS ───────────────────────────
