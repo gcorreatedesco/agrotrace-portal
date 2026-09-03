@@ -3506,7 +3506,7 @@ async function generarReporteReprocann(){
       etapa_vegetativa(plantas_descartadas),
       etapa_floracion(cantidad_ingreso,plantas_descartadas),
       etapa_cosecha(fecha_inicio,fecha_fin,plantas_descartadas),
-      flores_cosechadas(stock_inicial,analisis_calidad(fecha_analisis,thc_pct,cbd_pct,cbn_pct,cbg_pct,tipo_analitica,entidad_analitica,id_cromatografia))
+      flores_cosechadas(stock_inicial,analisis_calidad(creado_en,fecha_analisis,thc_pct,cbd_pct,cbn_pct,cbg_pct,tipo_analitica,entidad_analitica,id_cromatografia))
     `).eq('usuario_id',ongUid).is('lote_padre_id',null);
     if(error){console.error('[REPROCANN] query error:',error);throw error;}
 
@@ -3547,7 +3547,10 @@ async function generarReporteReprocann(){
         const nur=one(l.etapa_nursery);
         const veg=one(l.etapa_vegetativa);
         const flores=one(l.flores_cosechadas);
-        const anal=one(flores.analisis_calidad);
+        // Tomar el análisis más reciente por ORDEN DE CARGA (creado_en), no por fecha_analisis
+        // (que es editable). Las correcciones actualizan la fila in situ, así que se reflejan.
+        const analArr=Array.isArray(flores.analisis_calidad)?flores.analisis_calidad:(flores.analisis_calidad?[flores.analisis_calidad]:[]);
+        const anal=analArr.slice().sort((a,b)=>String(b.creado_en||'').localeCompare(String(a.creado_en||'')))[0]||{};
         const variedad=l.lotes_semillas?.variedad||l.lotes_esquejes?.variedad||l.lotes_plantas_madre?.variedad||'';
         return{
           cells:[
