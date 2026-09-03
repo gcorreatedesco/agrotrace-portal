@@ -3328,28 +3328,32 @@ function volverEtapaActual(){renderPanelActivo();}
 
 async function guardarEtapaHist(key){
   if(_g.eh)return; _g.eh=true;
-  let dbErr;
+  let dbErr, savedOk=false;
   try{
+  // No permitir corregir etapas heredadas del lote padre (el registro no es del sublote)
+  if(HIST_PADRE_KEYS.has(key)){alert('Esta etapa fue heredada del lote padre y no puede corregirse desde el sublote.');return;}
   if(key==='nursery'){
     const d=HIST_DATA.nursery;
-    if(d){const eg=parseInt(document.getElementById('nur-egreso').value)||null;const bj=eg!=null?(d.cantidad_ingreso||0)-eg:0;const pd=parseInt(document.getElementById('nur-pdesc').value)||0;({error:dbErr}=await sb.from('etapa_nursery').update({fecha_fin:document.getElementById('nur-fecha-fin').value||null,cantidad_egreso:eg,bajas:bj,plantas_descartadas:pd,notas:document.getElementById('nur-notas').value||null}).eq('id',d.id));}
+    if(d?.id){savedOk=true;const eg=parseInt(document.getElementById('nur-egreso').value)||null;const bj=eg!=null?(d.cantidad_ingreso||0)-eg:0;const pd=parseInt(document.getElementById('nur-pdesc').value)||0;({error:dbErr}=await sb.from('etapa_nursery').update({fecha_fin:document.getElementById('nur-fecha-fin').value||null,cantidad_egreso:eg,bajas:bj,plantas_descartadas:pd,notas:document.getElementById('nur-notas').value||null}).eq('id',d.id));}
   } else if(key==='vegetativa'){
     const d=HIST_DATA.vegetativa;
-    if(d){const ci=parseInt(document.getElementById('veg-cant-ini').value)||null;const eg=parseInt(document.getElementById('veg-egreso').value)||null;const bj=ci!=null&&eg!=null?ci-eg:0;const pd=parseInt(document.getElementById('veg-pdesc').value)||0;({error:dbErr}=await sb.from('etapa_vegetativa').update({fecha_inicio:document.getElementById('veg-fecha-ini').value||null,cantidad_ingreso:ci,fecha_fin:document.getElementById('veg-fecha-fin').value||null,cantidad_egreso:eg,bajas:bj,plantas_descartadas:pd,notas:document.getElementById('veg-notas').value||null}).eq('id',d.id));}
+    if(d?.id){savedOk=true;const ci=parseInt(document.getElementById('veg-cant-ini').value)||null;const eg=parseInt(document.getElementById('veg-egreso').value)||null;const bj=ci!=null&&eg!=null?ci-eg:0;const pd=parseInt(document.getElementById('veg-pdesc').value)||0;({error:dbErr}=await sb.from('etapa_vegetativa').update({fecha_inicio:document.getElementById('veg-fecha-ini').value||null,cantidad_ingreso:ci,fecha_fin:document.getElementById('veg-fecha-fin').value||null,cantidad_egreso:eg,bajas:bj,plantas_descartadas:pd,notas:document.getElementById('veg-notas').value||null}).eq('id',d.id));}
   } else if(key==='floracion'){
     const d=HIST_DATA.floracion;
-    if(d){const ci=parseInt(document.getElementById('flo-cant-ini').value)||null;const eg=parseInt(document.getElementById('flo-egreso').value)||null;const bj=ci!=null&&eg!=null?ci-eg:0;const pd=parseInt(document.getElementById('flo-pdesc').value)||0;({error:dbErr}=await sb.from('etapa_floracion').update({fecha_inicio:document.getElementById('flo-fecha-ini').value||null,cantidad_ingreso:ci,fecha_fin:document.getElementById('flo-fecha-fin').value||null,cantidad_egreso:eg,bajas:bj,plantas_descartadas:pd,notas:document.getElementById('flo-notas').value||null}).eq('id',d.id));}
+    if(d?.id){savedOk=true;const ci=parseInt(document.getElementById('flo-cant-ini').value)||null;const eg=parseInt(document.getElementById('flo-egreso').value)||null;const bj=ci!=null&&eg!=null?ci-eg:0;const pd=parseInt(document.getElementById('flo-pdesc').value)||0;({error:dbErr}=await sb.from('etapa_floracion').update({fecha_inicio:document.getElementById('flo-fecha-ini').value||null,cantidad_ingreso:ci,fecha_fin:document.getElementById('flo-fecha-fin').value||null,cantidad_egreso:eg,bajas:bj,plantas_descartadas:pd,notas:document.getElementById('flo-notas').value||null}).eq('id',d.id));}
   } else if(key==='cosecha'){
     const d=HIST_DATA.cosecha;
-    if(d){const pd=parseInt(document.getElementById('cos-pdesc').value)||0;({error:dbErr}=await sb.from('etapa_cosecha').update({fecha_inicio:document.getElementById('cos-fecha-ini').value||null,fecha_fin:document.getElementById('cos-fecha-fin').value||null,peso_humedo_total:parseFloat(document.getElementById('cos-peso-humedo').value)||null,plantas_descartadas:pd,notas:document.getElementById('cos-notas').value||null}).eq('id',d.id));}
+    if(d?.id){savedOk=true;const pd=parseInt(document.getElementById('cos-pdesc').value)||0;({error:dbErr}=await sb.from('etapa_cosecha').update({fecha_inicio:document.getElementById('cos-fecha-ini').value||null,fecha_fin:document.getElementById('cos-fecha-fin').value||null,peso_humedo_total:parseFloat(document.getElementById('cos-peso-humedo').value)||null,plantas_descartadas:pd,notas:document.getElementById('cos-notas').value||null}).eq('id',d.id));}
   } else if(key==='curado_secado'){
     const d=HIST_DATA.curado_secado;
-    if(d){
+    if(d?.id){
+      savedOk=true;
       const gramsH=(elId,unidId)=>{const v=parseFloat(document.getElementById(elId).value)||null;const u=document.getElementById(unidId)?.value||'gramos';return v!=null?(u==='kg'?Math.round(v*1000*100)/100:v):null;};
       const tieneEmp=document.getElementById('cur-empaque').value==='true';
       ({error:dbErr}=await sb.from('etapa_curado_secado').update({fecha_inicio:document.getElementById('cur-fecha-ini').value||null,fecha_fin:document.getElementById('cur-fecha-fin').value||null,peso_inicial_humedo:gramsH('cur-peso-ini','cur-unidad-ini'),tiene_empaque:tieneEmp,tara_empaque:tieneEmp?gramsH('cur-tara','cur-unidad-tara'):null,unidad:'gramos',peso_seco_final:gramsH('cur-peso-seco','cur-unidad-seco'),notas:document.getElementById('cur-notas').value||null}).eq('id',d.id));
     }
   }
+  if(!savedOk){alert('No se encontró el registro de esta etapa para corregir.');return;}
   if(dbErr){alert('Error al guardar: '+dbErr.message);return;}
   const tbl={nursery:'etapa_nursery',vegetativa:'etapa_vegetativa',floracion:'etapa_floracion',cosecha:'etapa_cosecha',curado_secado:'etapa_curado_secado'}[key];
   if(tbl){const{data}=await sb.from(tbl).select('*').eq('lote_id',LOTE_ACTIVO.id).maybeSingle();if(data)HIST_DATA[key]=data;}
@@ -4442,9 +4446,16 @@ async function guardarBaja(){
       bajaId=bd?.id||null;
     }catch(e){alert('Error al registrar la baja: '+e.message);return;}
     try{
-      if(tipo==='semillas'){const l=LM.semillas.find(x=>x.v===loteId);if(l)await serverWrite({table:'lotes_semillas',operation:'update',userId:uid,record:{stock_actual:Math.max(0,l.stock-cant)},filters:{id:loteId}});}
-      else if(tipo==='esquejes'){const l=LM.esquejes.find(x=>x.v===loteId);if(l)await serverWrite({table:'lotes_esquejes',operation:'update',userId:uid,record:{stock_actual:Math.max(0,l.stock-cant)},filters:{id:loteId}});}
-      else if(tipo==='pm'){const l=LM.pm.find(x=>x.v===loteId);if(l)await serverWrite({table:'lotes_plantas_madre',operation:'update',userId:uid,record:{cantidad_actual:Math.max(0,l.stock-cant)},filters:{id:loteId}});}
+      // Leer el stock FRESCO desde la DB (no del cache LM) antes de descontar — evita pisar cambios concurrentes
+      const tblMap={semillas:'lotes_semillas',esquejes:'lotes_esquejes',pm:'lotes_plantas_madre'};
+      const stockCol=tipo==='pm'?'cantidad_actual':'stock_actual';
+      const tbl=tblMap[tipo];
+      if(tbl){
+        const{data:fresh,error:readErr}=await sb.from(tbl).select(stockCol).eq('id',loteId).single();
+        if(readErr)throw readErr;
+        const stockFresh=fresh?.[stockCol]??0;
+        await serverWrite({table:tbl,operation:'update',userId:uid,record:{[stockCol]:Math.max(0,stockFresh-cant)},filters:{id:loteId}});
+      }
     }catch(e){
       if(bajaId)await sb.from('bajas_material').delete().eq('id',bajaId);
       alert('Error al actualizar el stock. La baja fue revertida.\n'+e.message);return;
@@ -4686,29 +4697,36 @@ function renderMBAddFileLista(tipo){
 }
 
 async function subirDocsMB(){
+  if(_g.subMB)return; _g.subMB=true;
+  try{
   if(!_mbAddRotulo.length&&!_mbAddFactura){alert('Seleccioná al menos un archivo.');return;}
   if(!MAT_ACTIVO)return;
   const tipoTbl={semillas:'semillas',esquejes:'esquejes',pm:'pm'}[MAT_TIPO];
   const loteId=MAT_ACTIVO.id;
   const ts=Date.now();
+  const bucket=sb.storage.from('material-basico-docs');
   for(let i=0;i<_mbAddRotulo.length;i++){
     const f=_mbAddRotulo[i];
     const path=`${loteId}/rotulo_estampilla/${ts}_${i}_${f.name}`;
-    const{data:upd,error:upErr}=await sb.storage.from('material-basico-docs').upload(path,f);
+    const{error:upErr}=await bucket.upload(path,f);
     if(upErr){alert('Error al subir '+f.name+': '+upErr.message);continue;}
-    const{data:{publicUrl}}=sb.storage.from('material-basico-docs').getPublicUrl(path);
-    await sb.from('material_documentos').insert({lote_id:loteId,lote_tipo:tipoTbl,tipo_doc:'rotulo_estampilla',archivo_url:publicUrl,archivo_nombre:f.name});
+    const{data:{publicUrl}}=bucket.getPublicUrl(path);
+    const{error:insErr}=await sb.from('material_documentos').insert({lote_id:loteId,lote_tipo:tipoTbl,tipo_doc:'rotulo_estampilla',archivo_url:publicUrl,archivo_nombre:f.name});
+    if(insErr){await bucket.remove([path]);alert('Error al registrar '+f.name+': '+insErr.message);} // compensar: borrar el archivo huérfano
   }
   if(_mbAddFactura){
     const f=_mbAddFactura;
     const path=`${loteId}/factura/${ts}_${f.name}`;
-    const{data:upd,error:upErr}=await sb.storage.from('material-basico-docs').upload(path,f);
-    if(!upErr){
-      const{data:{publicUrl}}=sb.storage.from('material-basico-docs').getPublicUrl(path);
-      await sb.from('material_documentos').insert({lote_id:loteId,lote_tipo:tipoTbl,tipo_doc:'factura',archivo_url:publicUrl,archivo_nombre:f.name});
-    } else {alert('Error al subir '+f.name+': '+upErr.message);}
+    const{error:upErr}=await bucket.upload(path,f);
+    if(upErr){alert('Error al subir '+f.name+': '+upErr.message);}
+    else{
+      const{data:{publicUrl}}=bucket.getPublicUrl(path);
+      const{error:insErr}=await sb.from('material_documentos').insert({lote_id:loteId,lote_tipo:tipoTbl,tipo_doc:'factura',archivo_url:publicUrl,archivo_nombre:f.name});
+      if(insErr){await bucket.remove([path]);alert('Error al registrar '+f.name+': '+insErr.message);} // compensar: borrar el archivo huérfano
+    }
   }
   await cargarDocumentosMB();
+  }finally{_g.subMB=false;}
 }
 
 async function guardarMaterial(){
@@ -4754,24 +4772,27 @@ async function guardarMaterial(){
   const loteId=nuevoMaterialId;
   if(loteId){
     const ts=Date.now();
+    const bucketDoc=sb.storage.from('material-basico-docs');
     // Rótulos (múltiples)
     for(let i=0;i<_mbArchivosRotulo.length;i++){
       const f=_mbArchivosRotulo[i];
       const path=`${loteId}/rotulo_estampilla/${ts}_${i}_${f.name}`;
-      const{data:upd}=await sb.storage.from('material-basico-docs').upload(path,f);
-      if(upd){
-        const{data:{publicUrl}}=sb.storage.from('material-basico-docs').getPublicUrl(path);
-        await sb.from('material_documentos').insert({lote_id:loteId,lote_tipo:tipoTblDoc,tipo_doc:'rotulo_estampilla',archivo_url:publicUrl,archivo_nombre:f.name});
-      }
+      const{error:upErr}=await bucketDoc.upload(path,f);
+      if(upErr){alert('Error al subir '+f.name+': '+upErr.message);continue;}
+      const{data:{publicUrl}}=bucketDoc.getPublicUrl(path);
+      const{error:insErr}=await sb.from('material_documentos').insert({lote_id:loteId,lote_tipo:tipoTblDoc,tipo_doc:'rotulo_estampilla',archivo_url:publicUrl,archivo_nombre:f.name});
+      if(insErr){await bucketDoc.remove([path]);alert('Error al registrar '+f.name+': '+insErr.message);} // compensar: borrar el archivo huérfano
     }
     // Factura (único)
     if(_mbArchivoFactura){
       const f=_mbArchivoFactura;
       const path=`${loteId}/factura/${ts}_${f.name}`;
-      const{data:upd}=await sb.storage.from('material-basico-docs').upload(path,f);
-      if(upd){
-        const{data:{publicUrl}}=sb.storage.from('material-basico-docs').getPublicUrl(path);
-        await sb.from('material_documentos').insert({lote_id:loteId,lote_tipo:tipoTblDoc,tipo_doc:'factura',archivo_url:publicUrl,archivo_nombre:f.name});
+      const{error:upErr}=await bucketDoc.upload(path,f);
+      if(upErr){alert('Error al subir '+f.name+': '+upErr.message);}
+      else{
+        const{data:{publicUrl}}=bucketDoc.getPublicUrl(path);
+        const{error:insErr}=await sb.from('material_documentos').insert({lote_id:loteId,lote_tipo:tipoTblDoc,tipo_doc:'factura',archivo_url:publicUrl,archivo_nombre:f.name});
+        if(insErr){await bucketDoc.remove([path]);alert('Error al registrar '+f.name+': '+insErr.message);} // compensar: borrar el archivo huérfano
       }
     }
   }
