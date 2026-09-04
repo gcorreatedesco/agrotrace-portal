@@ -1,5 +1,10 @@
 # AgroTrace — Próximos pasos
 
+> ⚠️ **DOCUMENTO HISTÓRICO (2026-07-06) — NO refleja el estado actual.**
+> Varios ítems marcados como pendientes acá ya están implementados (panel de alertas, mobile, `variedades_rnc`, multi-tenancy RT, RLS 3 niveles, reportes REPROCANN).
+> El **estado vivo del proyecto** (pendientes reales, prioridades) vive en la memoria del proyecto (`MEMORY.md` + archivos `project_*`).
+> Se conserva este archivo solo como referencia histórica del roadmap original y por el SQL de ejemplo que contiene.
+
 ## Estado al inicio de esta sesión (2026-07-06)
 
 | Módulo | Estado |

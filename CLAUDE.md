@@ -186,9 +186,9 @@ El principio de seguridad no es "solo el creador puede modificar su lote" sino *
 - Floración toma `fecha_inicio` de `fecha_fin` de Vegetativa (con confirmación)
 - Floración toma `cantidad_ingreso` del egreso de Vegetativa (con confirmación)
 
-## Pendientes de implementación (integración Supabase)
+## Hitos de implementación completados
 
-Ver `Proximospasos.md` para el orden recomendado.
+> **Estado vivo (pendientes, prioridades, "en qué estamos"):** vive en la memoria del proyecto (`MEMORY.md` + archivos `project_*`), no acá ni en `Proximospasos.md`. Esta tabla es solo el registro de hitos ya entregados.
 
 | Módulo | Estado |
 |--------|--------|
@@ -206,9 +206,7 @@ Ver `Proximospasos.md` para el orden recomendado.
 | Campos analíticos en `analisis_calidad` (`cbn_pct`, `cbg_pct`, `tipo_analitica`, etc.) | ✅ SQL ejecutado (2026-08-13) |
 | Campos `plantas_descartadas` y `rnc_id` en `lotes_produccion` | ✅ SQL ejecutado (2026-08-13) |
 | Esqueleto reporte REPROCANN (28 columnas, filtros de fecha) | ✅ Implementado (2026-08-12) |
-| Sistema de Reportes — flujo completo y exportación | ❌ Pendiente (ver criterios en `summary.md`) |
-| Reporte de visita RT (formato papel A4) | ❌ Pendiente |
-| Exportar HISTORIAL ONG (constancia interna) | ❌ Pendiente |
+| Exportar reporte REPROCANN a Excel (SheetJS) | ✅ Implementado (2026-08-13) |
 
 ## Decisiones de arquitectura
 
