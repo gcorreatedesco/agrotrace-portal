@@ -2,7 +2,10 @@
   "permissions": {
     "allow": [
       "Bash(git commit -m ' *)",
-      "Bash(git commit -m 'fix: corregir etapa_actual '\\\\''cosecha_curado'\\\\'' → '\\\\''cosecha'\\\\'' al avanzar desde Floración *)"
+      "Bash(git commit -m 'fix: corregir etapa_actual '\\\\''cosecha_curado'\\\\'' → '\\\\''cosecha'\\\\'' al avanzar desde Floración *)",
+      "PowerShell(git -C \"k:\\\\GUILLE_BACKUP\\\\Documents\\\\DT ARICAMME\\\\Trazabilidad\\\\agrotrace-portal\" status --short)",
+      "PowerShell(git -C \"k:\\\\GUILLE_BACKUP\\\\Documents\\\\DT ARICAMME\\\\Trazabilidad\\\\agrotrace-portal\" log --oneline -8)",
+      "Read(//c/Users/Bety/.claude/projects/k--GUILLE-BACKUP-Documents-DT-ARICAMME-Trazabilidad-agrotrace-portal/memory/**)"
     ]
   }
 }
