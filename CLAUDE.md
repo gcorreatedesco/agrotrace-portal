@@ -36,10 +36,9 @@ GitHub Pages (repo público, gratis, HTTPS) es el hosting elegido para la etapa 
 | `supabase_schema.sql` | Schema SQL completo (13+ tablas, RLS). Ejecutar en Supabase > SQL Editor para recrear la base. |
 | `supabase/functions/crear-ong/index.ts` | Edge Function: crea org + usuario auth con rol `ong`. Incluye rollback si falla la creación del usuario. |
 | `supabase/functions/crear-rt/index.ts` | Edge Function: crea usuario auth con rol `rt`. |
-| `supabase/functions/solicitar-acceso/index.ts` | Edge Function: flujo de solicitud de acceso (estado sin verificar). |
+| `supabase/functions/crear-establecimiento/index.ts` | Edge Function: alta de establecimiento desde el portal ONG. |
 | `AgroTrace_Arquitectura_Backend.html` | Documento de diseño: justificación de Supabase y arquitectura de datos. |
 | `AgroTrace_Guia_Implementacion.html` | Documento de diseño: guía paso a paso del prototipo al sistema real. |
-| `Proximospasos.md` | Hoja de ruta detallada. Leer antes de implementar integración con Supabase. |
 | `summary.md` | Resumen de lo construido en las últimas sesiones. |
 
 Los dos `AgroTrace_*.html` son documentación renderizada, no código de la app.
@@ -188,7 +187,7 @@ El principio de seguridad no es "solo el creador puede modificar su lote" sino *
 
 ## Hitos de implementación completados
 
-> **Estado vivo (pendientes, prioridades, "en qué estamos"):** vive en la memoria del proyecto (`MEMORY.md` + archivos `project_*`), no acá ni en `Proximospasos.md`. Esta tabla es solo el registro de hitos ya entregados.
+> **Estado vivo (pendientes, prioridades, "en qué estamos"):** vive en la memoria del proyecto (`MEMORY.md` + archivos `project_*`), no acá. Esta tabla es solo el registro de hitos ya entregados.
 
 | Módulo | Estado |
 |--------|--------|
@@ -269,8 +268,18 @@ Para aplicar desde cero: el SQL completo está en `summary.md` sección 2026-07-
 
 **Alta de ONGs: solo el Superadmin (desde 2026-07-11)**
 El RT no puede crear ONGs. Solo el Superadmin crea ONGs (vía `crear-ong` Edge Function) y las asigna a un RT en el momento del alta. El RT solo supervisa las ONGs que el Superadmin le asignó.
-- La Edge Function `invitar-ong` existe en el código local pero **no está deployada en Supabase** y no se usa.
 - El portal RT no muestra "Nueva Asociación Civil" — el empty state explica que el Superadmin gestiona el alta.
+- El formulario de alta que quedaba oculto en `portal_rt.html` y la Edge Function `invitar-ong` fueron **eliminados el 2026-09-04** (ver sección siguiente).
+
+**Modelo de alta de usuarios descartado: invitación/solicitud por email (eliminado 2026-09-04)**
+
+Existió un diseño alternativo donde el interesado pedía acceso desde el login, se mandaba un email al admin vía **Resend**, y el admin invitaba con `inviteUserByEmail()` para que el usuario eligiera su propia contraseña. **Se descartó** en favor del modelo vigente: el Superadmin crea el usuario con una contraseña que él define, con `email_confirm: true` — sin email de por medio.
+
+Se eliminó todo su código huérfano: Edge Functions `solicitar-acceso` (único consumidor de Resend), `invitar-rt` e `invitar-ong`; la vista `view-solicitud` de `index.html`; y el bloque `view-nueva-ong` + `guardarONG()` de `portal_rt.html`. También se eliminó `escribir-datos`, un proxy genérico de escritura con `service_role` previo a la RLS de 3 niveles, que saltaba RLS por diseño.
+
+Los documentos `docs/AgroTrace_Sist_Auth_Por_Solicitud.html` y `docs/AgroTrace_Guia_SMTP_Email.html` describen ese modelo descartado y se conservan como referencia histórica. **Ojo:** el SMTP sí sigue siendo una dependencia viva de `resetPasswordForEmail()` en `index.html` (¿Olvidaste tu contraseña?) y en `portal_superadmin.html` (reset de password de un RT). Sin SMTP propio configurado, el mailer interno de Supabase está limitado a ~2 emails/hora.
+
+El link "Solicitar acceso" del login sigue existiendo y abre un **Google Form** externo (`solicitarAcceso()` en `index.html`) — no toca ninguna Edge Function.
 
 ## Edge Functions — arquitectura y estado
 
@@ -307,15 +316,16 @@ const res = await fetch('https://jqkyifuyaxxwugrnjfnq.supabase.co/functions/v1/c
 
 La API REST de Auth (`/auth/v1/admin/users`) requiere tanto `Authorization: Bearer <key>` como `apikey: <key>` y devuelve un objeto plano `{ id, email }` (no `{ user: { id, email } }`).
 
-### Estado de Edge Functions (al 2026-07-11)
+### Estado de Edge Functions (al 2026-09-04)
 
-| Función | En Supabase | JWT desactivado | Estado |
-|---------|-------------|-----------------|--------|
-| `crear-ong` | ✅ URL correcta | ❌ pendiente | ⚠️ falla preflight hasta desactivar JWT |
-| `crear-rt` | ⚠️ nombre interno incorrecto (`clever-endpoint`) | ❌ pendiente | ❌ 404 |
-| `invitar-ong` | ❌ no deployada | — | No se usa — el RT no crea ONGs |
-| `solicitar-acceso` | ✅ | ? | Sin verificar |
+Las únicas Edge Functions vigentes son las que quedan en `supabase/functions/`:
 
-**Fix pendiente `crear-rt`:** eliminar la función `crear-rt` en Dashboard (que internamente se llama `clever-endpoint`) y crearla de nuevo con el nombre exacto `crear-rt`, luego desactivar JWT.
+| Función | Llamada desde | Estado |
+|---------|---------------|--------|
+| `crear-ong` | `portal_superadmin.html` | ✅ JWT desactivado (2026-08-13) |
+| `crear-rt` | `portal_superadmin.html` | ✅ re-deployada con nombre correcto + JWT desactivado (2026-08-13) |
+| `crear-establecimiento` | `agrotrace_prototipo_v3.html` | En uso |
 
-**Fix pendiente `crear-ong`:** solo desactivar JWT en Dashboard → Edge Functions → `crear-ong` → Settings.
+**Eliminadas el 2026-09-04** (código huérfano, sin llamador): `solicitar-acceso`, `invitar-ong`, `invitar-rt`, `escribir-datos`. Si alguna quedó deployada en el Dashboard de Supabase, conviene borrarla también ahí — en particular `escribir-datos`, que permitía escribir en cualquier tabla con `service_role` salteando RLS.
+
+`portal_superadmin.html` tiene una herramienta de diagnóstico (sidebar → Diagnóstico) que verifica DB, `crear-ong` y `crear-rt` en vivo.

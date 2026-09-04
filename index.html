@@ -522,89 +522,6 @@
         </div>
       </div>
 
-      <!-- STEP 5: Solicitud de acceso -->
-      <div class="view" id="view-solicitud">
-        <div class="form-header">
-          <h2>Solicitar acceso</h2>
-          <p>Complete el formulario y nos comunicaremos para habilitar su cuenta.</p>
-        </div>
-
-        <div class="field">
-          <label>Nombre completo *</label>
-          <div class="input-wrap">
-            <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
-            <input type="text" id="sol-nombre" placeholder="Ej: María González"/>
-          </div>
-        </div>
-
-        <div class="field">
-          <label>Email de contacto *</label>
-          <div class="input-wrap">
-            <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
-            <input type="email" id="sol-email" placeholder="ejemplo@correo.com"/>
-          </div>
-        </div>
-
-        <div class="field">
-          <label>Nombre de Asociación Civil / ONG *</label>
-          <div class="input-wrap">
-            <svg viewBox="0 0 24 24"><path d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z"/></svg>
-            <input type="text" id="sol-ong" placeholder="Ej: ONG Esperanza Verde"/>
-          </div>
-        </div>
-
-        <div class="field">
-          <label>Perfil solicitado *</label>
-          <div class="input-wrap">
-            <svg viewBox="0 0 24 24"><path d="M12 15.5A3.5 3.5 0 0 1 8.5 12 3.5 3.5 0 0 1 12 8.5a3.5 3.5 0 0 1 3.5 3.5 3.5 3.5 0 0 1-3.5 3.5m7.43-2.92c.04-.34.07-.68.07-1.08s-.03-.73-.07-1.08l2.11-1.63c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.63c-.04.35-.07.7-.07 1.08s.03.73.07 1.08L2.42 13.08c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.58 1.69-.98l2.49 1c.23.08.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.58z"/></svg>
-            <select id="sol-perfil" style="width:100%;padding:11px 14px 11px 40px;border:1.5px solid var(--dew);border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:0.88rem;color:var(--soil);background:var(--white);outline:none;-webkit-appearance:none;appearance:none;">
-              <option value="">Seleccione un perfil...</option>
-              <option value="ong">Admin ONG</option>
-              <option value="rt" style="font-style:italic;">Responsable Técnico (en caso de corresponder)</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="field">
-          <label>Nro. resolución REPROCANN <span style="font-weight:300;text-transform:none;letter-spacing:0;">(si aplica)</span></label>
-          <div class="input-wrap">
-            <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
-            <input type="text" id="sol-reprocann" placeholder="Ej: RES-2024-0123"/>
-          </div>
-        </div>
-
-        <div class="field">
-          <label>Información adicional <span style="font-weight:300;text-transform:none;letter-spacing:0;">(opcional)</span></label>
-          <div class="input-wrap">
-            <svg viewBox="0 0 24 24" style="top:14px;transform:none;"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
-            <textarea id="sol-notas" placeholder="Ej: Soy la administradora de la ONG. El RT es el Dr. Ramírez." style="width:100%;padding:11px 14px 11px 40px;border:1.5px solid var(--dew);border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:0.88rem;color:var(--soil);background:var(--white);outline:none;resize:vertical;min-height:72px;transition:border-color 0.25s ease,box-shadow 0.25s ease;" onfocus="this.style.borderColor='var(--accent)';this.style.boxShadow='0 0 0 3px rgba(78,124,63,0.1)'" onblur="this.style.borderColor='var(--dew)';this.style.boxShadow='none'"></textarea>
-          </div>
-        </div>
-
-        <div class="error-msg" id="error-solicitud">Complete los campos obligatorios (*).</div>
-
-        <button class="btn-primary" onclick="enviarSolicitud()">Enviar solicitud</button>
-
-        <div style="text-align:center; margin-top:16px;">
-          <button class="back-link" onclick="showView('view-login')">
-            <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
-            Volver
-          </button>
-        </div>
-      </div>
-
-      <!-- STEP 6: Solicitud enviada -->
-      <div class="view" id="view-solicitud-ok">
-        <div class="success-icon">
-          <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
-        </div>
-        <div class="form-header">
-          <h2>Solicitud enviada</h2>
-          <p>Recibimos su solicitud. El administrador la revisará y recibirá un email con los pasos para activar su cuenta.</p>
-        </div>
-        <button class="btn-primary" onclick="showView('view-login')">Volver al inicio</button>
-      </div>
-
       <!-- STEP 4: Recover success -->
       <div class="view" id="view-recover-ok">
         <div class="success-icon">
@@ -740,42 +657,6 @@
       window.location.href = 'portal_superadmin.html';
     } else {
       window.location.href = 'agrotrace_prototipo_v3.html';
-    }
-  }
-
-  async function enviarSolicitud() {
-    const nombre   = document.getElementById('sol-nombre').value.trim();
-    const email    = document.getElementById('sol-email').value.trim();
-    const ong      = document.getElementById('sol-ong').value.trim();
-    const perfil   = document.getElementById('sol-perfil').value;
-    const reprocann= document.getElementById('sol-reprocann').value.trim();
-    const notas    = document.getElementById('sol-notas').value.trim();
-    const err      = document.getElementById('error-solicitud');
-    const btn      = document.querySelector('#view-solicitud .btn-primary');
-
-    if (!nombre || !email || !ong || !perfil) {
-      err.textContent = 'Complete los campos obligatorios (*).';
-      err.classList.add('show');
-      return;
-    }
-    err.classList.remove('show');
-    btn.textContent = 'Enviando...';
-    btn.disabled = true;
-
-    try {
-      const SUPABASE_URL = 'https://jqkyifuyaxxwugrnjfnq.supabase.co';
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/solictar_acceso`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nombre, email, ong, perfil, reprocann, notas }),
-      });
-      if (!res.ok) throw new Error('Error del servidor');
-      showView('view-solicitud-ok');
-    } catch (e) {
-      err.textContent = 'No se pudo enviar la solicitud. Intente nuevamente.';
-      err.classList.add('show');
-      btn.textContent = 'Enviar solicitud';
-      btn.disabled = false;
     }
   }
 
