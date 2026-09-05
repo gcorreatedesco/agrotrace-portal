@@ -5,7 +5,14 @@
       "Bash(git commit -m 'fix: corregir etapa_actual '\\\\''cosecha_curado'\\\\'' → '\\\\''cosecha'\\\\'' al avanzar desde Floración *)",
       "PowerShell(git -C \"k:\\\\GUILLE_BACKUP\\\\Documents\\\\DT ARICAMME\\\\Trazabilidad\\\\agrotrace-portal\" status --short)",
       "PowerShell(git -C \"k:\\\\GUILLE_BACKUP\\\\Documents\\\\DT ARICAMME\\\\Trazabilidad\\\\agrotrace-portal\" log --oneline -8)",
-      "Read(//c/Users/Bety/.claude/projects/k--GUILLE-BACKUP-Documents-DT-ARICAMME-Trazabilidad-agrotrace-portal/memory/**)"
+      "Read(//c/Users/Bety/.claude/projects/k--GUILLE-BACKUP-Documents-DT-ARICAMME-Trazabilidad-agrotrace-portal/memory/**)",
+      "PowerShell(git -C \"k:\\\\GUILLE_BACKUP\\\\Documents\\\\DT ARICAMME\\\\Trazabilidad\\\\agrotrace-portal\" diff -- .claude/settings.json)",
+      "Bash(git checkout *)",
+      "Bash(python \"C:/Users/Bety/AppData/Local/Temp/claude/k--GUILLE-BACKUP-Documents-DT-ARICAMME-Trazabilidad-agrotrace-portal/dd0e85f3-d669-47c5-ba95-4ca1a3e10cac/scratchpad/prune.py\")",
+      "Bash(echo \"EXIT=$?\")",
+      "Bash(rm -v project_auth_pendiente.md project_pendientes_edge_functions.md)",
+      "Bash(gh run *)",
+      "Bash(python -)"
     ]
   }
 }
