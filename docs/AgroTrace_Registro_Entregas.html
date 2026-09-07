@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AgroTrace — Procedimiento: Registro de Entregas</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --soil:#2C1F0E;--bark:#4A3520;--sage:#6B7F5E;--leaf:#8EAA7B;--mist:#C8D9BC;
+  --dew:#EDF2E8;--cream:#F7F4EF;--white:#FFFFFF;--accent:#4E7C3F;
+  --amber:#854F0B;--amber-bg:#FAEEDA;--amber-light:#FAC775;
+  --purple:#534AB7;--purple-bg:#EEEDFE;
+  --error:#B94A3A;--error-bg:#FAECE7;
+  --radius:6px;--radius-lg:10px;
+}
+body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--soil);font-size:15px;line-height:1.7;}
+
+/* ── HEADER ── */
+.doc-header{background:var(--soil);padding:48px 0 40px;text-align:center;}
+.doc-header-inner{max-width:760px;margin:0 auto;padding:0 24px;}
+.doc-brand{font-size:0.72rem;font-weight:500;letter-spacing:0.18em;text-transform:uppercase;color:var(--leaf);margin-bottom:12px;}
+.doc-title{font-family:'DM Serif Display',serif;font-size:2.2rem;color:var(--white);line-height:1.2;margin-bottom:12px;}
+.doc-subtitle{font-size:0.9rem;color:var(--mist);font-weight:300;max-width:520px;margin:0 auto;}
+.doc-meta{margin-top:20px;font-size:0.72rem;color:rgba(255,255,255,0.3);letter-spacing:0.05em;}
+
+/* ── LAYOUT ── */
+.doc-body{max-width:760px;margin:0 auto;padding:48px 24px;}
+
+/* ── TOC ── */
+.toc{background:var(--white);border:1px solid rgba(0,0,0,0.07);border-radius:var(--radius-lg);padding:24px 28px;margin-bottom:48px;}
+.toc-title{font-family:'DM Serif Display',serif;font-size:1rem;color:var(--soil);margin-bottom:14px;}
+.toc-list{list-style:none;display:flex;flex-direction:column;gap:6px;}
+.toc-list li a{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--bark);font-size:0.85rem;transition:color 0.15s;}
+.toc-list li a:hover{color:var(--accent);}
+.toc-num{font-size:0.7rem;font-weight:500;color:var(--sage);min-width:18px;}
+
+/* ── INTRO ── */
+.intro{margin-bottom:48px;}
+.intro p{color:var(--bark);margin-bottom:14px;}
+.intro p:last-child{margin-bottom:0;}
+
+/* ── SECCIONES ── */
+.sec{margin-bottom:52px;}
+.sec-header{display:flex;align-items:flex-start;gap:14px;margin-bottom:20px;padding-bottom:16px;border-bottom:2px solid var(--dew);}
+.sec-number{width:38px;height:38px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:'DM Serif Display',serif;font-size:1.05rem;color:var(--white);flex-shrink:0;}
+.sec-title-wrap{flex:1;}
+.sec-title{font-family:'DM Serif Display',serif;font-size:1.35rem;color:var(--soil);margin-bottom:3px;}
+.sec-kicker{font-size:0.72rem;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;color:var(--sage);}
+.sec h3{font-family:'DM Serif Display',serif;font-size:1rem;color:var(--soil);margin:26px 0 8px;}
+.sec p{color:var(--bark);margin-bottom:14px;}
+.sec ul,.sec ol{margin:0 0 14px 20px;color:var(--bark);}
+.sec li{margin-bottom:7px;}
+
+/* ── PASOS ── */
+.steps{list-style:none;margin:0 0 18px;padding:0;counter-reset:paso;}
+.step{position:relative;padding:0 0 20px 44px;border-left:2px solid var(--dew);margin-left:14px;}
+.step:last-child{border-left-color:transparent;padding-bottom:0;}
+.step::before{counter-increment:paso;content:counter(paso);position:absolute;left:-15px;top:0;width:28px;height:28px;border-radius:50%;background:var(--white);border:2px solid var(--accent);color:var(--accent);font-size:0.78rem;font-weight:500;display:flex;align-items:center;justify-content:center;}
+.step-title{font-weight:500;color:var(--soil);margin-bottom:4px;font-size:0.92rem;}
+.step-desc{font-size:0.87rem;color:var(--bark);}
+.step-desc code{font-family:monospace;font-size:0.83rem;background:var(--dew);padding:1px 5px;border-radius:3px;color:var(--soil);}
+
+/* ── CAJAS ── */
+.box{border-radius:var(--radius-lg);padding:16px 20px;margin:0 0 20px;border-left:3px solid;}
+.box-label{font-size:0.65rem;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px;}
+.box p{margin:0;font-size:0.875rem;}
+.box p+p{margin-top:8px;}
+.box-rule{background:var(--dew);border-color:var(--accent);}
+.box-rule .box-label{color:var(--accent);}
+.box-warn{background:var(--amber-bg);border-color:var(--amber-light);}
+.box-warn .box-label{color:var(--amber);}
+.box-warn p{color:var(--amber);}
+.box-block{background:var(--error-bg);border-color:var(--error);}
+.box-block .box-label{color:var(--error);}
+.box-block p{color:var(--error);}
+
+/* ── CASOS ── */
+.caso{background:var(--white);border:1px solid rgba(0,0,0,0.07);border-radius:var(--radius-lg);padding:22px 24px;margin-bottom:18px;}
+.caso-tag{display:inline-block;font-size:0.68rem;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;padding:3px 10px;border-radius:10px;margin-bottom:10px;}
+.tag-a{background:var(--dew);color:var(--accent);}
+.tag-b{background:var(--amber-bg);color:var(--amber);}
+.caso-title{font-family:'DM Serif Display',serif;font-size:1.1rem;color:var(--soil);margin-bottom:10px;}
+
+/* ── TABLA ── */
+table{width:100%;border-collapse:collapse;margin:0 0 20px;font-size:0.85rem;}
+thead th{text-align:left;background:var(--soil);color:var(--mist);font-weight:500;font-size:0.7rem;letter-spacing:0.08em;text-transform:uppercase;padding:10px 14px;}
+thead th:first-child{border-radius:var(--radius) 0 0 0;}
+thead th:last-child{border-radius:0 var(--radius) 0 0;}
+tbody td{padding:10px 14px;border-bottom:1px solid var(--dew);color:var(--bark);vertical-align:top;}
+tbody tr:nth-child(even){background:var(--white);}
+tbody td code{font-family:monospace;font-size:0.8rem;color:var(--soil);}
+.td-req{color:var(--error);font-weight:500;}
+.td-opt{color:var(--sage);}
+
+/* ── CAMPO INLINE ── */
+.ui{display:inline-block;font-size:0.82rem;background:var(--white);border:1px solid var(--mist);padding:1px 8px;border-radius:4px;color:var(--soil);}
+code{font-family:monospace;font-size:0.85rem;background:var(--dew);padding:1px 5px;border-radius:3px;color:var(--soil);}
+
+/* ── FOOTER ── */
+.doc-footer{border-top:1px solid var(--mist);margin-top:56px;padding-top:24px;font-size:0.78rem;color:var(--sage);text-align:center;}
+
+@media(max-width:640px){
+  .doc-title{font-size:1.7rem;}
+  .doc-body{padding:32px 18px;}
+  .sec-header{gap:10px;}
+  .step{padding-left:34px;}
+  table{font-size:0.78rem;}
+  thead th,tbody td{padding:8px 10px;}
+}
+</style>
+</head>
+<body>
+
+<div class="doc-header">
+  <div class="doc-header-inner">
+    <div class="doc-brand">AgroTrace · Procedimiento</div>
+    <div class="doc-title">Registro de Entregas</div>
+    <div class="doc-subtitle">Cómo se registra la entrega de flores cosechadas a un paciente, y qué queda asentado para la trazabilidad REPROCANN.</div>
+    <div class="doc-meta">Portal ONG · Actualizado 2026-09-07</div>
+  </div>
+</div>
+
+<div class="doc-body">
+
+  <div class="toc">
+    <div class="toc-title">Contenido</div>
+    <ul class="toc-list">
+      <li><a href="#s1"><span class="toc-num">1</span> Qué es una entrega</a></li>
+      <li><a href="#s2"><span class="toc-num">2</span> Requisito previo: peso seco cargado</a></li>
+      <li><a href="#s3"><span class="toc-num">3</span> La regla del receptor identificado</a></li>
+      <li><a href="#s4"><span class="toc-num">4</span> Procedimiento paso a paso</a></li>
+      <li><a href="#s5"><span class="toc-num">5</span> Campos del formulario</a></li>
+      <li><a href="#s6"><span class="toc-num">6</span> Qué bloquea el sistema</a></li>
+      <li><a href="#s7"><span class="toc-num">7</span> Dónde se consultan las entregas</a></li>
+      <li><a href="#s8"><span class="toc-num">8</span> Corregir una entrega ya registrada</a></li>
+    </ul>
+  </div>
+
+  <div class="intro">
+    <p>Una <strong>entrega</strong> es la salida de flores cosechadas desde un lote hacia un paciente. Es el último eslabón de la cadena de trazabilidad: desde la semilla o el esqueje, pasando por las cinco etapas de cultivo, hasta la persona que finalmente recibe el producto.</p>
+    <p>Cada entrega descuenta gramos del stock disponible del lote y deja asentado <strong>quién recibió, cuánto, cuándo y quién se lo entregó</strong>. Ese registro es el que respalda los informes ante REPROCANN.</p>
+  </div>
+
+  <!-- ── 1 ── -->
+  <div class="sec" id="s1">
+    <div class="sec-header">
+      <div class="sec-number">1</div>
+      <div class="sec-title-wrap">
+        <div class="sec-title">Qué es una entrega</div>
+        <div class="sec-kicker">Concepto</div>
+      </div>
+    </div>
+    <p>Las entregas se registran <strong>dentro del lote</strong>, en la etapa <strong>Flores Cosechadas</strong>. No hay una sección "Entregas" separada en el menú: siempre se entra por el lote del cual sale el producto. Esto no es casual — garantiza que toda entrega esté atada a un lote concreto y trazable.</p>
+    <p>Un mismo lote puede tener muchas entregas, a distintos pacientes y en distintas fechas, hasta agotar su stock.</p>
+  </div>
+
+  <!-- ── 2 ── -->
+  <div class="sec" id="s2">
+    <div class="sec-header">
+      <div class="sec-number">2</div>
+      <div class="sec-title-wrap">
+        <div class="sec-title">Requisito previo: el peso seco tiene que estar cargado</div>
+        <div class="sec-kicker">Antes de empezar</div>
+      </div>
+    </div>
+    <p>No se puede registrar una entrega si el lote todavía no tiene cargado su <strong>peso seco final</strong>. Sin ese dato el sistema no sabe cuánto producto hay, y por lo tanto no puede descontar ni controlar excesos.</p>
+    <div class="box box-block">
+      <div class="box-label">El sistema bloquea</div>
+      <p>«No se puede registrar una entrega porque el peso total de flores disponibles aún no fue registrado. Completá primero el peso seco final en la etapa de Curado/Secado.»</p>
+    </div>
+    <p>Si aparece ese mensaje, ir a la etapa <strong>Curado/Secado</strong> del lote y completar el peso seco final. Ese valor pasa a ser el stock inicial de flores.</p>
+  </div>
+
+  <!-- ── 3 ── -->
+  <div class="sec" id="s3">
+    <div class="sec-header">
+      <div class="sec-number">3</div>
+      <div class="sec-title-wrap">
+        <div class="sec-title">La regla del receptor identificado</div>
+        <div class="sec-kicker">Regla de negocio</div>
+      </div>
+    </div>
+    <p>Este es el punto central del procedimiento, y el que más cambió respecto a versiones anteriores del sistema.</p>
+    <div class="box box-rule">
+      <div class="box-label">Regla</div>
+      <p><strong>Toda entrega debe identificar a quién recibe.</strong> No existe la entrega anónima. El sistema admite dos caminos para lograrlo, según el paciente esté o no cargado en el listado.</p>
+    </div>
+    <p>Antes, el número de REPROCANN era un campo opcional de texto libre. El resultado era que las entregas quedaban sin dueño: no se podía saber cuánto había recibido un paciente determinado, ni el historial del lote podía nombrar a nadie. Ahora el vínculo se guarda de verdad.</p>
+
+    <div class="caso">
+      <div class="caso-tag tag-a">Caso A</div>
+      <div class="caso-title">El paciente está en el listado</div>
+      <p style="margin-bottom:10px;">Se lo busca por nombre o por número de REPROCANN y se lo selecciona. El sistema guarda el <strong>vínculo real</strong> con su ficha, no solo un texto.</p>
+      <p style="margin-bottom:0;">Condición: ese paciente debe tener su <strong>Nro. de REPROCANN cargado</strong> en su ficha. Si no lo tiene, la entrega se bloquea hasta completarlo.</p>
+    </div>
+
+    <div class="caso">
+      <div class="caso-tag tag-b">Caso B</div>
+      <div class="caso-title">El paciente no está en el listado</div>
+      <p style="margin-bottom:10px;">Se usa el link <span class="ui">El paciente no está en el listado</span> y se cargan sus datos a mano.</p>
+      <p style="margin-bottom:0;">Condición: hay que completar <strong>el nombre y/o el Nro. de REPROCANN</strong> — al menos uno de los dos. La entrega queda marcada en el historial como <em>«no está en el listado»</em>.</p>
+    </div>
+
+    <div class="box box-warn">
+      <div class="box-label">Recomendación</div>
+      <p>El Caso B existe para no frenar la operación cuando aparece un paciente nuevo en el momento de la entrega. Pero conviene cargarlo después en la sección <strong>Pacientes</strong>: solo los pacientes del listado acumulan historial consultable.</p>
+    </div>
+  </div>
+
+  <!-- ── 4 ── -->
+  <div class="sec" id="s4">
+    <div class="sec-header">
+      <div class="sec-number">4</div>
+      <div class="sec-title-wrap">
+        <div class="sec-title">Procedimiento paso a paso</div>
+        <div class="sec-kicker">Operación</div>
+      </div>
+    </div>
+
+    <ol class="steps">
+      <li class="step">
+        <div class="step-title">Abrir el lote</div>
+        <div class="step-desc">Ir a <strong>Mis Lotes</strong> y entrar al lote del que sale el producto.</div>
+      </li>
+      <li class="step">
+        <div class="step-title">Ir a la etapa Flores Cosechadas</div>
+        <div class="step-desc">Es la última etapa del ciclo. Ahí se ve el stock disponible en gramos.</div>
+      </li>
+      <li class="step">
+        <div class="step-title">Presionar «Registrar entrega»</div>
+        <div class="step-desc">Se despliega el formulario. Si el peso seco no está cargado, acá aparece el bloqueo del punto 2.</div>
+      </li>
+      <li class="step">
+        <div class="step-title">Identificar al paciente</div>
+        <div class="step-desc">Escribir el nombre o el REPROCANN en <span class="ui">Paciente que recibe</span> y elegirlo de la lista que aparece. Queda confirmado en un recuadro con su número de ficha, nombre y REPROCANN. Si no está cargado, usar el link <span class="ui">El paciente no está en el listado</span>.</div>
+      </li>
+      <li class="step">
+        <div class="step-title">Completar fecha y cantidad</div>
+        <div class="step-desc">La fecha viene con el día de hoy y se puede cambiar. La cantidad va en gramos y no puede superar el stock disponible.</div>
+      </li>
+      <li class="step">
+        <div class="step-title">Indicar quién entrega</div>
+        <div class="step-desc">Nombre del responsable que hace la entrega física. Es obligatorio y queda asentado en el historial.</div>
+      </li>
+      <li class="step">
+        <div class="step-title">Guardar</div>
+        <div class="step-desc">El sistema descuenta la cantidad del stock del lote y confirma mostrando el stock restante.</div>
+      </li>
+    </ol>
+
+    <div class="box box-rule">
+      <div class="box-label">Qué pasa al guardar</div>
+      <p>La entrega se registra y, en el mismo movimiento, se descuenta el stock del lote. Si el descuento fallara por cualquier motivo, la entrega se revierte automáticamente — nunca queda una entrega registrada sin su descuento correspondiente.</p>
+    </div>
+  </div>
+
+  <!-- ── 5 ── -->
+  <div class="sec" id="s5">
+    <div class="sec-header">
+      <div class="sec-number">5</div>
+      <div class="sec-title-wrap">
+        <div class="sec-title">Campos del formulario</div>
+        <div class="sec-kicker">Referencia</div>
+      </div>
+    </div>
+
+    <table>
+      <thead>
+        <tr><th>Campo</th><th>Obligatorio</th><th>Detalle</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Paciente que recibe</strong></td>
+          <td class="td-req">Sí</td>
+          <td>Del listado, o cargado a mano con nombre y/o REPROCANN.</td>
+        </tr>
+        <tr>
+          <td><strong>Fecha de entrega</strong></td>
+          <td class="td-req">Sí</td>
+          <td>Por defecto el día de hoy. Si se pone una fecha futura, el sistema pide confirmación.</td>
+        </tr>
+        <tr>
+          <td><strong>Cantidad (gramos)</strong></td>
+          <td class="td-req">Sí</td>
+          <td>Mayor a 0 y menor o igual al stock disponible.</td>
+        </tr>
+        <tr>
+          <td><strong>Nombre de quien entrega</strong></td>
+          <td class="td-req">Sí</td>
+          <td>Responsable de la entrega física.</td>
+        </tr>
+        <tr>
+          <td><strong>Notas</strong></td>
+          <td class="td-opt">No</td>
+          <td>Observaciones libres sobre la entrega.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ── 6 ── -->
+  <div class="sec" id="s6">
+    <div class="sec-header">
+      <div class="sec-number">6</div>
+      <div class="sec-title-wrap">
+        <div class="sec-title">Qué bloquea el sistema</div>
+        <div class="sec-kicker">Validaciones</div>
+      </div>
+    </div>
+    <p>El formulario no deja guardar en estos casos. Todos muestran un mensaje explicando qué corregir:</p>
+    <ul>
+      <li><strong>Peso seco sin cargar</strong> — el lote no tiene stock definido. Completar Curado/Secado.</li>
+      <li><strong>Sin identificar al paciente</strong> — no se eligió a nadie del listado ni se cargó nombre o REPROCANN a mano.</li>
+      <li><strong>Paciente del listado sin REPROCANN</strong> — hay que completar su ficha en la sección Pacientes antes de entregarle.</li>
+      <li><strong>Cantidad mayor al stock</strong> — el mensaje indica exactamente cuántos gramos sobran.</li>
+      <li><strong>Falta fecha, cantidad o responsable</strong> — son los tres campos obligatorios además del paciente.</li>
+    </ul>
+    <div class="box box-warn">
+      <div class="box-label">Fecha futura</div>
+      <p>Cargar una entrega con fecha posterior a hoy no se bloquea, pero pide confirmación explícita. Sirve para casos justificados, no para uso corriente.</p>
+    </div>
+  </div>
+
+  <!-- ── 7 ── -->
+  <div class="sec" id="s7">
+    <div class="sec-header">
+      <div class="sec-number">7</div>
+      <div class="sec-title-wrap">
+        <div class="sec-title">Dónde se consultan las entregas</div>
+        <div class="sec-kicker">Consulta</div>
+      </div>
+    </div>
+    <p>Hay dos vistas, según lo que se quiera responder:</p>
+
+    <h3>Por lote — «¿A quiénes les entregué de este lote?»</h3>
+    <p>Dentro del lote, en la etapa Flores Cosechadas, la sección <strong>Historial de entregas del lote</strong>. Lista cada entrega encabezada por el nombre del paciente, con el REPROCANN, la cantidad, la fecha y quién la entregó. Las entregas a pacientes no cargados aparecen marcadas.</p>
+
+    <h3>Por paciente — «¿Cuánto recibió esta persona?»</h3>
+    <p>En la sección <strong>Pacientes</strong>, el ícono de entregas en la fila del paciente. Muestra todas sus entregas con el lote de origen, la fecha, el REPROCANN y la cantidad, más el <strong>total acumulado en gramos</strong>.</p>
+
+    <div class="box box-warn">
+      <div class="box-label">Importante</div>
+      <p>Esta segunda vista solo muestra las entregas hechas a pacientes <strong>seleccionados del listado</strong>. Las cargadas a mano (Caso B) no tienen ficha a la cual asociarse y por lo tanto no aparecen acá — sí aparecen en el historial del lote.</p>
+    </div>
+  </div>
+
+  <!-- ── 8 ── -->
+  <div class="sec" id="s8">
+    <div class="sec-header">
+      <div class="sec-number">8</div>
+      <div class="sec-title-wrap">
+        <div class="sec-title">Corregir una entrega ya registrada</div>
+        <div class="sec-kicker">Correcciones</div>
+      </div>
+    </div>
+    <p>Las entregas <strong>no se borran ni se sobrescriben en silencio</strong>. Si hubo un error en el número de REPROCANN, la cantidad o las notas, se registra una <strong>corrección</strong> que queda asentada junto al registro original.</p>
+    <p>En el historial de entregas del lote, cada entrega corregida muestra un desplegable <strong>«Correcciones (n)»</strong> donde se ve el valor anterior tachado, el nuevo, la fecha y quién hizo la corrección. El registro original nunca desaparece.</p>
+    <div class="box box-rule">
+      <div class="box-label">Por qué así</div>
+      <p>Es un requisito de trazabilidad regulatoria: ante una inspección hay que poder demostrar no solo el dato actual, sino qué decía antes y cuándo se modificó. Un historial que se puede editar sin dejar rastro no sirve como respaldo.</p>
+    </div>
+    <p>Corregir la cantidad ajusta el stock del lote en la diferencia correspondiente.</p>
+  </div>
+
+  <div class="doc-footer">
+    AgroTrace · Sistema de Trazabilidad REPROCANN<br/>
+    Procedimiento de Registro de Entregas — Portal ONG
+  </div>
+
+</div>
+</body>
+</html>
