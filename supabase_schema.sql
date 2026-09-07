@@ -493,12 +493,22 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON public.analisis_calidad TO authenticated
 CREATE TABLE IF NOT EXISTS public.entregas (
   id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   flores_id         UUID NOT NULL REFERENCES public.flores_cosechadas(id) ON DELETE CASCADE,
-  nro_reprocann     TEXT NOT NULL,
+  paciente_id       UUID REFERENCES public.pacientes(id) ON DELETE SET NULL,  -- NULL si el receptor no está en el listado
+  paciente_nombre   TEXT,          -- nombre del receptor (de la ficha o cargado a mano)
+  nro_reprocann     TEXT,          -- opcional: la regla es nombre Y/O reprocann
   cantidad_otorgada NUMERIC NOT NULL CHECK (cantidad_otorgada > 0),
   fecha_entrega     DATE NOT NULL,
+  registrado_por    TEXT,
   notas             TEXT,
-  creado_en         TIMESTAMPTZ DEFAULT NOW()
+  creado_en         TIMESTAMPTZ DEFAULT NOW(),
+  -- toda entrega debe identificar al receptor por al menos una vía
+  CONSTRAINT entregas_receptor_identificado CHECK (
+    paciente_id IS NOT NULL
+    OR NULLIF(TRIM(paciente_nombre), '') IS NOT NULL
+    OR NULLIF(TRIM(nro_reprocann), '') IS NOT NULL
+  )
 );
+CREATE INDEX IF NOT EXISTS idx_entregas_paciente ON public.entregas(paciente_id);
 ALTER TABLE public.entregas ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "entregas_all" ON public.entregas
   FOR ALL USING (puede_acceder_flores(flores_id)) WITH CHECK (puede_acceder_flores(flores_id));

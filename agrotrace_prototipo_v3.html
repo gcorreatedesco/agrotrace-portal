@@ -1481,6 +1481,7 @@ let PAC_EDIT_ID=null;
 let PAC_VISIBLE_RT=false;
 let PAC_ONG_ID=null;
 let _pac_ac_data=[];
+let _entPacId=null;   // paciente del listado seleccionado en el form de entrega
 let _guardandoEntrega=false;
 let _guardandoAvance=false;
 let _g={}; // guards de doble-submit por función
@@ -1690,22 +1691,25 @@ async function abrirEntregasPac(id){
   document.getElementById('entr-pac-body').innerHTML='<div class="pac-empty" style="padding:16px">Cargando...</div>';
   document.getElementById('modal-entregas-pac').style.display='flex';
   const{data,error}=await sb.from('entregas')
-    .select('fecha_entrega,cantidad_entregada,nro_reprocann,flores_cosechadas!inner(lotes_produccion!inner(nombre_base))')
+    .select('fecha_entrega,cantidad_otorgada,nro_reprocann,flores_cosechadas!inner(lotes_produccion!inner(nombre_base))')
     .eq('paciente_id',id)
     .order('fecha_entrega',{ascending:false});
   const body=document.getElementById('entr-pac-body');
-  if(error||!data?.length){
+  if(error){ // nunca disfrazar un error de consulta como "sin entregas"
+    body.innerHTML=`<div class="pac-empty" style="padding:20px 0;color:var(--error);">Error al consultar las entregas: ${esc(error.message)}</div>`;return;
+  }
+  if(!data?.length){
     body.innerHTML='<div class="pac-empty" style="padding:20px 0">Sin entregas registradas para este paciente.</div>';return;
   }
   const fmt=dt=>dt?new Date(dt).toLocaleDateString('es-AR',{day:'numeric',month:'short',year:'numeric'}):'—';
-  const total=data.reduce((s,e)=>s+(parseFloat(e.cantidad_entregada)||0),0);
+  const total=data.reduce((s,e)=>s+(parseFloat(e.cantidad_otorgada)||0),0);
   body.innerHTML=`<table class="pac-entr-table">
     <thead><tr><th>Fecha</th><th>Lote</th><th>N° REPROCANN entrega</th><th style="text-align:right">Cantidad</th></tr></thead>
     <tbody>${data.map(e=>`<tr>
       <td>${fmt(e.fecha_entrega)}</td>
       <td>${esc(e.flores_cosechadas?.lotes_produccion?.nombre_base||'—')}</td>
       <td style="font-family:monospace;font-size:0.75rem">${esc(e.nro_reprocann||'—')}</td>
-      <td style="text-align:right;color:var(--accent);font-weight:500">${e.cantidad_entregada} g</td>
+      <td style="text-align:right;color:var(--accent);font-weight:500">${e.cantidad_otorgada} g</td>
     </tr>`).join('')}</tbody>
   </table>
   <div class="pac-entr-total">Total entregado: <strong>${total} g</strong></div>`;
@@ -2644,7 +2648,19 @@ function panelFlores(){
         <div class="field"><label>Cantidad (gramos)<span class="req">*</span></label><input type="number" id="ent-cantidad" placeholder="0" min="0.1" step="0.1"/></div>
       </div>
       <div class="field"><label>Nombre de quien entrega<span class="req">*</span></label><input type="text" id="ent-entregador" placeholder="Nombre del responsable de la entrega"/></div>
-      <div class="field"><label>Nro. REPROCANN del paciente<span class="opt">opcional</span></label><div class="ac-wrap"><input type="text" id="ent-reprocann" placeholder="Ej: 0001-2024-RPC" autocomplete="off" oninput="acRepro(this)" onfocus="acRepro(this)" onkeydown="acReproKey(event)" onblur="setTimeout(()=>{const l=document.getElementById('ent-reprocann-list');if(l){l.innerHTML='';l.classList.remove('open');}},160)"/><ul class="ac-list" id="ent-reprocann-list"></ul></div></div>
+      <div class="field">
+        <label>Paciente que recibe<span class="req">*</span></label>
+        <div class="ac-wrap" id="ent-pac-busq-wrap"><input type="text" id="ent-pac-busq" placeholder="Buscar por nombre o REPROCANN..." autocomplete="off" oninput="acRepro(this)" onfocus="acRepro(this)" onkeydown="acReproKey(event)" onblur="setTimeout(()=>{const l=document.getElementById('ent-reprocann-list');if(l){l.innerHTML='';l.classList.remove('open');}},160)"/><ul class="ac-list" id="ent-reprocann-list"></ul></div>
+        <div id="ent-pac-sel" style="display:none;align-items:center;gap:8px;padding:8px 10px;background:var(--dew);border-radius:var(--radius);font-size:0.78rem;color:var(--soil);"><span id="ent-pac-sel-txt"></span><button type="button" onclick="entPacQuitar()" style="margin-left:auto;background:none;border:none;color:var(--accent);cursor:pointer;font-size:0.72rem;text-decoration:underline;">Cambiar</button></div>
+        <div id="ent-pac-manual" style="display:none;margin-top:8px;padding:10px;background:var(--cream);border-radius:var(--radius);">
+          <div style="font-size:0.7rem;color:var(--bark);margin-bottom:8px;">Paciente no cargado en el listado — completá al menos uno de los dos campos.</div>
+          <div class="g2">
+            <div class="field" style="margin-bottom:0;"><label>Nombre y apellido</label><input type="text" id="ent-pac-nombre" placeholder="Ej: María González"/></div>
+            <div class="field" style="margin-bottom:0;"><label>Nro. REPROCANN</label><input type="text" id="ent-reprocann" placeholder="Ej: 0001-2024-RPC"/></div>
+          </div>
+        </div>
+        <div id="ent-pac-toggle" style="margin-top:6px;"><button type="button" onclick="entPacManualToggle()" style="background:none;border:none;padding:0;color:var(--accent);cursor:pointer;font-size:0.72rem;text-decoration:underline;">El paciente no está en el listado</button></div>
+      </div>
       <div class="field"><label>Notas<span class="opt">opcional</span></label><input type="text" id="ent-notas" placeholder="Observaciones..."/></div>
       <div class="ib" style="margin-bottom:10px;">Stock disponible: <strong id="ent-stock-disp">—</strong> g</div>
       <div class="ab">
@@ -3004,7 +3020,8 @@ async function cargarHistorialEntregas(){
     return`<div style="padding:8px 0;border-bottom:1px solid rgba(0,0,0,0.06);">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;">
         <div>
-          <div style="font-size:0.78rem;font-weight:500;color:var(--soil);">REPROCANN: ${esc(e.nro_reprocann)||'S/D'}</div>
+          <div style="font-size:0.78rem;font-weight:500;color:var(--soil);">${esc(e.paciente_nombre)||'Paciente sin identificar'}${e.paciente_id?'':' <span style="font-weight:300;color:var(--amber);font-size:0.68rem;">(no está en el listado)</span>'}</div>
+          <div style="font-size:0.7rem;color:var(--sage);margin-top:1px;">REPROCANN: ${esc(e.nro_reprocann)||'S/D'}</div>
           <div style="font-size:0.68rem;color:var(--sage);margin-top:1px;">${e.registrado_por?'Entregado por: '+esc(e.registrado_por):''}${e.notas?'<br>'+esc(e.notas):''}</div>
         </div>
         <div style="text-align:right;flex-shrink:0;margin-left:10px;">
@@ -3112,12 +3129,45 @@ function acRepro(input){
     ?_pac_ac_data.filter(p=>(p.nro_reprocann||'').toLowerCase().includes(q)||(p.nombre||'').toLowerCase().includes(q)||(p.apellido||'').toLowerCase().includes(q))
     :_pac_ac_data.slice(0,8);
   if(!matches.length){list.innerHTML='';list.classList.remove('open');return;}
-  list.innerHTML=matches.slice(0,8).map(p=>`<li data-v="${esc(p.nro_reprocann)}" onclick="acReproSel(this.dataset.v)"><span class="ac-pnum">#${String(p.numero).padStart(3,'0')}</span><span class="ac-repro">${esc(p.nro_reprocann)}</span><span class="ac-pname">${esc(p.nombre)} ${esc(p.apellido)}</span></li>`).join('');
+  list.innerHTML=matches.slice(0,8).map(p=>`<li data-v="${p.id}" onclick="acReproSel(this.dataset.v)"><span class="ac-pnum">#${String(p.numero).padStart(3,'0')}</span><span class="ac-repro">${esc(p.nro_reprocann)||'—'}</span><span class="ac-pname">${esc(p.nombre)} ${esc(p.apellido)}</span></li>`).join('');
   list.classList.add('open');
 }
-function acReproSel(v){
-  const el=document.getElementById('ent-reprocann');if(el)el.value=v;
+// selecciona un paciente del listado — guarda el id real, no el string del REPROCANN
+function acReproSel(id){
+  const p=_pac_ac_data.find(x=>x.id===id);
+  if(!p)return;
+  _entPacId=id;
+  const wrap=document.getElementById('ent-pac-busq-wrap');if(wrap)wrap.style.display='none';
+  const man=document.getElementById('ent-pac-manual');if(man)man.style.display='none';
+  const tog=document.getElementById('ent-pac-toggle');if(tog)tog.style.display='none';
+  const txt=document.getElementById('ent-pac-sel-txt');
+  if(txt)txt.innerHTML=`<strong>#${String(p.numero).padStart(3,'0')}</strong> ${esc(p.nombre)} ${esc(p.apellido)}`+(p.nro_reprocann?` · ${esc(p.nro_reprocann)}`:` · <span style="color:var(--error);">sin REPROCANN</span>`);
+  const sel=document.getElementById('ent-pac-sel');if(sel)sel.style.display='flex';
   const list=document.getElementById('ent-reprocann-list');if(list){list.innerHTML='';list.classList.remove('open');}
+}
+function entPacQuitar(){
+  _entPacId=null;
+  const sel=document.getElementById('ent-pac-sel');if(sel)sel.style.display='none';
+  const wrap=document.getElementById('ent-pac-busq-wrap');if(wrap)wrap.style.display='block';
+  const tog=document.getElementById('ent-pac-toggle');if(tog)tog.style.display='block';
+  const b=document.getElementById('ent-pac-busq');if(b){b.value='';b.focus();}
+}
+function entPacManualToggle(){
+  const man=document.getElementById('ent-pac-manual');
+  const wrap=document.getElementById('ent-pac-busq-wrap');
+  if(!man)return;
+  const abierto=man.style.display!=='none';
+  if(abierto){
+    man.style.display='none';if(wrap)wrap.style.display='block';
+    ['ent-pac-nombre','ent-reprocann'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  }else{
+    man.style.display='block';if(wrap)wrap.style.display='none';
+    _entPacId=null;
+    const sel=document.getElementById('ent-pac-sel');if(sel)sel.style.display='none';
+    document.getElementById('ent-pac-nombre')?.focus();
+  }
+  const btn=document.querySelector('#ent-pac-toggle button');
+  if(btn)btn.textContent=abierto?'El paciente no está en el listado':'Volver a buscar en el listado';
 }
 function acReproKey(e){
   const list=document.getElementById('ent-reprocann-list');
@@ -3154,19 +3204,45 @@ function cerrarFormEntrega(){
   if(btn){btn.style.background='';btn.style.color='';btn.style.borderColor='';}
   const form=document.getElementById('form-entrega');
   if(form)form.style.display='none';
-  ['ent-reprocann','ent-fecha','ent-cantidad','ent-entregador','ent-notas'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['ent-reprocann','ent-fecha','ent-cantidad','ent-entregador','ent-notas','ent-pac-busq','ent-pac-nombre'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   const acL=document.getElementById('ent-reprocann-list');if(acL){acL.innerHTML='';acL.classList.remove('open');}
+  // reset del bloque de paciente
+  _entPacId=null;
+  const pSel=document.getElementById('ent-pac-sel');if(pSel)pSel.style.display='none';
+  const pMan=document.getElementById('ent-pac-manual');if(pMan)pMan.style.display='none';
+  const pWrap=document.getElementById('ent-pac-busq-wrap');if(pWrap)pWrap.style.display='block';
+  const pTog=document.getElementById('ent-pac-toggle');if(pTog)pTog.style.display='block';
+  const pBtn=document.querySelector('#ent-pac-toggle button');if(pBtn)pBtn.textContent='El paciente no está en el listado';
 }
 
 async function guardarEntrega(){
   if(_guardandoEntrega)return;
   _guardandoEntrega=true;
   try{
-    const reprocann=document.getElementById('ent-reprocann')?.value.trim()||null;
     const fecha=document.getElementById('ent-fecha')?.value;
     const cantStr=document.getElementById('ent-cantidad')?.value;
     const entregador=document.getElementById('ent-entregador')?.value.trim()||null;
     const notas=document.getElementById('ent-notas')?.value.trim()||null;
+    // ── identificación del paciente (obligatoria) ──
+    let pacId=null, pacNombre=null, reprocann=null;
+    if(_entPacId){
+      const p=_pac_ac_data.find(x=>x.id===_entPacId);
+      if(!p){alert('El paciente seleccionado ya no está disponible. Volvé a elegirlo.');return;}
+      if(!p.nro_reprocann||!p.nro_reprocann.trim()){
+        alert(`El paciente #${String(p.numero).padStart(3,'0')} (${p.nombre} ${p.apellido}) no tiene Nro. de REPROCANN cargado.\n\nCompletá su ficha en la sección Pacientes antes de registrarle una entrega.`);
+        return;
+      }
+      pacId=p.id;
+      pacNombre=`${p.nombre} ${p.apellido}`.trim();
+      reprocann=p.nro_reprocann.trim();
+    }else{
+      pacNombre=document.getElementById('ent-pac-nombre')?.value.trim()||null;
+      reprocann=document.getElementById('ent-reprocann')?.value.trim()||null;
+      if(!pacNombre&&!reprocann){
+        alert('Indicá a quién se entrega: elegí un paciente del listado, o cargá su nombre y/o Nro. de REPROCANN.');
+        return;
+      }
+    }
     if(!fecha){alert('La fecha de entrega es obligatoria.');return;}
     if(!entregador){alert('El nombre de quien entrega es obligatorio.');return;}
     const cantidad=parseFloat(cantStr);
@@ -3186,6 +3262,8 @@ async function guardarEntrega(){
     }
     const{data:entData,error:entErr}=await sb.from('entregas').insert({
       flores_id:floresId,
+      paciente_id:pacId,
+      paciente_nombre:pacNombre,
       nro_reprocann:reprocann,
       fecha_entrega:fecha,
       cantidad_otorgada:cantidad,
