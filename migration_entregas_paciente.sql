@@ -50,18 +50,27 @@ ALTER TABLE public.entregas_correcciones
   ADD COLUMN IF NOT EXISTS paciente_nombre_nvo TEXT;
 
 -- ── 5. Backfill: reconstruir el vínculo de las entregas ya cargadas ─
--- Cruza por nro_reprocann exacto. Solo toca filas donde el número
--- identifica a UN paciente sin ambigüedad.
+-- Cruza por nro_reprocann exacto, SIEMPRE dentro de la misma ONG.
+-- El scope por usuario_id es obligatorio: este script corre con service
+-- role y saltea RLS, así que sin él una entrega podría quedar vinculada
+-- al paciente de OTRA ONG que tenga el mismo número de REPROCANN.
+-- La cadena de propiedad es entregas → flores_cosechadas → lotes_produccion.
 UPDATE public.entregas e
 SET paciente_id = p.id,
     paciente_nombre = COALESCE(NULLIF(TRIM(e.paciente_nombre), ''), p.nombre || ' ' || p.apellido)
-FROM public.pacientes p
-WHERE e.paciente_id IS NULL
+FROM public.flores_cosechadas f,
+     public.lotes_produccion  l,
+     public.pacientes         p
+WHERE e.flores_id = f.id
+  AND f.lote_id   = l.id
+  AND p.usuario_id = l.usuario_id          -- mismo tenant, no cruzar ONGs
+  AND e.paciente_id IS NULL
   AND NULLIF(TRIM(e.nro_reprocann), '') IS NOT NULL
   AND TRIM(p.nro_reprocann) = TRIM(e.nro_reprocann)
-  AND (
+  AND (   -- el número tiene que identificar a UN solo paciente de esa ONG
     SELECT COUNT(*) FROM public.pacientes p2
-    WHERE TRIM(p2.nro_reprocann) = TRIM(e.nro_reprocann)
+    WHERE p2.usuario_id = l.usuario_id
+      AND TRIM(p2.nro_reprocann) = TRIM(e.nro_reprocann)
   ) = 1;
 
 -- ── 6. Verificación — correr después y revisar el resultado ────────
