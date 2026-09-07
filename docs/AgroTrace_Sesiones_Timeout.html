@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AgroTrace — Sesiones: Timeout y Login Múltiple</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --soil:#2C1F0E;--bark:#4A3520;--sage:#6B7F5E;--leaf:#8EAA7B;--mist:#C8D9BC;
+  --dew:#EDF2E8;--cream:#F7F4EF;--white:#FFFFFF;--accent:#4E7C3F;
+  --amber:#854F0B;--amber-bg:#FAEEDA;--amber-light:#FAC775;
+  --purple:#534AB7;--purple-bg:#EEEDFE;
+  --error:#B94A3A;--error-bg:#FAECE7;
+  --radius:6px;--radius-lg:10px;
+}
+body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--soil);font-size:15px;line-height:1.7;}
+
+.doc-header{background:var(--soil);padding:48px 0 40px;text-align:center;}
+.doc-header-inner{max-width:760px;margin:0 auto;padding:0 24px;}
+.doc-brand{font-size:0.72rem;font-weight:500;letter-spacing:0.18em;text-transform:uppercase;color:var(--leaf);margin-bottom:12px;}
+.doc-title{font-family:'DM Serif Display',serif;font-size:2.2rem;color:var(--white);line-height:1.2;margin-bottom:12px;}
+.doc-subtitle{font-size:0.9rem;color:var(--mist);font-weight:300;max-width:560px;margin:0 auto;}
+.doc-meta{margin-top:20px;font-size:0.72rem;color:rgba(255,255,255,0.3);letter-spacing:0.05em;}
+.doc-status{display:inline-flex;align-items:center;gap:6px;margin-top:16px;font-size:0.72rem;font-weight:500;padding:4px 14px;border-radius:12px;background:var(--amber-bg);color:var(--amber);}
+
+.doc-body{max-width:760px;margin:0 auto;padding:48px 24px;}
+
+.toc{background:var(--white);border:1px solid rgba(0,0,0,0.07);border-radius:var(--radius-lg);padding:24px 28px;margin-bottom:48px;}
+.toc-title{font-family:'DM Serif Display',serif;font-size:1rem;color:var(--soil);margin-bottom:14px;}
+.toc-list{list-style:none;display:flex;flex-direction:column;gap:6px;}
+.toc-list li a{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--bark);font-size:0.85rem;transition:color 0.15s;}
+.toc-list li a:hover{color:var(--accent);}
+.toc-num{font-size:0.7rem;font-weight:500;color:var(--sage);min-width:18px;}
+
+.intro{margin-bottom:48px;}
+.intro p{color:var(--bark);margin-bottom:14px;}
+.intro p:last-child{margin-bottom:0;}
+
+.sec{margin-bottom:52px;}
+.sec-header{display:flex;align-items:flex-start;gap:14px;margin-bottom:20px;padding-bottom:16px;border-bottom:2px solid var(--dew);}
+.sec-number{width:38px;height:38px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:'DM Serif Display',serif;font-size:1.05rem;color:var(--white);flex-shrink:0;}
+.sec-title-wrap{flex:1;}
+.sec-title{font-family:'DM Serif Display',serif;font-size:1.35rem;color:var(--soil);margin-bottom:3px;}
+.sec-kicker{font-size:0.72rem;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;color:var(--sage);}
+.sec h3{font-family:'DM Serif Display',serif;font-size:1rem;color:var(--soil);margin:26px 0 8px;}
+.sec p{color:var(--bark);margin-bottom:14px;}
+.sec ul,.sec ol{margin:0 0 14px 20px;color:var(--bark);}
+.sec li{margin-bottom:7px;}
+
+.box{border-radius:var(--radius-lg);padding:16px 20px;margin:0 0 20px;border-left:3px solid;}
+.box-label{font-size:0.65rem;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px;}
+.box p{margin:0;font-size:0.875rem;}
+.box p+p{margin-top:8px;}
+.box-rule{background:var(--dew);border-color:var(--accent);}
+.box-rule .box-label{color:var(--accent);}
+.box-warn{background:var(--amber-bg);border-color:var(--amber-light);}
+.box-warn .box-label{color:var(--amber);}
+.box-warn p{color:var(--amber);}
+.box-block{background:var(--error-bg);border-color:var(--error);}
+.box-block .box-label{color:var(--error);}
+.box-block p{color:var(--error);}
+
+.caso{background:var(--white);border:1px solid rgba(0,0,0,0.07);border-radius:var(--radius-lg);padding:22px 24px;margin-bottom:18px;}
+.caso-tag{display:inline-block;font-size:0.68rem;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;padding:3px 10px;border-radius:10px;margin-bottom:10px;}
+.tag-a{background:var(--dew);color:var(--accent);}
+.tag-b{background:var(--purple-bg);color:var(--purple);}
+.caso-title{font-family:'DM Serif Display',serif;font-size:1.1rem;color:var(--soil);margin-bottom:10px;}
+
+table{width:100%;border-collapse:collapse;margin:0 0 20px;font-size:0.85rem;}
+thead th{text-align:left;background:var(--soil);color:var(--mist);font-weight:500;font-size:0.7rem;letter-spacing:0.08em;text-transform:uppercase;padding:10px 14px;}
+thead th:first-child{border-radius:var(--radius) 0 0 0;}
+thead th:last-child{border-radius:0 var(--radius) 0 0;}
+tbody td{padding:10px 14px;border-bottom:1px solid var(--dew);color:var(--bark);vertical-align:top;}
+tbody tr:nth-child(even){background:var(--white);}
+tbody td code{font-family:monospace;font-size:0.8rem;color:var(--soil);}
+
+.ui{display:inline-block;font-size:0.82rem;background:var(--white);border:1px solid var(--mist);padding:1px 8px;border-radius:4px;color:var(--soil);}
+code{font-family:monospace;font-size:0.85rem;background:var(--dew);padding:1px 5px;border-radius:3px;color:var(--soil);}
+
+.doc-footer{border-top:1px solid var(--mist);margin-top:56px;padding-top:24px;font-size:0.78rem;color:var(--sage);text-align:center;}
+
+@media(max-width:640px){
+  .doc-title{font-size:1.7rem;}
+  .doc-body{padding:32px 18px;}
+  .sec-header{gap:10px;}
+  table{font-size:0.78rem;}
+  thead th,tbody td{padding:8px 10px;}
+}
+</style>
+</head>
+<body>
+
+<div class="doc-header">
+  <div class="doc-header-inner">
+    <div class="doc-brand">AgroTrace · Referencia técnica</div>
+    <div class="doc-title">Sesiones: Timeout y Login Múltiple</div>
+    <div class="doc-subtitle">Qué hace Supabase Auth por defecto, qué controles nativos existen, y por qué no son iguales para una cuenta de ONG que para una de RT.</div>
+    <div class="doc-meta">Investigación 2026-09-07</div>
+    <div class="doc-status">⏳ No implementado — documento de referencia para decidir</div>
+  </div>
+</div>
+
+<div class="doc-body">
+
+  <div class="toc">
+    <div class="toc-title">Contenido</div>
+    <ul class="toc-list">
+      <li><a href="#s1"><span class="toc-num">1</span> Por qué las sesiones duran horas hoy</a></li>
+      <li><a href="#s2"><span class="toc-num">2</span> ONG y RT no son el mismo problema</a></li>
+      <li><a href="#s3"><span class="toc-num">3</span> Los tres controles nativos de Supabase</a></li>
+      <li><a href="#s4"><span class="toc-num">4</span> Dos trampas antes de activar algo</a></li>
+      <li><a href="#s5"><span class="toc-num">5</span> Recomendación</a></li>
+      <li><a href="#s6"><span class="toc-num">6</span> Si hay que construirlo a mano</a></li>
+    </ul>
+  </div>
+
+  <div class="intro">
+    <p>Este documento resume la investigación sobre cómo cerrar sesiones inactivas y limitar logins simultáneos en AgroTrace. Es <strong>referencia para tomar una decisión</strong>, no describe nada ya implementado.</p>
+  </div>
+
+  <!-- ── 1 ── -->
+  <div class="sec" id="s1">
+    <div class="sec-header">
+      <div class="sec-number">1</div>
+      <div class="sec-title-wrap">
+        <div class="sec-title">Por qué las sesiones duran horas hoy</div>
+        <div class="sec-kicker">Comportamiento actual</div>
+      </div>
+    </div>
+    <p>No es una falla de configuración — es el default de Supabase Auth sin tocar nada:</p>
+    <ul>
+      <li>El <strong>JWT expira en 1 hora</strong>, pero eso es invisible para el usuario.</li>
+      <li>El <strong>refresh token nunca expira</strong> y se renueva solo, indefinidamente.</li>
+      <li>Resultado: <strong>las sesiones duran indefinidamente</strong> hasta un logout manual. Un usuario puede dejar la pestaña abierta días.</li>
+      <li><strong>No hay límite de sesiones simultáneas</strong> — un usuario puede estar logueado en tantos dispositivos como quiera a la vez.</li>
+    </ul>
+    <p>Fuente: <a href="https://supabase.com/docs/guides/auth/sessions" style="color:var(--accent);">supabase.com/docs/guides/auth/sessions</a></p>
+  </div>
+
+  <!-- ── 2 ── -->
+  <div class="sec" id="s2">
+    <div class="sec-header">
+      <div class="sec-number">2</div>
+      <div class="sec-title-wrap">
+        <div class="sec-title">ONG y RT no son el mismo problema</div>
+        <div class="sec-kicker">Contexto de negocio</div>
+      </div>
+    </div>
+    <p>Antes de tocar cualquier control, importa la naturaleza de cada cuenta:</p>
+
+    <div class="caso">
+      <div class="caso-tag tag-a">Cuenta ONG</div>
+      <div class="caso-title">Institucional, compartida por diseño</div>
+      <p>El Superadmin crea <strong>un único usuario admin por ONG</strong>. Muy probablemente lo usen varias personas a la vez — alguien en el campo desde el celular, alguien en la oficina haciendo reportes. No es un uso indebido: es cómo está diseñada la cuenta hoy.</p>
+    </div>
+
+    <div class="caso">
+      <div class="caso-tag tag-b">Cuenta RT</div>
+      <div class="caso-title">Individual, con responsabilidad profesional</div>
+      <p>El RT es una persona con título profesional, colegio y matrícula cargados en su ficha. Firma técnicamente lo que supervisa. Que su credencial esté activa en dos lugares a la vez es un problema real de no repudio, no solo teórico.</p>
+    </div>
+
+    <div class="box box-warn">
+      <div class="box-label">Consecuencia</div>
+      <p>Cualquier control que trate a ambas cuentas igual (por ejemplo, "sesión única por usuario" aplicado parejo) va a estar bien para RT y mal para ONG — va a expulsar a la persona del campo cada vez que alguien de la oficina inicia sesión, y viceversa.</p>
+    </div>
+  </div>
+
+  <!-- ── 3 ── -->
+  <div class="sec" id="s3">
+    <div class="sec-header">
+      <div class="sec-number">3</div>
+      <div class="sec-title-wrap">
+        <div class="sec-title">Los tres controles nativos de Supabase</div>
+        <div class="sec-kicker">Auth settings → Sessions</div>
+      </div>
+    </div>
+    <p>Supabase ofrece justo lo que se necesita, en el Dashboard del proyecto:</p>
+
+    <table>
+      <thead><tr><th>Control</th><th>Qué hace</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Time-box user sessions</strong></td><td>Corta la sesión a un tiempo fijo, sin importar actividad — fuerza re-login periódico.</td></tr>
+        <tr><td><strong>Inactivity Timeout</strong></td><td>Corta la sesión si no se refrescó en el período configurado.</td></tr>
+        <tr><td><strong>Single session per user</strong></td><td>Mantiene solo la sesión activa más reciente; cierra las anteriores.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="box box-block">
+      <div class="box-label">Requisito</div>
+      <p>Las tres funciones requieren <strong>Plan Pro o superior</strong>. No verificado en qué plan está el proyecto de AgroTrace — revisar en Dashboard → Settings → Billing antes de planificar sobre esto.</p>
+    </div>
+  </div>
+
+  <!-- ── 4 ── -->
+  <div class="sec" id="s4">
+    <div class="sec-header">
+      <div class="sec-number">4</div>
+      <div class="sec-title-wrap">
+        <div class="sec-title">Dos trampas antes de activar algo</div>
+        <div class="sec-kicker">Gotchas</div>
+      </div>
+    </div>
+
+    <h3>El corte no es instantáneo</h3>
+    <p>Los cambios no son retroactivos: se aplican recién <strong>al próximo refresh del token</strong>. En la práctica, la duración real de la sesión es <strong>el timeout configurado + el tiempo de expiración del JWT</strong> (1 hora por defecto).</p>
+    <p>Ejemplo: con "Inactivity Timeout: 30 minutos" y JWT en 1 hora, alguien puede seguir con sesión activa hasta 1 hora y media después de la última actividad, porque el chequeo solo corre cuando el token se refresca. Para un corte más ajustado a los 30 minutos reales hay que bajar también el JWT expiry — pero Supabase recomienda no bajarlo de 5 minutos.</p>
+
+    <h3>«Single session per user» parece ser global, no por rol</h3>
+    <p>No se encontró en la documentación una forma de aplicarlo solo a usuarios con rol <code>rt</code> y no a <code>ong</code>. Es, al parecer, un interruptor a nivel de todo el proyecto.</p>
+    <div class="box box-warn">
+      <div class="box-label">Implicancia</div>
+      <p>Activarlo tal cual rompería el uso legítimo de la cuenta compartida de ONG (sección 2). No es apto para AgroTrace en su forma nativa mientras exista una sola cuenta por ONG.</p>
+    </div>
+  </div>
+
+  <!-- ── 5 ── -->
+  <div class="sec" id="s5">
+    <div class="sec-header">
+      <div class="sec-number">5</div>
+      <div class="sec-title-wrap">
+        <div class="sec-title">Recomendación</div>
+        <div class="sec-kicker">Próximo paso sugerido</div>
+      </div>
+    </div>
+
+    <table>
+      <thead><tr><th>Medida</th><th>ONG</th><th>RT</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Inactivity Timeout</strong> (nativo, Plan Pro)</td><td>✅ Sí — sin riesgo, beneficia a ambos roles por igual</td><td>✅ Sí</td></tr>
+        <tr><td><strong>Single session per user</strong> (nativo, Plan Pro)</td><td>❌ No — rompe la cuenta compartida</td><td>⚠️ Deseable, pero el control nativo es global — no se puede aplicar solo a RT</td></tr>
+      </tbody>
+    </table>
+
+    <ol>
+      <li>Verificar el plan de Supabase del proyecto.</li>
+      <li>Si es Pro o superior: activar <strong>Inactivity Timeout</strong> a nivel de proyecto (sugerido: 30 minutos, con aviso previo en la UI antes del corte, porque hay wizards y formularios largos sin autoguardado).</li>
+      <li><strong>No</strong> activar «Single session per user» a nivel de proyecto.</li>
+      <li>Para sesión única específicamente en RT, ver sección 6 — requiere lógica propia.</li>
+    </ol>
+  </div>
+
+  <!-- ── 6 ── -->
+  <div class="sec" id="s6">
+    <div class="sec-header">
+      <div class="sec-number">6</div>
+      <div class="sec-title-wrap">
+        <div class="sec-title">Si hay que construirlo a mano</div>
+        <div class="sec-kicker">Alternativa para sesión única en RT</div>
+      </div>
+    </div>
+    <p>Como el control nativo no distingue por rol, la única forma de lograr sesión única solo para RT (sin afectar a ONG) es una tabla propia, del estilo <code>sesiones_activas (usuario_id, session_id, ultima_actividad)</code>: al hacer login se escribe el session id vigente; la app verifica periódicamente que el suyo siga siendo el activo y, si no, desloguea. La lógica se aplicaría únicamente cuando <code>rol = 'rt'</code>.</p>
+    <div class="box box-rule">
+      <div class="box-label">Advertencia sobre logout por inactividad del lado del cliente</div>
+      <p>Un timer en JavaScript que desloguea por inactividad es una medida de <strong>higiene y cumplimiento</strong>, no una barrera de seguridad real: alguien con acceso al <code>localStorage</code> tiene el JWT y puede usarlo hasta que expire, haga lo que haga la interfaz. La barrera real es del lado del servidor — o el control nativo de Supabase, o la tabla propia verificada en cada request sensible.</p>
+    </div>
+    <p>Consideraciones propias del stack de AgroTrace si se implementa así:</p>
+    <ul>
+      <li>La app son <strong>cuatro HTML separados</strong> que navegan con <code>window.location.href</code> — un timer no sobrevive la navegación entre páginas. Hay que guardar <code>ultima_actividad</code> en <code>localStorage</code> y revalidar en cada carga.</li>
+      <li>Al desloguear, limpiar también el <code>sessionStorage</code> de supervisión (<code>agrotrace_supervisando_ong_id</code>), o queda contexto colgado.</li>
+      <li>Esta función viviría duplicada en los cuatro archivos bajo la convención actual de "todo inline" — candidato a extraer un <code>auth-guard.js</code> compartido si se implementa.</li>
+    </ul>
+  </div>
+
+  <div class="doc-footer">
+    AgroTrace · Sistema de Trazabilidad REPROCANN<br/>
+    Referencia técnica — Sesiones, Timeout y Login Múltiple
+  </div>
+
+</div>
+</body>
+</html>
