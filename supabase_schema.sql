@@ -518,10 +518,12 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON public.entregas TO authenticated;
 CREATE TABLE IF NOT EXISTS public.entregas_correcciones (
   id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   entrega_id          UUID NOT NULL REFERENCES public.entregas(id) ON DELETE CASCADE,
+  paciente_nombre_ant TEXT,
   nro_reprocann_ant   TEXT,
   cantidad_ant        NUMERIC,
   notas_ant           TEXT,
   registrado_por_ant  TEXT,
+  paciente_nombre_nvo TEXT,
   nro_reprocann_nvo   TEXT,
   cantidad_nvo        NUMERIC,
   notas_nvo           TEXT,

@@ -41,6 +41,14 @@ ALTER TABLE public.entregas
 -- ── 4. Índice para el modal "Ver entregas" del paciente ────────────
 CREATE INDEX IF NOT EXISTS idx_entregas_paciente ON public.entregas(paciente_id);
 
+-- ── 4b. Audit trail del cambio de paciente en las correcciones ─────
+-- Una corrección puede re-vincular la entrega a otro paciente. El cambio
+-- de receptor tiene que quedar asentado igual que el de cantidad.
+ALTER TABLE public.entregas_correcciones
+  ADD COLUMN IF NOT EXISTS paciente_nombre_ant TEXT;
+ALTER TABLE public.entregas_correcciones
+  ADD COLUMN IF NOT EXISTS paciente_nombre_nvo TEXT;
+
 -- ── 5. Backfill: reconstruir el vínculo de las entregas ya cargadas ─
 -- Cruza por nro_reprocann exacto. Solo toca filas donde el número
 -- identifica a UN paciente sin ambigüedad.

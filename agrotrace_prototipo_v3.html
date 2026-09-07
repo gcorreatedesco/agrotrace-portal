@@ -2998,14 +2998,16 @@ async function cargarHistorialEntregas(){
     const corrRows=cc.map((c,ci)=>`
       <div style="padding:6px 0 4px;border-bottom:1px solid rgba(0,0,0,0.04);font-size:0.68rem;">
         <div style="color:var(--amber);font-weight:500;margin-bottom:3px;">↳ Corrección ${cc.length-ci} — ${fmtDate(c.fecha_correccion?.split('T')[0])}${c.corregido_por?' — '+esc(c.corregido_por):''}</div>
-        ${c.nro_reprocann_ant!==c.nro_reprocann_nvo?`<div style="color:var(--sage);">REPROCANN: <span style="text-decoration:line-through;">${esc(c.nro_reprocann_ant)}</span> → <strong>${esc(c.nro_reprocann_nvo)}</strong></div>`:''}
+        ${c.paciente_nombre_ant!==c.paciente_nombre_nvo?`<div style="color:var(--sage);">Paciente: <span style="text-decoration:line-through;">${esc(c.paciente_nombre_ant)||'sin identificar'}</span> → <strong>${esc(c.paciente_nombre_nvo)||'sin identificar'}</strong></div>`:''}
+        ${c.nro_reprocann_ant!==c.nro_reprocann_nvo?`<div style="color:var(--sage);">REPROCANN: <span style="text-decoration:line-through;">${esc(c.nro_reprocann_ant)||'S/D'}</span> → <strong>${esc(c.nro_reprocann_nvo)||'S/D'}</strong></div>`:''}
         ${c.cantidad_ant!==c.cantidad_nvo?`<div style="color:var(--sage);">Cantidad: <span style="text-decoration:line-through;">${c.cantidad_ant} g</span> → <strong>${c.cantidad_nvo} g</strong></div>`:''}
         ${c.notas_nvo&&c.notas_nvo!==c.notas_ant?`<div style="color:var(--sage);">Notas: ${esc(c.notas_nvo)}</div>`:''}
       </div>`).join('');
     const origRow=`
       <div style="padding:6px 0 2px;font-size:0.68rem;">
         <div style="color:var(--sage);font-weight:500;margin-bottom:3px;">↳ Registro original</div>
-        <div style="color:var(--sage);">REPROCANN: ${esc(tieneCorrecciones?cc[cc.length-1].nro_reprocann_ant:e.nro_reprocann)} · ${tieneCorrecciones?cc[cc.length-1].cantidad_ant:e.cantidad_otorgada} g${e.registrado_por?' · Cargado por: '+esc(e.registrado_por):' · Cargado por: —'}</div>
+        <div style="color:var(--sage);">Paciente: ${esc(tieneCorrecciones?cc[cc.length-1].paciente_nombre_ant:e.paciente_nombre)||'sin identificar'}</div>
+        <div style="color:var(--sage);">REPROCANN: ${esc(tieneCorrecciones?cc[cc.length-1].nro_reprocann_ant:e.nro_reprocann)||'S/D'} · ${tieneCorrecciones?cc[cc.length-1].cantidad_ant:e.cantidad_otorgada} g${e.registrado_por?' · Cargado por: '+esc(e.registrado_por):' · Cargado por: —'}</div>
       </div>`;
     const desplegable=tieneCorrecciones?`
       <div style="margin-top:4px;">
@@ -3033,7 +3035,11 @@ async function cargarHistorialEntregas(){
       ${desplegable}
       <div id="${fcId}" style="display:none;margin-top:10px;padding:12px;background:var(--amber-bg);border-radius:var(--radius-lg);">
         <div style="font-size:0.68rem;font-weight:500;color:var(--amber);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.06em;">Corrección de entrega</div>
-        <div class="field"><label>Nro. REPROCANN<span class="req">*</span></label><input type="text" id="corr-reprocann-${fcId}" value="${esc(e.nro_reprocann)}"/></div>
+        <div class="g2">
+          <div class="field"><label>Paciente</label><input type="text" id="corr-pacnom-${fcId}" value="${esc(e.paciente_nombre)}" placeholder="Nombre y apellido"/></div>
+          <div class="field"><label>Nro. REPROCANN</label><input type="text" id="corr-reprocann-${fcId}" value="${esc(e.nro_reprocann)}" placeholder="Ej: 0001-2024-RPC"/></div>
+        </div>
+        <div style="font-size:0.65rem;color:var(--amber);margin:-6px 0 10px;">Completá al menos uno de los dos. Si el REPROCANN coincide con un paciente del listado, la entrega se re-vincula a esa ficha automáticamente.</div>
         <div class="g2">
           <div class="field"><label>Cantidad (gramos)<span class="req">*</span></label><input type="number" id="corr-cantidad-${fcId}" value="${e.cantidad_otorgada}" min="0.1" step="0.1"/></div>
           <div class="field"><label>Corregido por<span class="opt">opcional</span></label><input type="text" id="corr-por-${fcId}" placeholder="Nombre del responsable"/></div>
@@ -3070,16 +3076,37 @@ function abrirFormCorreccion(entregaId,fcId){
 async function guardarCorreccion(entregaId,fcId){
   if(_g.corr)return; _g.corr=true;
   try{
-    const nuevoReprocann=document.getElementById('corr-reprocann-'+fcId)?.value.trim();
+    const nuevoReprocann=document.getElementById('corr-reprocann-'+fcId)?.value.trim()||null;
+    const nombreTipeado=document.getElementById('corr-pacnom-'+fcId)?.value.trim()||null;
     const nuevaCantStr=document.getElementById('corr-cantidad-'+fcId)?.value;
     const corregidoPor=document.getElementById('corr-por-'+fcId)?.value.trim()||null;
     const notas=document.getElementById('corr-notas-'+fcId)?.value.trim()||null;
-    if(!nuevoReprocann){alert('El Nro. REPROCANN es obligatorio.');return;}
+    if(!nuevoReprocann&&!nombreTipeado){alert('Indicá a quién se entregó: cargá el nombre del paciente y/o su Nro. de REPROCANN.');return;}
     const nuevaCant=parseFloat(nuevaCantStr);
     if(!nuevaCant||nuevaCant<=0){alert('La cantidad debe ser mayor a 0.');return;}
     const entregas=HIST_DATA._entregas||[];
     const e=entregas.find(x=>x.id===entregaId);
     if(!e){alert('Error: no se encontró la entrega original.');return;}
+    // ── re-vincular al paciente segun el REPROCANN corregido ──
+    // lectura fresca de la DB, no del cache _pac_ac_data (evita stale, cat. B-1)
+    let nuevoPacId=null, nuevoPacNombre=nombreTipeado;
+    if(nuevoReprocann){
+      const uid=await ensureActiveOngUserContext();
+      if(uid){
+        const{data:pacs,error:pacErr}=await sb.from('pacientes')
+          .select('id,nombre,apellido,numero').eq('usuario_id',uid).eq('nro_reprocann',nuevoReprocann);
+        if(pacErr){alert('Error al buscar el paciente: '+pacErr.message);return;}
+        if(pacs&&pacs.length===1){
+          nuevoPacId=pacs[0].id;
+          nuevoPacNombre=`${pacs[0].nombre} ${pacs[0].apellido}`.trim();
+        }else if(pacs&&pacs.length>1){
+          alert(`Hay ${pacs.length} pacientes cargados con el REPROCANN ${nuevoReprocann}.\nNo se puede determinar a cuál corresponde la entrega.\n\nResolvé la duplicación en la sección Pacientes antes de corregir.`);
+          return;
+        }
+      }
+    }
+    // sin match de ficha queda como receptor no listado — misma regla que el alta (nombre y/o REPROCANN),
+    // ya garantizada por la validación de arriba
     const diff=nuevaCant-e.cantidad_otorgada;
     // validación previa con cache local (UI check)
     const stockEstimado=Math.round((HIST_DATA.flores.stock_actual-diff)*100)/100;
@@ -3087,11 +3114,18 @@ async function guardarCorreccion(entregaId,fcId){
     const{data:corrData,error:corrErr}=await sb.from('entregas_correcciones').insert({
       entrega_id:entregaId,
       nro_reprocann_ant:e.nro_reprocann,cantidad_ant:e.cantidad_otorgada,notas_ant:e.notas,registrado_por_ant:e.registrado_por,
+      paciente_nombre_ant:e.paciente_nombre,paciente_nombre_nvo:nuevoPacNombre,
       nro_reprocann_nvo:nuevoReprocann,cantidad_nvo:nuevaCant,notas_nvo:notas,
       corregido_por:corregidoPor
     }).select().single();
     if(corrErr){alert('Error al guardar la corrección: '+corrErr.message);return;}
-    const{error:entErr}=await sb.from('entregas').update({nro_reprocann:nuevoReprocann,cantidad_otorgada:nuevaCant,notas:notas??e.notas}).eq('id',entregaId);
+    const{error:entErr}=await sb.from('entregas').update({
+      paciente_id:nuevoPacId,
+      paciente_nombre:nuevoPacNombre,
+      nro_reprocann:nuevoReprocann,
+      cantidad_otorgada:nuevaCant,
+      notas:notas??e.notas
+    }).eq('id',entregaId);
     if(entErr){
       // rollback: eliminar el registro de corrección huérfano
       if(corrData?.id)await sb.from('entregas_correcciones').delete().eq('id',corrData.id);
@@ -3107,6 +3141,7 @@ async function guardarCorreccion(entregaId,fcId){
       HIST_DATA.flores.stock_actual=nuevoStock;
     }
     e.nro_reprocann=nuevoReprocann;e.cantidad_otorgada=nuevaCant;if(notas)e.notas=notas;
+    e.paciente_id=nuevoPacId;e.paciente_nombre=nuevoPacNombre;
     document.getElementById(fcId).style.display='none';
     await cargarHistorialEntregas();
     const el=document.getElementById('det-panel');

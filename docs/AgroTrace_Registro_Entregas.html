@@ -355,12 +355,21 @@ code{font-family:monospace;font-size:0.85rem;background:var(--dew);padding:1px 5
         <div class="sec-kicker">Correcciones</div>
       </div>
     </div>
-    <p>Las entregas <strong>no se borran ni se sobrescriben en silencio</strong>. Si hubo un error en el número de REPROCANN, la cantidad o las notas, se registra una <strong>corrección</strong> que queda asentada junto al registro original.</p>
+    <p>Las entregas <strong>no se borran ni se sobrescriben en silencio</strong>. Si hubo un error en el paciente, el número de REPROCANN, la cantidad o las notas, se registra una <strong>corrección</strong> que queda asentada junto al registro original.</p>
     <p>En el historial de entregas del lote, cada entrega corregida muestra un desplegable <strong>«Correcciones (n)»</strong> donde se ve el valor anterior tachado, el nuevo, la fecha y quién hizo la corrección. El registro original nunca desaparece.</p>
     <div class="box box-rule">
       <div class="box-label">Por qué así</div>
       <p>Es un requisito de trazabilidad regulatoria: ante una inspección hay que poder demostrar no solo el dato actual, sino qué decía antes y cuándo se modificó. Un historial que se puede editar sin dejar rastro no sirve como respaldo.</p>
     </div>
+
+    <h3>Corregir a qué paciente se entregó</h3>
+    <p>El formulario de corrección tiene los campos <span class="ui">Paciente</span> y <span class="ui">Nro. REPROCANN</span>, con la misma regla que el alta: hay que completar al menos uno de los dos.</p>
+    <p>Si el REPROCANN corregido <strong>coincide con un paciente del listado</strong>, la entrega se <strong>re-vincula automáticamente a esa ficha</strong>. A partir de ese momento la entrega aparece en el historial del paciente nuevo y desaparece del anterior. Si no coincide con ninguna ficha, la entrega queda como receptor no listado, con los datos que se hayan cargado a mano.</p>
+    <div class="box box-warn">
+      <div class="box-label">Caso ambiguo</div>
+      <p>Si hubiera <strong>más de un paciente cargado con el mismo REPROCANN</strong>, el sistema no adivina: bloquea la corrección y pide resolver esa duplicación en la sección Pacientes. Vincular a la ficha equivocada sería peor que no vincular.</p>
+    </div>
+    <p>El cambio de paciente queda asentado en el desplegable de correcciones igual que los demás: <em>«Paciente: <span style="text-decoration:line-through;">nombre anterior</span> → nombre nuevo»</em>.</p>
     <p>Corregir la cantidad ajusta el stock del lote en la diferencia correspondiente.</p>
   </div>
 
