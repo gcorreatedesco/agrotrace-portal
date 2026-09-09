@@ -206,6 +206,12 @@ El principio de seguridad no es "solo el creador puede modificar su lote" sino *
 | Campos `plantas_descartadas` y `rnc_id` en `lotes_produccion` | ✅ SQL ejecutado (2026-08-13) |
 | Esqueleto reporte REPROCANN (28 columnas, filtros de fecha) | ✅ Implementado (2026-08-12) |
 | Exportar reporte REPROCANN a Excel (SheetJS) | ✅ Implementado (2026-08-13) |
+| Limpieza código huérfano modelo auth-por-email (Resend) | ✅ Eliminado (2026-09-04) |
+| Texto explicativo en Reporte REPROCANN (formato XLS, campos manuales) | ✅ Implementado (2026-09-04) |
+| Vínculo `entregas` ↔ `pacientes` (`paciente_id`, receptor identificado obligatorio) | ✅ Implementado y migrado (2026-09-07/09) |
+| Re-vinculación de paciente al corregir una entrega | ✅ Implementado (2026-09-07) |
+| Doc procedimiento "Registro de Entregas" | ✅ Publicado (2026-09-07) |
+| Header tabla Pacientes: "Apellido y nombre" (coincide con el orden real del dato) | ✅ Corregido (2026-09-07) |
 
 ## Decisiones de arquitectura
 
