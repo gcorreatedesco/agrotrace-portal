@@ -5395,6 +5395,7 @@ function irAStock(matId,matTipo){
 
 /* ── CERRAR SESIÓN ── */
 async function cerrarSesion(){
+  try { localStorage.removeItem(INACT_KEY); } catch (e) {}
   await sb.auth.signOut();
   sessionStorage.clear();
   window.location.href='index.html';
