@@ -590,6 +590,19 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
   .file-drop{padding:14px;}
   .file-drop-txt{font-size:0.72rem;}
 }
+
+/* Reporte de Stock: A4, sin color, sin la cromática/chrome de la app.
+   Solo se activa mientras esa vista está .active — las demás vistas ya
+   están display:none, así que basta con ocultar sidebar/topbar/banners. */
+@media print{
+  .sidebar,.topbar,.rt-supervision-bar,.no-print{display:none!important;}
+  body,.main{margin:0;padding:0;background:#fff;}
+  .content{padding:0;}
+  #view-reporte-stock table{font-size:11px;}
+  #view-reporte-stock,#view-reporte-stock *{color:#000!important;}
+  #view-reporte-stock thead tr{background:#eee!important;}
+  @page{size:A4;margin:14mm;}
+}
 </style>
 </head>
 <body>
@@ -704,6 +717,10 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
       <div class="nav-sub-it" id="nav-rep-reprocann" onclick="sv('reporte-reprocann')">
         <svg viewBox="0 0 24 24"><path d="M9 11H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2zm2-7h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11z"/></svg>
         REPROCANN
+      </div>
+      <div class="nav-sub-it" id="nav-rep-stock" onclick="sv('reporte-stock')">
+        <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 18H4V4h16v16zM6 17h2v-6H6v6zm4 0h2V9h-2v8zm4 0h2v-4h-2v4z"/></svg>
+        Reporte de Stock
       </div>
       <div class="nav-sub-it prox">
         <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
@@ -1237,6 +1254,43 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
       </table>
     </div>
     <div id="rep-sin-datos" style="display:none;text-align:center;padding:40px;color:var(--sage);font-size:0.85rem;">No hay lotes que coincidan con los filtros seleccionados.</div>
+  </div>
+</div>
+
+<!-- REPORTE DE STOCK (visita RT) -->
+<div class="view" id="view-reporte-stock">
+  <div class="no-print" style="background:var(--white);border:1px solid rgba(0,0,0,0.07);border-radius:10px;padding:24px;margin-bottom:16px;">
+    <div style="font-family:'DM Serif Display',serif;font-size:1.1rem;color:var(--soil);margin-bottom:4px;">Reporte de Stock</div>
+    <div style="font-size:0.78rem;color:var(--sage);margin-bottom:8px;">Fotografía del estado actual, pensada para la visita del Responsable Técnico</div>
+    <div style="font-style:italic;font-size:0.78rem;color:var(--bark);margin-bottom:16px;">Muestra los lotes activos, el stock de material básico y de flores cosechadas al momento de generarlo, junto con la cantidad de pacientes declarados para contrastarla contra las plantas en cultivo. No es un reporte por período — cada vez que se genera refleja el estado de hoy, no el de una visita anterior.</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <button class="btn btn-primary" onclick="generarReporteStock()">Actualizar</button>
+      <button class="btn btn-secondary" onclick="window.print()">Imprimir / PDF</button>
+    </div>
+  </div>
+
+  <div id="rst-contenido">
+    <div style="margin-bottom:18px;">
+      <div style="font-family:'DM Serif Display',serif;font-size:1.3rem;color:var(--soil);">Reporte de Stock — <span id="rst-org-nombre">—</span></div>
+      <div style="font-size:0.8rem;color:var(--bark);margin-top:2px;">Generado el <span id="rst-fecha">—</span> · Responsable Técnico: <span id="rst-rt-nombre">—</span></div>
+    </div>
+
+    <div class="metrics" style="grid-template-columns:repeat(2,1fr);max-width:520px;">
+      <div class="metric"><div class="metric-label">Pacientes declarados (activos)</div><div class="metric-val" id="rst-pacientes">—</div></div>
+      <div class="metric"><div class="metric-label">Plantas en cultivo</div><div class="metric-val green" id="rst-plantas">—</div></div>
+    </div>
+    <div style="font-size:0.72rem;color:var(--sage);margin:-12px 0 20px;">La comparación entre estos dos números es la que corresponde verificar contra el límite habilitado por REPROCANN para esta organización. "Plantas en cultivo" suma Nursery + Vegetativa + Floración — no incluye lotes en Cosecha, Curado/Secado o Flores Cosechadas, porque en esas etapas las plantas ya fueron retiradas del cultivo.</div>
+
+    <div style="font-family:'DM Serif Display',serif;font-size:1rem;color:var(--soil);margin:24px 0 10px;">Lotes activos</div>
+    <div id="rst-lotes-secciones"></div>
+
+    <div style="font-family:'DM Serif Display',serif;font-size:1rem;color:var(--soil);margin:24px 0 10px;">Stock de material básico</div>
+    <div id="rst-material"></div>
+
+    <div style="font-family:'DM Serif Display',serif;font-size:1rem;color:var(--soil);margin:24px 0 10px;">Flores cosechadas disponibles</div>
+    <div id="rst-flores"></div>
+
+    <div id="rst-sin-datos" style="display:none;padding:40px;text-align:center;color:var(--sage);font-size:0.85rem;">Generando…</div>
   </div>
 </div>
 
@@ -3697,7 +3751,7 @@ function closeSidebar(){
 }
 let PREV_VIEW='lotes';
 let formDirty=false;
-const SAFE_VIEWS=['dashboard','lotes','stock','busqueda','organizaciones','establecimientos','pacientes','reporte-reprocann'];
+const SAFE_VIEWS=['dashboard','lotes','stock','busqueda','organizaciones','establecimientos','pacientes','reporte-reprocann','reporte-stock'];
 let _svFromPop=false;
 function sv(id){
   closeSidebar();
@@ -3718,6 +3772,7 @@ function sv(id){
     establecimientos:['Mis establecimientos','Sedes de producción registradas','<button class="btn btn-primary" onclick="abrirFormEstabl(null)">+ Nuevo establecimiento</button>'],
     'establ-form':['','',''],
     'reporte-reprocann':['Reporte REPROCANN','Listado de lotes productivos con datos regulatorios',''],
+    'reporte-stock':['Reporte de Stock','Fotografía del estado actual para la visita del RT',''],
   };
   if(mp[id]){document.getElementById('tt').textContent=mp[id][0];document.getElementById('ts').textContent=mp[id][1];document.getElementById('ta').innerHTML=mp[id][2];}
   // botón de retorno
@@ -3759,6 +3814,12 @@ function sv(id){
     document.getElementById('nav-rep-reprocann').classList.add('active');
     document.getElementById('nav-sub-reportes').classList.add('open');
     document.getElementById('reportes-arrow').classList.add('open');
+  }
+  if(id==='reporte-stock'){
+    document.getElementById('nav-rep-stock').classList.add('active');
+    document.getElementById('nav-sub-reportes').classList.add('open');
+    document.getElementById('reportes-arrow').classList.add('open');
+    generarReporteStock();
   }
   if(!_svFromPop) history.pushState({view:id},'','');
 }
@@ -3981,6 +4042,88 @@ function exportarExcelReprocann(){
   const d2=hasta||'fin';
   XLSX.writeFile(wb,`Reporte_REPROCANN_${d1}_${d2}.xlsx`);
   }catch(err){alert('Error al exportar: '+err.message);}
+}
+
+/* ── REPORTE DE STOCK (visita RT) ──────────────────────────────────
+   Es una fotografía del momento, no un reporte por período: no hay
+   filtro de fechas, se regenera cada vez que se abre la vista y refleja
+   lo que hay en la base en ese instante — por eso arranca refrescando
+   LD/LM con cargarLotes()/cargarMaterial() en vez de confiar en lo que
+   haya quedado cargado de una navegación anterior.
+
+   "Plantas en cultivo" excluye a propósito Cosecha/Curado/Flores: esas
+   etapas ya retiraron las plantas del campo, así que sumarlas ahí
+   infla el número que el RT compara contra el límite de REPROCANN. */
+async function generarReporteStock(){
+  const sinDatos=document.getElementById('rst-sin-datos');
+  if(sinDatos){sinDatos.style.display='block';sinDatos.textContent='Generando…';}
+  try{
+    await Promise.all([cargarLotes(),cargarMaterial()]);
+    const ongUid=await ensureActiveOngUserContext();
+    if(!ongUid){if(sinDatos)sinDatos.textContent='No se pudo identificar la organización activa.';return;}
+
+    const{data:perfONG}=await sb.from('perfiles').select('ong_id').eq('id',ongUid).maybeSingle();
+    const ongId=perfONG?.ong_id;
+    const[{data:orgData},{data:rtRel}]=await Promise.all([
+      ongId?sb.from('organizaciones').select('nombre').eq('id',ongId).maybeSingle():Promise.resolve({data:null}),
+      ongId?sb.from('rt_organizaciones').select('rt_id').eq('ong_id',ongId).maybeSingle():Promise.resolve({data:null}),
+    ]);
+    const{data:rtPerf}=rtRel?.rt_id?await sb.from('perfiles').select('nombre,apellido').eq('id',rtRel.rt_id).maybeSingle():{data:null};
+    const{count:pacActivos}=await sb.from('pacientes').select('id',{count:'exact',head:true}).eq('usuario_id',ongUid).eq('activo',true);
+
+    document.getElementById('rst-org-nombre').textContent=orgData?.nombre||'—';
+    document.getElementById('rst-fecha').textContent=new Date().toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric'});
+    document.getElementById('rst-rt-nombre').textContent=rtPerf?(`${rtPerf.nombre||''} ${rtPerf.apellido||''}`.trim()||'—'):'Sin RT asignado';
+    document.getElementById('rst-pacientes').textContent=pacActivos??0;
+
+    const ETAPAS_EN_CULTIVO=['nursery','vegetativa','floracion'];
+    const plantasCultivo=LD.filter(l=>ETAPAS_EN_CULTIVO.includes(l.etapaRaw))
+      .reduce((acc,l)=>acc+(parseInt(l.cardCant)||0),0);
+    document.getElementById('rst-plantas').textContent=plantasCultivo;
+
+    const ORDEN_ETAPAS=['nursery','vegetativa','floracion','cosecha','curado_secado','flores'];
+    const grupos={};
+    LD.forEach(l=>{(grupos[l.etapaRaw]=grupos[l.etapaRaw]||[]).push(l);});
+    const secc=document.getElementById('rst-lotes-secciones');
+    const filaLote=l=>`<tr><td style="padding:6px 8px;">${esc(l.n)}</td><td style="padding:6px 8px;">${esc(l.variedad||'—')}</td><td style="padding:6px 8px;">${esc(l.cardCant||l.cardPeso||'—')}</td><td style="padding:6px 8px;">${esc(l.m[0]?.v||'—')}</td></tr>`;
+    if(!LD.length){
+      secc.innerHTML='<div style="padding:16px 0;color:var(--sage);font-size:0.8rem;">Sin lotes activos.</div>';
+    }else{
+      secc.innerHTML=ORDEN_ETAPAS.filter(et=>grupos[et]?.length).map(et=>`
+        <div style="margin-bottom:18px;">
+          <div style="font-weight:500;font-size:0.82rem;color:var(--soil);margin-bottom:6px;">${esc(grupos[et][0].bt)} <span style="color:var(--sage);font-weight:400;">(${grupos[et].length})</span></div>
+          <table style="width:100%;border-collapse:collapse;font-size:0.78rem;">
+            <thead><tr style="background:var(--dew);"><th style="text-align:left;padding:6px 8px;">Lote</th><th style="text-align:left;padding:6px 8px;">Variedad</th><th style="text-align:left;padding:6px 8px;">Cantidad</th><th style="text-align:left;padding:6px 8px;">Inicio</th></tr></thead>
+            <tbody>${grupos[et].map(filaLote).join('')}</tbody>
+          </table>
+        </div>`).join('');
+    }
+
+    const matSecc=document.getElementById('rst-material');
+    const BLOQUES_MAT=[['semillas','Semillas'],['esquejes','Esquejes'],['pm','Plantas Madre']];
+    const matHtml=BLOQUES_MAT.filter(([k])=>LM[k]?.length).map(([k,label])=>`
+      <div style="margin-bottom:14px;">
+        <div style="font-weight:500;font-size:0.82rem;color:var(--soil);margin-bottom:6px;">${label}</div>
+        <table style="width:100%;border-collapse:collapse;font-size:0.78rem;">
+          <thead><tr style="background:var(--dew);"><th style="text-align:left;padding:6px 8px;">Lote</th><th style="text-align:left;padding:6px 8px;">Stock actual / inicial</th></tr></thead>
+          <tbody>${LM[k].map(r=>`<tr><td style="padding:6px 8px;">${esc(r.l)}</td><td style="padding:6px 8px;">${r.stock} / ${r.stockI} ${esc(r.u)}</td></tr>`).join('')}</tbody>
+        </table>
+      </div>`).join('');
+    matSecc.innerHTML=matHtml||'<div style="padding:16px 0;color:var(--sage);font-size:0.8rem;">Sin stock de material básico.</div>';
+
+    const floresLotes=LD.filter(l=>l.et==='flores'&&l.cardPeso);
+    const floresSecc=document.getElementById('rst-flores');
+    floresSecc.innerHTML=floresLotes.length?`
+      <table style="width:100%;border-collapse:collapse;font-size:0.78rem;">
+        <thead><tr style="background:var(--dew);"><th style="text-align:left;padding:6px 8px;">Lote</th><th style="text-align:left;padding:6px 8px;">Variedad</th><th style="text-align:left;padding:6px 8px;">Disponible</th></tr></thead>
+        <tbody>${floresLotes.map(l=>`<tr><td style="padding:6px 8px;">${esc(l.n)}</td><td style="padding:6px 8px;">${esc(l.variedad||'—')}</td><td style="padding:6px 8px;">${esc(l.cardPeso)}</td></tr>`).join('')}</tbody>
+      </table>`:'<div style="padding:16px 0;color:var(--sage);font-size:0.8rem;">Sin flores cosechadas disponibles.</div>';
+
+    if(sinDatos)sinDatos.style.display='none';
+  }catch(e){
+    console.error('[reporte-stock]',e);
+    if(sinDatos){sinDatos.style.display='block';sinDatos.textContent='Error al generar el reporte: '+e.message;}
+  }
 }
 
 function fD(el,et){document.querySelectorAll('#view-dashboard .pill').forEach(p=>p.classList.remove('active'));el.classList.add('active');rAll('dash-lotes',et);}
