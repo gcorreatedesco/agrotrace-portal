@@ -209,14 +209,26 @@ GRANT EXECUTE ON FUNCTION public.ajustar_stock_flores(UUID, NUMERIC) TO authenti
 
 
 -- ── 5. Verificación ────────────────────────────────────────────────
--- Debe devolver 16 filas, una por tabla, todas con trigger = 't'.
-SELECT c.table_name,
+-- Debe devolver 16 filas, todas con tiene_trigger = true.
+SELECT c.relname AS tabla,
        EXISTS(
          SELECT 1 FROM pg_trigger tg
-         JOIN pg_class cl ON cl.oid = tg.tgrelid
-         WHERE cl.relname = c.table_name AND tg.tgname = 'trg_actualizado_en'
-       ) AS trigger
-  FROM information_schema.columns c
- WHERE c.table_schema = 'public'
-   AND c.column_name = 'actualizado_en'
- ORDER BY c.table_name;
+          WHERE tg.tgrelid = c.oid
+            AND tg.tgname = 'trg_actualizado_en'
+            AND NOT tg.tgisinternal
+       ) AS tiene_trigger
+  FROM pg_class c
+  JOIN pg_namespace n ON n.oid = c.relnamespace
+  JOIN pg_attribute a ON a.attrelid = c.oid
+ WHERE n.nspname = 'public'
+   AND c.relkind = 'r'
+   AND a.attname = 'actualizado_en'
+   AND NOT a.attisdropped
+ ORDER BY c.relname;
+
+-- Y estas tres deben existir:
+SELECT proname AS funcion
+  FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+ WHERE n.nspname = 'public'
+   AND proname IN ('ajustar_stock_material', 'vaciar_stock_material', 'ajustar_stock_flores')
+ ORDER BY proname;
