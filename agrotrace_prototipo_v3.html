@@ -1337,20 +1337,179 @@ async function ensureActiveOngUserContext(){
   return resolveScopedUserId();
 }
 
-async function serverWrite({ table, operation, record, filters = {} }){
-  if(operation === 'insert'){
-    const { data, error } = await sb.from(table).insert(record).select().single();
-    if(error) throw new Error(error.message);
-    return { data };
-  } else {
-    let q = sb.from(table).update(record);
-    for(const [key, val] of Object.entries(filters)){
-      q = q.eq(key, val);
-    }
-    const { data, error } = await q.select();
-    if(error) throw new Error(error.message);
-    return { data: data?.[0] ?? null };
+// Sólo inserts: las modificaciones pasan por updateCAS, que además controla
+// que nadie haya tocado la fila mientras el formulario estaba abierto.
+async function serverWrite({ table, record }){
+  const { data, error } = await sb.from(table).insert(record).select().single();
+  if(error) throw new Error(error.message);
+  return { data };
+}
+
+/* ── CONCURRENCIA OPTIMISTA ──────────────────────────────────────────
+   Cada fila editable lleva `actualizado_en`, que un trigger de la base
+   pisa en cada UPDATE. El guardado viaja con el valor que se leyó al
+   abrir el formulario: si otra pestaña o dispositivo tocó esa fila en el
+   medio, el WHERE no matchea, vuelven 0 filas y avisamos — en vez de
+   sobreescribir el cambio ajeno sin que nadie se entere.
+
+   Con `token` vacío el UPDATE sale sin protección, igual que antes de
+   esta migración: así el frontend no se rompe si el SQL todavía no corrió.
+   Ver migration_concurrencia_optimista.sql. */
+async function updateCAS(tabla, id, cambios, token){
+  let q=sb.from(tabla).update(cambios).eq('id',id);
+  if(token)q=q.eq('actualizado_en',token);
+  else console.warn('[concurrencia] UPDATE sin token en '+tabla+' ('+id+')');
+  const{data,error}=await q.select();
+  if(error)return{error};
+  if(data&&data.length)return{fila:data[0]};
+  if(!token)return{error:{message:'No se encontró el registro.'}};
+  // 0 filas habiendo mandado token: o cambió bajo nuestros pies, o ya no existe
+  const{data:sigue}=await sb.from(tabla).select('actualizado_en').eq('id',id).maybeSingle();
+  return sigue?{conflicto:true}:{error:{message:'El registro ya no existe.'}};
+}
+
+function avisarConflicto(queCosa){
+  alert('⚠ '+(queCosa||'Este registro')+' fue modificado desde otra pestaña o dispositivo mientras lo editabas.\n\nPara no pisar ese cambio, lo tuyo NO se guardó.\n\nRecargá la pantalla, mirá cómo quedó y volvé a aplicar tu corrección si sigue haciendo falta.');
+}
+
+/* Stock: leer-restar-escribir pierde movimientos cuando dos operaciones
+   corren a la vez. Estas funciones delegan la resta al motor, que la
+   serializa por bloqueo de fila y rechaza el descubierto. */
+async function ajustarStockMaterial(tipo, loteId, delta){
+  const{data,error}=await sb.rpc('ajustar_stock_material',{p_tipo:tipo,p_lote_id:loteId,p_delta:delta});
+  if(error)return{ok:false,motivo:'error',mensaje:error.message};
+  return data;
+}
+
+async function vaciarStockMaterial(tipo, loteId){
+  const{data,error}=await sb.rpc('vaciar_stock_material',{p_tipo:tipo,p_lote_id:loteId});
+  if(error)return{ok:false,motivo:'error',mensaje:error.message};
+  return data;
+}
+
+async function ajustarStockFlores(floresId, delta){
+  const{data,error}=await sb.rpc('ajustar_stock_flores',{p_flores_id:floresId,p_delta:delta});
+  if(error)return{ok:false,motivo:'error',mensaje:error.message};
+  return data;
+}
+
+function mensajeStock(res){
+  if(res?.motivo==='stock_insuficiente')return'El stock disponible no alcanza para esta operación.\n\nPuede que se haya registrado un movimiento desde otra pestaña o dispositivo. Recargá para ver el stock actual.';
+  if(res?.motivo==='ya_vacio')return'El stock de este lote ya está en 0.';
+  if(res?.motivo==='no_encontrado')return'No se encontró el lote de material, o no tenés acceso.';
+  return res?.mensaje||'No se pudo actualizar el stock.';
+}
+
+/* ── CIERRE DE SESIÓN POR INACTIVIDAD ────────────────────────────────
+   A los 30 minutos sin actividad se cierra la sesión, avisando 2 minutos
+   antes: los wizards y formularios largos no autoguardan, así que cortar
+   en seco haría perder lo que se esté cargando.
+
+   La marca de actividad vive en localStorage y no en una variable: la app
+   son cuatro HTML separados que navegan con window.location, así que un
+   timer en memoria se reiniciaría en cada pantalla. Compartirla además
+   hace que trabajar en una pestaña mantenga viva la sesión en las otras.
+
+   Es una medida de higiene, no una barrera de seguridad: el JWT le sigue
+   sirviendo a Supabase hasta que expire solo, haga lo que haga esta
+   interfaz. Cortar del lado del servidor requiere los controles nativos
+   de Supabase (Plan Pro+). Ver docs/AgroTrace_Sesiones_Timeout.html. */
+const INACT_MS       = 30 * 60 * 1000;
+const INACT_AVISO_MS = 2 * 60 * 1000;
+const INACT_KEY      = 'agrotrace_ultima_actividad';
+let _inactTimer = null, _inactCuentaTimer = null;
+let _inactAvisoAbierto = false, _inactUltimoWrite = 0;
+
+function inactMarcarActividad() {
+  if (_inactAvisoAbierto) return;   // con el aviso en pantalla, sólo el botón revive la sesión
+  const ahora = Date.now();
+  if (ahora - _inactUltimoWrite < 10000) return;   // no escribir en cada mousemove
+  _inactUltimoWrite = ahora;
+  try { localStorage.setItem(INACT_KEY, String(ahora)); } catch (e) {}
+}
+
+function inactUltima() {
+  try { return parseInt(localStorage.getItem(INACT_KEY) || '0', 10) || 0; } catch (e) { return 0; }
+}
+
+function inactCerrarAviso() {
+  _inactAvisoAbierto = false;
+  if (_inactCuentaTimer) { clearInterval(_inactCuentaTimer); _inactCuentaTimer = null; }
+  const el = document.getElementById('inact-modal');
+  if (el) el.style.display = 'none';
+}
+
+function inactSeguirConectado() {
+  inactCerrarAviso();
+  _inactUltimoWrite = Date.now();
+  try { localStorage.setItem(INACT_KEY, String(_inactUltimoWrite)); } catch (e) {}
+}
+
+function inactCerrarSesionYa() {
+  inactCerrarAviso();
+  if (_inactTimer) { clearInterval(_inactTimer); _inactTimer = null; }
+  try { localStorage.removeItem(INACT_KEY); } catch (e) {}
+  cerrarSesion();
+}
+
+async function inactVencida() {
+  if (_inactTimer) { clearInterval(_inactTimer); _inactTimer = null; }
+  inactCerrarAviso();
+  try { localStorage.removeItem(INACT_KEY); } catch (e) {}
+  try { await sb.auth.signOut(); } catch (e) {}
+  sessionStorage.clear();   // incluye el contexto de supervisión, que si no queda colgado
+  window.location.href = 'index.html?expirada=1';
+}
+
+function inactMostrarAviso() {
+  const el = document.getElementById('inact-modal');
+  if (!el) return;
+  _inactAvisoAbierto = true;
+  el.style.display = 'flex';
+  const pintar = () => {
+    const restante = Math.max(0, INACT_MS - (Date.now() - inactUltima()));
+    const m = Math.floor(restante / 60000);
+    const s = Math.floor((restante % 60000) / 1000);
+    const c = document.getElementById('inact-cuenta');
+    if (c) c.textContent = m + ':' + String(s).padStart(2, '0');
+  };
+  pintar();
+  _inactCuentaTimer = setInterval(pintar, 1000);
+}
+
+function inactChequear() {
+  const inactivo = Date.now() - inactUltima();
+  if (inactivo >= INACT_MS) { inactVencida(); return; }
+  if (inactivo >= INACT_MS - INACT_AVISO_MS) {
+    if (!_inactAvisoAbierto) inactMostrarAviso();
+  } else if (_inactAvisoAbierto) {
+    inactCerrarAviso();   // hubo actividad en otra pestaña: bajar el aviso acá también
   }
+}
+
+function inactIniciar() {
+  if (_inactTimer) return;
+  document.body.insertAdjacentHTML('beforeend',
+    '<div id="inact-modal" style="display:none;position:fixed;inset:0;background:rgba(44,31,14,0.55);z-index:9999;align-items:center;justify-content:center;padding:20px;">' +
+      '<div style="background:var(--cream,#F7F4EF);border-radius:10px;max-width:380px;width:100%;padding:26px 28px;box-shadow:0 12px 40px rgba(0,0,0,0.25);">' +
+        '<div style="font-family:\'DM Serif Display\',serif;font-size:1.2rem;color:var(--soil,#2C1F0E);margin-bottom:10px;">Tu sesión está por cerrarse</div>' +
+        '<div style="font-size:0.85rem;color:var(--bark,#4A3520);line-height:1.6;margin-bottom:6px;">No registramos actividad en los últimos minutos. La sesión se va a cerrar en <b id="inact-cuenta">2:00</b>.</div>' +
+        '<div style="font-size:0.78rem;color:var(--sage,#6B7F5E);margin-bottom:18px;">Si dejaste un formulario a medio cargar, seguí conectado y guardalo antes de salir.</div>' +
+        '<div style="display:flex;gap:10px;justify-content:flex-end;">' +
+          '<button onclick="inactCerrarSesionYa()" style="background:none;border:1px solid var(--mist,#C8D9BC);color:var(--bark,#4A3520);padding:9px 16px;border-radius:6px;font-size:0.82rem;cursor:pointer;font-family:inherit;">Cerrar sesión</button>' +
+          '<button onclick="inactSeguirConectado()" style="background:var(--accent,#4E7C3F);border:none;color:#fff;padding:9px 18px;border-radius:6px;font-size:0.82rem;cursor:pointer;font-family:inherit;font-weight:500;">Seguir conectado</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>');
+
+  // Si la pestaña estuvo cerrada o dormida más que el límite, cortar de entrada
+  if (inactUltima() && Date.now() - inactUltima() >= INACT_MS) { inactVencida(); return; }
+
+  _inactUltimoWrite = Date.now();
+  try { localStorage.setItem(INACT_KEY, String(_inactUltimoWrite)); } catch (e) {}
+  ['mousedown', 'keydown', 'scroll', 'touchstart', 'mousemove'].forEach(ev =>
+    document.addEventListener(ev, inactMarcarActividad, { passive: true, capture: true }));
+  _inactTimer = setInterval(inactChequear, 10000);
 }
 
 async function logActividad(tipo, descripcion, loteId=null, meta=null){
@@ -1412,6 +1571,7 @@ async function initApp(){
   const {data:{session}} = await sb.auth.getSession();
   if(session){
     CURRENT_USER={id:session.user.id, email:session.user.email};
+    inactIniciar();
   } else {
     const demoIds={superadmin:'c6bafecb-5df5-4573-ad6d-3d0f328a8010',rt:'0edfae60-9b1e-4c76-880e-d1851c4148b5',ong:'2a23866e-4704-49c8-bb35-23a7f483b7fc'};
     CURRENT_USER={id:demoIds[rolActivo]||demoIds.ong, email:'demo@agrotrace.com'};
@@ -1453,7 +1613,7 @@ async function initApp(){
   await ensureActiveOngUserContext();
   // limpiar estado de la sesión anterior antes de cargar los datos de la ONG activa
   LOTE_ACTIVO=null;HIST_DATA={};INCONSISTENCIAS={};CORRECCIONES_LOG={};
-  MAT_ACTIVO=null;MAT_TIPO=null;PAC_DATA=[];PAC_EDIT_ID=null;PAC_ONG_ID=null;ESTABL_EDITANDO=null;
+  MAT_ACTIVO=null;MAT_TIPO=null;PAC_DATA=[];PAC_EDIT_ID=null;PAC_ONG_ID=null;ESTABL_EDITANDO=null;ESTABL_TOKEN=null;
   await Promise.all([cargarLotes(),cargarMaterial(),loadVariedadesRNC()]);
   rebuildSearchIndex();
   rAll('dash-lotes','todos');
@@ -1600,6 +1760,10 @@ async function toggleVisibleRT(val){
   const lbl=document.getElementById('pac-visible-rt-lbl');
   if(lbl){lbl.textContent=val?'Sí':'No';lbl.className='toggle-lbl'+(val?' on':'');}
   if(PAC_ONG_ID){
+    // Sin control de concurrencia a propósito: el usuario está fijando un valor
+    // absoluto desde el switch, no derivándolo de lo que leyó. Si alguien lo tocó
+    // desde otra pestaña, la última intención explícita es la que corresponde —
+    // rechazarla con un cartel de conflicto sería peor que aplicarla.
     const{error}=await sb.from('organizaciones').update({pacientes_visibles_rt:val}).eq('id',PAC_ONG_ID);
     if(error)console.warn('No se pudo guardar visible_rt:',error.message);
   }
@@ -1664,8 +1828,10 @@ async function guardarEditarPac(){
     const errEl   =document.getElementById('ep-error');
     if(!nombre||!apellido||!repro){errEl.textContent='Completá los campos obligatorios.';errEl.style.display='block';return;}
     errEl.style.display='none';
-    const{error}=await sb.from('pacientes').update({nombre,apellido,nro_reprocann:repro,tel_contacto:tel}).eq('id',PAC_EDIT_ID);
-    if(error){errEl.textContent='Error al guardar: '+error.message;errEl.style.display='block';return;}
+    const pacPrev=PAC_DATA.find(x=>x.id===PAC_EDIT_ID);
+    const r=await updateCAS('pacientes',PAC_EDIT_ID,{nombre,apellido,nro_reprocann:repro,tel_contacto:tel},pacPrev?.actualizado_en);
+    if(r.conflicto){cerrarEditarPac();await cargarPacientes();avisarConflicto('Esta ficha de paciente');return;}
+    if(r.error){errEl.textContent='Error al guardar: '+r.error.message;errEl.style.display='block';return;}
     cerrarEditarPac();
     await cargarPacientes();
   }finally{_g.ep=false;}
@@ -1678,8 +1844,11 @@ async function toggleEstadoPac(id){
   if(!p)return;
   const accion=p.activo?'desactivar':'activar';
   if(!confirm(`¿Confirmás ${accion} a ${p.nombre} ${p.apellido}?`))return;
-  const{error}=await sb.from('pacientes').update({activo:!p.activo}).eq('id',id);
-  if(error){alert('Error: '+error.message);return;}
+  // El valor nuevo se deriva del que se leyó (!p.activo), así que acá el control
+  // de concurrencia sí importa: sin él, dos pestañas podrían dejar el estado al revés.
+  const r=await updateCAS('pacientes',id,{activo:!p.activo},p.actualizado_en);
+  if(r.conflicto){await cargarPacientes();avisarConflicto('Esta ficha de paciente');return;}
+  if(r.error){alert('Error: '+r.error.message);return;}
   await cargarPacientes();
   }finally{_g.tep=false;}
 }
@@ -1791,7 +1960,7 @@ function mapLote(row,establMap={}){
   else if(et==='cosecha'&&floD?.cantidad_egreso!=null)cardCant=`${floD.cantidad_egreso} plantas cosechadas`;
   else if(et==='curado_secado'&&floD?.cantidad_egreso!=null){cardCant=`${floD.cantidad_egreso} plantas cosechadas`;const p=fmtPeso(cosD?.peso_humedo_total);if(p)cardPeso=`${p} cosechados`;}
   else if(et==='flores'&&floD?.cantidad_egreso!=null){cardCant=`${floD.cantidad_egreso} plantas cosechadas`;const p=fmtPeso(florD?.stock_actual);if(p)cardPeso=`${p} disponibles`;}
-  return{id:row.id,n:row.nombre_completo,o,et:row.etapa_actual,etapaRaw:row.etapa_actual,b:info.b,bt:info.bt,hs:false,s:steps,sc:row.etapa_actual==='completado'?'6/6':row.etapa_actual==='cerrado'?'—':info.idx+'/6',m:[{l:'Inicio',v:fmtDate(row.fecha_inicio)}],fechaInicioRaw:row.fecha_inicio||null,creadoEn:row.creado_en||null,fecha_cierre:row.fecha_cierre||null,motivo_cierre:row.motivo_cierre||null,origen_semilla_id:row.origen_semilla_id||null,origen_esqueje_id:row.origen_esqueje_id||null,origen_pm_id:row.origen_pm_id||null,lotePadreId:row.lote_padre_id||null,lotePadreNombre:one(row.padre)?.nombre_completo||null,etapaOrigenDivision:row.etapa_origen_division||null,cantidadInicial:row.cantidad_inicial||null,establNombre:establMap[row.establecimiento_id]||null,variedad,cardCant,cardPeso};
+  return{id:row.id,n:row.nombre_completo,o,et:row.etapa_actual,etapaRaw:row.etapa_actual,b:info.b,bt:info.bt,hs:false,s:steps,sc:row.etapa_actual==='completado'?'6/6':row.etapa_actual==='cerrado'?'—':info.idx+'/6',m:[{l:'Inicio',v:fmtDate(row.fecha_inicio)}],fechaInicioRaw:row.fecha_inicio||null,creadoEn:row.creado_en||null,fecha_cierre:row.fecha_cierre||null,motivo_cierre:row.motivo_cierre||null,origen_semilla_id:row.origen_semilla_id||null,origen_esqueje_id:row.origen_esqueje_id||null,origen_pm_id:row.origen_pm_id||null,lotePadreId:row.lote_padre_id||null,lotePadreNombre:one(row.padre)?.nombre_completo||null,etapaOrigenDivision:row.etapa_origen_division||null,cantidadInicial:row.cantidad_inicial||null,establNombre:establMap[row.establecimiento_id]||null,actualizadoEn:row.actualizado_en||null,variedad,cardCant,cardPeso};
 }
 
 function fmtDate(iso){if(!iso)return'—';const[y,m,d]=iso.split('-');return d+'/'+m+'/'+y;}
@@ -2176,8 +2345,10 @@ async function guardarEdicionMaterial(){
       notas:document.getElementById('dm-notas-e')?.value.trim()||null,
     };
     if(!cambios.nombre_lote||!cambios.variedad){alert('Nombre y variedad son obligatorios.');return;}
-    const{error}=await sb.from(tbl).update(cambios).eq('id',MAT_ACTIVO.id);
-    if(error){alert('Error al guardar: '+error.message);return;}
+    const r=await updateCAS(tbl,MAT_ACTIVO.id,cambios,MAT_ACTIVO.actualizado_en);
+    if(r.conflicto){await openMaterial(MAT_ACTIVO.id,MAT_TIPO);avisarConflicto('Este lote de material');return;}
+    if(r.error){alert('Error al guardar: '+r.error.message);return;}
+    MAT_ACTIVO.actualizado_en=r.fila.actualizado_en;
     Object.assign(MAT_ACTIVO,cambios);
     document.getElementById('dm-nombre').textContent=MAT_ACTIVO.nombre_lote;
     document.getElementById('dm-sub').textContent=(MAT_ACTIVO.variedad||'')+(MAT_ACTIVO.proveedor?' · '+MAT_ACTIVO.proveedor:'');
@@ -2394,11 +2565,13 @@ async function cerrarLoteAgotado(){
   try{
   if(!confirm('¿Confirmás que querés cerrar este lote?\n\nSe moverá a "Lotes Productivos Terminados" en el historial.'))return;
   const fecha=new Date().toISOString().split('T')[0];
-  const{error}=await sb.from('lotes_produccion').update({etapa_actual:'completado',fecha_cierre:fecha}).eq('id',LOTE_ACTIVO.id);
-  if(error){alert('Error al cerrar el lote: '+error.message);return;}
+  const r=await updateCAS('lotes_produccion',LOTE_ACTIVO.id,{etapa_actual:'completado',fecha_cierre:fecha},LOTE_ACTIVO.actualizadoEn);
+  if(r.conflicto){await cargarLotes();avisarConflicto('Este lote');return;}
+  if(r.error){alert('Error al cerrar el lote: '+r.error.message);return;}
   logActividad('completado', LOTE_ACTIVO.n+' — ciclo completado', LOTE_ACTIVO.id).catch(()=>{});
   LOTE_ACTIVO.etapaRaw='completado';
   LOTE_ACTIVO.fecha_cierre=fecha;
+  LOTE_ACTIVO.actualizadoEn=r.fila.actualizado_en;
   await cargarLotes();actualizarMetricasDash();calcularAlertas();
   alert('Lote cerrado y movido al historial de lotes terminados.');
   sv('lotes');
@@ -2412,12 +2585,14 @@ async function cerrarLoteAnticipado(){
   if(!motivo||!motivo.trim()){alert('El motivo de cierre es obligatorio.');return;}
   if(!confirm(`¿Confirmás el cierre anticipado de "${LOTE_ACTIVO.n}"?\n\nMotivo: ${motivo}\n\nEl lote se moverá a "Lotes Cerrados Sin Terminar".`))return;
   const fecha=new Date().toISOString().split('T')[0];
-  const{error}=await sb.from('lotes_produccion').update({etapa_actual:'cerrado',fecha_cierre:fecha,motivo_cierre:motivo.trim()}).eq('id',LOTE_ACTIVO.id);
-  if(error){alert('Error al cerrar el lote: '+error.message);return;}
+  const r=await updateCAS('lotes_produccion',LOTE_ACTIVO.id,{etapa_actual:'cerrado',fecha_cierre:fecha,motivo_cierre:motivo.trim()},LOTE_ACTIVO.actualizadoEn);
+  if(r.conflicto){await cargarLotes();avisarConflicto('Este lote');return;}
+  if(r.error){alert('Error al cerrar el lote: '+r.error.message);return;}
   logActividad('cerrado', LOTE_ACTIVO.n+' — cerrado: '+motivo.trim(), LOTE_ACTIVO.id).catch(()=>{});
   LOTE_ACTIVO.etapaRaw='cerrado';
   LOTE_ACTIVO.fecha_cierre=fecha;
   LOTE_ACTIVO.motivo_cierre=motivo.trim();
+  LOTE_ACTIVO.actualizadoEn=r.fila.actualizado_en;
   await cargarLotes();actualizarMetricasDash();calcularAlertas();
   alert('Lote cerrado y movido al historial.');
   sv('lotes');
@@ -2893,10 +3068,12 @@ async function guardarAnalisis(){
     if(corrErr){alert('Error al guardar la corrección: '+corrErr.message);return;}
     const updateObj={...valoresNvo};
     if(archivoNuevo){updateObj.informe_url=informe_url;updateObj.informe_nombre=informe_nombre;}
-    const{error:updErr}=await sb.from('analisis_calidad').update(updateObj).eq('id',_editAnalisisId);
-    if(updErr){
+    const rAn=await updateCAS('analisis_calidad',_editAnalisisId,updateObj,orig.actualizado_en);
+    if(rAn.conflicto||rAn.error){
       if(corrData?.id)await sb.from('analisis_correcciones').delete().eq('id',corrData.id); // rollback del audit huérfano
-      alert('Error al actualizar el análisis: '+updErr.message);return;
+      if(rAn.conflicto){await cargarAnalisis();avisarConflicto('Este análisis de calidad');}
+      else alert('Error al actualizar el análisis: '+rAn.error.message);
+      return;
     }
     logActividad('correccion_analisis', 'Análisis de calidad corregido', HIST_DATA.flores?.lote_id).catch(()=>{});
   } else {
@@ -3119,26 +3296,36 @@ async function guardarCorreccion(entregaId,fcId){
       corregido_por:corregidoPor
     }).select().single();
     if(corrErr){alert('Error al guardar la corrección: '+corrErr.message);return;}
-    const{error:entErr}=await sb.from('entregas').update({
+    // El ajuste de stock va antes que el UPDATE de la entrega: es el paso que
+    // puede fallar por stock insuficiente, y así no queda una entrega corregida
+    // cuyo descuento nunca se aplicó. La resta la hace el motor, atómicamente.
+    let stockAjustado=0;
+    if(diff!==0){
+      const rf=await ajustarStockFlores(HIST_DATA.flores.id,-diff);
+      if(!rf?.ok){
+        if(corrData?.id)await sb.from('entregas_correcciones').delete().eq('id',corrData.id);
+        alert('No se pudo aplicar la corrección.\n\n'+mensajeStock(rf));return;
+      }
+      stockAjustado=diff;
+      HIST_DATA.flores.stock_actual=rf.stock;
+    }
+    const rEnt=await updateCAS('entregas',entregaId,{
       paciente_id:nuevoPacId,
       paciente_nombre:nuevoPacNombre,
       nro_reprocann:nuevoReprocann,
       cantidad_otorgada:nuevaCant,
       notas:notas??e.notas
-    }).eq('id',entregaId);
-    if(entErr){
-      // rollback: eliminar el registro de corrección huérfano
+    },e.actualizado_en);
+    if(rEnt.conflicto||rEnt.error){
+      // revertir lo ya aplicado: el stock y el registro de corrección huérfano
+      if(stockAjustado!==0){
+        const rev=await ajustarStockFlores(HIST_DATA.flores.id,stockAjustado);
+        if(rev?.ok)HIST_DATA.flores.stock_actual=rev.stock;
+      }
       if(corrData?.id)await sb.from('entregas_correcciones').delete().eq('id',corrData.id);
-      alert('Error al actualizar la entrega: '+entErr.message);return;
-    }
-    if(diff!==0){
-      // leer stock fresco de DB para evitar stale cache (B-3)
-      const{data:floresFresh}=await sb.from('flores_cosechadas').select('stock_actual').eq('id',HIST_DATA.flores.id).single();
-      const nuevoStock=Math.round(((floresFresh?.stock_actual??HIST_DATA.flores.stock_actual)-diff)*100)/100;
-      if(nuevoStock<0){alert(`El stock actual (${floresFresh?.stock_actual} g) es insuficiente para esta corrección.`);return;}
-      const{error:stockErr}=await sb.from('flores_cosechadas').update({stock_actual:nuevoStock}).eq('id',HIST_DATA.flores.id);
-      if(stockErr){alert('Error al actualizar el stock: '+stockErr.message);return;}
-      HIST_DATA.flores.stock_actual=nuevoStock;
+      if(rEnt.conflicto){await cargarHistorialEntregas();avisarConflicto('Esta entrega');}
+      else alert('Error al actualizar la entrega: '+rEnt.error.message);
+      return;
     }
     e.nro_reprocann=nuevoReprocann;e.cantidad_otorgada=nuevaCant;if(notas)e.notas=notas;
     e.paciente_id=nuevoPacId;e.paciente_nombre=nuevoPacNombre;
@@ -3295,7 +3482,13 @@ async function guardarEntrega(){
       alert(`No es posible registrar la entrega.\nLa cantidad ingresada (${cantidad} g) supera el stock disponible (${stockActual} g).\nDiferencia en exceso: ${diff} g.\n\nCorregí la cantidad antes de continuar.`);
       return;
     }
-    const{data:entData,error:entErr}=await sb.from('entregas').insert({
+    // Descontar primero y de forma atómica: si dos entregas se registran a la
+    // vez, el motor las serializa y la segunda ya ve descontada a la primera.
+    // La validación de arriba es sólo cortesía de UI; la que manda es ésta.
+    const rf=await ajustarStockFlores(floresId,-cantidad);
+    if(!rf?.ok){alert('No se registró la entrega.\n\n'+mensajeStock(rf));return;}
+    const nuevoStock=rf.stock;
+    const{error:entErr}=await sb.from('entregas').insert({
       flores_id:floresId,
       paciente_id:pacId,
       paciente_nombre:pacNombre,
@@ -3304,14 +3497,10 @@ async function guardarEntrega(){
       cantidad_otorgada:cantidad,
       registrado_por:entregador||null,
       notas:notas||null
-    }).select('id').single();
-    if(entErr){alert('Error al registrar la entrega: '+entErr.message);return;}
-    const nuevoStock=Math.round((stockActual-cantidad)*100)/100;
-    const{error:stockErr}=await sb.from('flores_cosechadas').update({stock_actual:nuevoStock}).eq('id',floresId);
-    if(stockErr){
-      // compensating: revertir la entrega recién insertada para mantener consistencia
-      await sb.from('entregas').delete().eq('id',entData.id);
-      alert('Error al actualizar el stock. La entrega fue revertida automáticamente.\nIntentá de nuevo.');
+    });
+    if(entErr){
+      await ajustarStockFlores(floresId,cantidad);
+      alert('Error al registrar la entrega. El stock fue restaurado.\n'+entErr.message);
       return;
     }
     HIST_DATA.flores.stock_actual=nuevoStock;
@@ -3440,37 +3629,53 @@ function openEtapaHist(key){
 
 function volverEtapaActual(){renderPanelActivo();}
 
+const TBL_ETAPA={nursery:'etapa_nursery',vegetativa:'etapa_vegetativa',floracion:'etapa_floracion',cosecha:'etapa_cosecha',curado_secado:'etapa_curado_secado'};
+
+// Relee la etapa desde la base: refresca los valores en pantalla y, sobre todo,
+// el token de concurrencia, para que el siguiente intento de guardar no choque
+// contra el mismo conflicto ya resuelto.
+async function recargarEtapa(key){
+  const tbl=TBL_ETAPA[key];
+  if(!tbl||!LOTE_ACTIVO)return;
+  const{data}=await sb.from(tbl).select('*').eq('lote_id',LOTE_ACTIVO.id).maybeSingle();
+  if(data)HIST_DATA[key]=data;
+}
+
 async function guardarEtapaHist(key){
   if(_g.eh)return; _g.eh=true;
-  let dbErr, savedOk=false;
+  let dbErr, savedOk=false, conflicto=false;
+  const _cas=async(tabla,d,cambios)=>{
+    const r=await updateCAS(tabla,d.id,cambios,d.actualizado_en);
+    if(r.conflicto)conflicto=true; else dbErr=r.error;
+  };
   try{
   // No permitir corregir etapas heredadas del lote padre (el registro no es del sublote)
   if(HIST_PADRE_KEYS.has(key)){alert('Esta etapa fue heredada del lote padre y no puede corregirse desde el sublote.');return;}
   if(key==='nursery'){
     const d=HIST_DATA.nursery;
-    if(d?.id){savedOk=true;const eg=parseInt(document.getElementById('nur-egreso').value)||null;const bj=eg!=null?(d.cantidad_ingreso||0)-eg:0;const pd=parseInt(document.getElementById('nur-pdesc').value)||0;({error:dbErr}=await sb.from('etapa_nursery').update({fecha_fin:document.getElementById('nur-fecha-fin').value||null,cantidad_egreso:eg,bajas:bj,plantas_descartadas:pd,notas:document.getElementById('nur-notas').value||null}).eq('id',d.id));}
+    if(d?.id){savedOk=true;const eg=parseInt(document.getElementById('nur-egreso').value)||null;const bj=eg!=null?(d.cantidad_ingreso||0)-eg:0;const pd=parseInt(document.getElementById('nur-pdesc').value)||0;await _cas('etapa_nursery',d,{fecha_fin:document.getElementById('nur-fecha-fin').value||null,cantidad_egreso:eg,bajas:bj,plantas_descartadas:pd,notas:document.getElementById('nur-notas').value||null});}
   } else if(key==='vegetativa'){
     const d=HIST_DATA.vegetativa;
-    if(d?.id){savedOk=true;const ci=parseInt(document.getElementById('veg-cant-ini').value)||null;const eg=parseInt(document.getElementById('veg-egreso').value)||null;const bj=ci!=null&&eg!=null?ci-eg:0;const pd=parseInt(document.getElementById('veg-pdesc').value)||0;({error:dbErr}=await sb.from('etapa_vegetativa').update({fecha_inicio:document.getElementById('veg-fecha-ini').value||null,cantidad_ingreso:ci,fecha_fin:document.getElementById('veg-fecha-fin').value||null,cantidad_egreso:eg,bajas:bj,plantas_descartadas:pd,notas:document.getElementById('veg-notas').value||null}).eq('id',d.id));}
+    if(d?.id){savedOk=true;const ci=parseInt(document.getElementById('veg-cant-ini').value)||null;const eg=parseInt(document.getElementById('veg-egreso').value)||null;const bj=ci!=null&&eg!=null?ci-eg:0;const pd=parseInt(document.getElementById('veg-pdesc').value)||0;await _cas('etapa_vegetativa',d,{fecha_inicio:document.getElementById('veg-fecha-ini').value||null,cantidad_ingreso:ci,fecha_fin:document.getElementById('veg-fecha-fin').value||null,cantidad_egreso:eg,bajas:bj,plantas_descartadas:pd,notas:document.getElementById('veg-notas').value||null});}
   } else if(key==='floracion'){
     const d=HIST_DATA.floracion;
-    if(d?.id){savedOk=true;const ci=parseInt(document.getElementById('flo-cant-ini').value)||null;const eg=parseInt(document.getElementById('flo-egreso').value)||null;const bj=ci!=null&&eg!=null?ci-eg:0;const pd=parseInt(document.getElementById('flo-pdesc').value)||0;({error:dbErr}=await sb.from('etapa_floracion').update({fecha_inicio:document.getElementById('flo-fecha-ini').value||null,cantidad_ingreso:ci,fecha_fin:document.getElementById('flo-fecha-fin').value||null,cantidad_egreso:eg,bajas:bj,plantas_descartadas:pd,notas:document.getElementById('flo-notas').value||null}).eq('id',d.id));}
+    if(d?.id){savedOk=true;const ci=parseInt(document.getElementById('flo-cant-ini').value)||null;const eg=parseInt(document.getElementById('flo-egreso').value)||null;const bj=ci!=null&&eg!=null?ci-eg:0;const pd=parseInt(document.getElementById('flo-pdesc').value)||0;await _cas('etapa_floracion',d,{fecha_inicio:document.getElementById('flo-fecha-ini').value||null,cantidad_ingreso:ci,fecha_fin:document.getElementById('flo-fecha-fin').value||null,cantidad_egreso:eg,bajas:bj,plantas_descartadas:pd,notas:document.getElementById('flo-notas').value||null});}
   } else if(key==='cosecha'){
     const d=HIST_DATA.cosecha;
-    if(d?.id){savedOk=true;const pd=parseInt(document.getElementById('cos-pdesc').value)||0;({error:dbErr}=await sb.from('etapa_cosecha').update({fecha_inicio:document.getElementById('cos-fecha-ini').value||null,fecha_fin:document.getElementById('cos-fecha-fin').value||null,peso_humedo_total:parseFloat(document.getElementById('cos-peso-humedo').value)||null,plantas_descartadas:pd,notas:document.getElementById('cos-notas').value||null}).eq('id',d.id));}
+    if(d?.id){savedOk=true;const pd=parseInt(document.getElementById('cos-pdesc').value)||0;await _cas('etapa_cosecha',d,{fecha_inicio:document.getElementById('cos-fecha-ini').value||null,fecha_fin:document.getElementById('cos-fecha-fin').value||null,peso_humedo_total:parseFloat(document.getElementById('cos-peso-humedo').value)||null,plantas_descartadas:pd,notas:document.getElementById('cos-notas').value||null});}
   } else if(key==='curado_secado'){
     const d=HIST_DATA.curado_secado;
     if(d?.id){
       savedOk=true;
       const gramsH=(elId,unidId)=>{const v=parseFloat(document.getElementById(elId).value)||null;const u=document.getElementById(unidId)?.value||'gramos';return v!=null?(u==='kg'?Math.round(v*1000*100)/100:v):null;};
       const tieneEmp=document.getElementById('cur-empaque').value==='true';
-      ({error:dbErr}=await sb.from('etapa_curado_secado').update({fecha_inicio:document.getElementById('cur-fecha-ini').value||null,fecha_fin:document.getElementById('cur-fecha-fin').value||null,peso_inicial_humedo:gramsH('cur-peso-ini','cur-unidad-ini'),tiene_empaque:tieneEmp,tara_empaque:tieneEmp?gramsH('cur-tara','cur-unidad-tara'):null,unidad:'gramos',peso_seco_final:gramsH('cur-peso-seco','cur-unidad-seco'),notas:document.getElementById('cur-notas').value||null}).eq('id',d.id));
+      await _cas('etapa_curado_secado',d,{fecha_inicio:document.getElementById('cur-fecha-ini').value||null,fecha_fin:document.getElementById('cur-fecha-fin').value||null,peso_inicial_humedo:gramsH('cur-peso-ini','cur-unidad-ini'),tiene_empaque:tieneEmp,tara_empaque:tieneEmp?gramsH('cur-tara','cur-unidad-tara'):null,unidad:'gramos',peso_seco_final:gramsH('cur-peso-seco','cur-unidad-seco'),notas:document.getElementById('cur-notas').value||null});
     }
   }
   if(!savedOk){alert('No se encontró el registro de esta etapa para corregir.');return;}
+  if(conflicto){await recargarEtapa(key);document.getElementById('det-panel').innerHTML=panelReadOnly(key);avisarConflicto('Esta etapa');return;}
   if(dbErr){alert('Error al guardar: '+dbErr.message);return;}
-  const tbl={nursery:'etapa_nursery',vegetativa:'etapa_vegetativa',floracion:'etapa_floracion',cosecha:'etapa_cosecha',curado_secado:'etapa_curado_secado'}[key];
-  if(tbl){const{data}=await sb.from(tbl).select('*').eq('lote_id',LOTE_ACTIVO.id).maybeSingle();if(data)HIST_DATA[key]=data;}
+  await recargarEtapa(key);
   const logKey=LOTE_ACTIVO.id+':'+key;
   CORRECCIONES_LOG[logKey]=(CORRECCIONES_LOG[logKey]||0)+1;
   checkInconsistencias();
@@ -3798,7 +4003,11 @@ async function guardarBorrador(){
   if(!LOTE_ACTIVO)return;
   if(_g.bd)return; _g.bd=true;
   const et=LOTE_ACTIVO.etapaRaw;
-  let err, savedOk=false;
+  let err, savedOk=false, conflicto=false;
+  const _cas=async(tabla,d,cambios)=>{
+    const r=await updateCAS(tabla,d.id,cambios,d.actualizado_en);
+    if(r.conflicto)conflicto=true; else err=r.error;
+  };
   try{
   if(et==='nursery'){
     const d=HIST_DATA.nursery;
@@ -3808,19 +4017,19 @@ async function guardarBorrador(){
     const pd=parseInt(document.getElementById('nur-pdesc').value)||0;
     const ff=document.getElementById('nur-fecha-fin').value||null;
     const notasN=document.getElementById('nur-notas').value||null;
-    if(d?.id){savedOk=true;({error:err}=await sb.from('etapa_nursery').update({fecha_fin:ff,cantidad_egreso:eg,bajas:bj,plantas_descartadas:pd,notas:notasN}).eq('id',d.id));}
+    if(d?.id){savedOk=true;await _cas('etapa_nursery',d,{fecha_fin:ff,cantidad_egreso:eg,bajas:bj,plantas_descartadas:pd,notas:notasN});}
     else{const origenN=LOTE_ACTIVO.origen_pm_id?'plantas_madre':LOTE_ACTIVO.origen_esqueje_id?'esquejes':'semillas';savedOk=true;({error:err}=await sb.from('etapa_nursery').insert({lote_id:LOTE_ACTIVO.id,fecha_inicio:LOTE_ACTIVO.fechaInicioRaw||null,cantidad_ingreso:cantIngN||null,origen_material:origenN,fecha_fin:ff,cantidad_egreso:eg,bajas:bj,plantas_descartadas:pd,notas:notasN}));}
   } else if(et==='vegetativa'){
     const d=HIST_DATA.vegetativa;
     const fi=document.getElementById('veg-fecha-ini').value;const ci=parseInt(document.getElementById('veg-cant-ini').value)||null;
     const egV=parseInt(document.getElementById('veg-egreso').value)||null;const bjV=ci!=null&&egV!=null?ci-egV:0;const pdV=parseInt(document.getElementById('veg-pdesc').value)||0;
-    if(d?.id){savedOk=true;({error:err}=await sb.from('etapa_vegetativa').update({fecha_inicio:fi||null,cantidad_ingreso:ci,fecha_fin:document.getElementById('veg-fecha-fin').value||null,cantidad_egreso:egV,bajas:bjV,plantas_descartadas:pdV,notas:document.getElementById('veg-notas').value||null}).eq('id',d.id));}
+    if(d?.id){savedOk=true;await _cas('etapa_vegetativa',d,{fecha_inicio:fi||null,cantidad_ingreso:ci,fecha_fin:document.getElementById('veg-fecha-fin').value||null,cantidad_egreso:egV,bajas:bjV,plantas_descartadas:pdV,notas:document.getElementById('veg-notas').value||null});}
     else if(fi&&ci){savedOk=true;({error:err}=await sb.from('etapa_vegetativa').insert({lote_id:LOTE_ACTIVO.id,fecha_inicio:fi,cantidad_ingreso:ci,fecha_fin:document.getElementById('veg-fecha-fin').value||null,cantidad_egreso:egV,bajas:bjV,plantas_descartadas:pdV,notas:document.getElementById('veg-notas').value||null}));}
   } else if(et==='floracion'){
     const d=HIST_DATA.floracion;
     const fi=document.getElementById('flo-fecha-ini').value;const ci=parseInt(document.getElementById('flo-cant-ini').value)||null;
     const egF=parseInt(document.getElementById('flo-egreso').value)||null;const bjF=ci!=null&&egF!=null?ci-egF:0;const pdF=parseInt(document.getElementById('flo-pdesc').value)||0;
-    if(d?.id){savedOk=true;({error:err}=await sb.from('etapa_floracion').update({fecha_inicio:fi||null,cantidad_ingreso:ci,fecha_fin:document.getElementById('flo-fecha-fin').value||null,cantidad_egreso:egF,bajas:bjF,plantas_descartadas:pdF,notas:document.getElementById('flo-notas').value||null}).eq('id',d.id));}
+    if(d?.id){savedOk=true;await _cas('etapa_floracion',d,{fecha_inicio:fi||null,cantidad_ingreso:ci,fecha_fin:document.getElementById('flo-fecha-fin').value||null,cantidad_egreso:egF,bajas:bjF,plantas_descartadas:pdF,notas:document.getElementById('flo-notas').value||null});}
     else if(fi&&ci){savedOk=true;({error:err}=await sb.from('etapa_floracion').insert({lote_id:LOTE_ACTIVO.id,fecha_inicio:fi,cantidad_ingreso:ci,fecha_fin:document.getElementById('flo-fecha-fin').value||null,cantidad_egreso:egF,bajas:bjF,plantas_descartadas:pdF,notas:document.getElementById('flo-notas').value||null}));}
   } else if(et==='cosecha'){
     const d=HIST_DATA.cosecha;
@@ -3831,7 +4040,7 @@ async function guardarBorrador(){
     const notasC=document.getElementById('cos-notas').value||null;
     if(!fi){alert('Para guardar borrador de Cosecha ingresá al menos la Fecha inicio.');return;}
     savedOk=true;
-    if(d?.id){({error:err}=await sb.from('etapa_cosecha').update({fecha_inicio:fi,fecha_fin:ff,peso_humedo_total:ph,plantas_descartadas:pdC,notas:notasC}).eq('id',d.id));}
+    if(d?.id){await _cas('etapa_cosecha',d,{fecha_inicio:fi,fecha_fin:ff,peso_humedo_total:ph,plantas_descartadas:pdC,notas:notasC});}
     else{({error:err}=await sb.from('etapa_cosecha').insert({lote_id:LOTE_ACTIVO.id,fecha_inicio:fi,fecha_fin:ff,peso_humedo_total:ph,plantas_descartadas:pdC,notas:notasC}));}
   } else if(et==='curado_secado'){
     const d=HIST_DATA.curado_secado;
@@ -3843,18 +4052,31 @@ async function guardarBorrador(){
     const taraG=gramsB('cur-tara','cur-unidad-tara');
     const pesoGC=gramsB('cur-peso-seco','cur-unidad-seco');
     const notasCS=document.getElementById('cur-notas').value||null;
-    if(d?.id){savedOk=true;({error:err}=await sb.from('etapa_curado_secado').update({fecha_inicio:fi,fecha_fin:ff,peso_inicial_humedo:piG,tiene_empaque:tieneEmpC,tara_empaque:tieneEmpC?taraG:null,unidad:'gramos',peso_seco_final:pesoGC,notas:notasCS}).eq('id',d.id));}
+    if(d?.id){savedOk=true;await _cas('etapa_curado_secado',d,{fecha_inicio:fi,fecha_fin:ff,peso_inicial_humedo:piG,tiene_empaque:tieneEmpC,tara_empaque:tieneEmpC?taraG:null,unidad:'gramos',peso_seco_final:pesoGC,notas:notasCS});}
     else if(fi||ff){savedOk=true;({error:err}=await sb.from('etapa_curado_secado').insert({lote_id:LOTE_ACTIVO.id,fecha_inicio:fi,fecha_fin:ff,peso_inicial_humedo:piG,tiene_empaque:tieneEmpC,tara_empaque:tieneEmpC?taraG:null,unidad:'gramos',peso_seco_final:pesoGC,notas:notasCS}));}
     else{alert('Ingresá al menos una fecha para guardar borrador de Curado/Secado.');return;}
   }
   if(!savedOk)return;
+  if(conflicto){await recargarEtapa(et);renderPanelActivo();avisarConflicto('Esta etapa');return;}
   if(err){alert('Error al guardar: '+err.message);return;}
-  const tbl={nursery:'etapa_nursery',vegetativa:'etapa_vegetativa',floracion:'etapa_floracion',cosecha:'etapa_cosecha',curado_secado:'etapa_curado_secado'}[et];
-  if(tbl){const{data}=await sb.from(tbl).select('*').eq('lote_id',LOTE_ACTIVO.id).maybeSingle();if(data)HIST_DATA[et]=data;}
+  await recargarEtapa(et);
   renderPanelActivo();
   alert('Borrador guardado correctamente.');
   }finally{_g.bd=false;}
 }
+
+// El avance de etapa no necesita columna de versión: la etapa actual del lote
+// ES el token. "Pasá a Vegetativa sólo si seguís en Nursery" es a la vez la
+// regla de negocio y la guarda de concurrencia.
+async function avanzarEtapaLote(loteId, desde, hacia){
+  const{data,error}=await sb.from('lotes_produccion').update({etapa_actual:hacia}).eq('id',loteId).eq('etapa_actual',desde).select();
+  if(error)return{error};
+  if(data&&data.length)return{ok:true};
+  const{data:actual}=await sb.from('lotes_produccion').select('etapa_actual').eq('id',loteId).maybeSingle();
+  return{conflicto:true,etapaActual:actual?.etapa_actual||null};
+}
+
+const ETAPA_NOMBRE={nursery:'Nursery',vegetativa:'Vegetativa',floracion:'Floración',cosecha:'Cosecha',curado_secado:'Curado/Secado',flores:'Flores Cosechadas',completado:'Completado',cerrado:'Cerrado anticipadamente'};
 
 async function guardarAvanzar(){
   if(!LOTE_ACTIVO)return;
@@ -3868,6 +4090,25 @@ async function guardarAvanzar(){
   let dbErr;
 
   const loteId=LOTE_ACTIVO.id;
+  // Guarda la etapa con control de concurrencia. Devuelve true si otro guardó
+  // primero: ya avisó y refrescó la pantalla, el llamador sólo tiene que cortar.
+  const _casEtapa=async(key,d,cambios)=>{
+    const r=await updateCAS(TBL_ETAPA[key],d.id,cambios,d.actualizado_en);
+    if(r.conflicto){await recargarEtapa(key);renderPanelActivo();avisarConflicto('Esta etapa');return true;}
+    dbErr=r.error;
+    return false;
+  };
+  // Mueve el lote de etapa. Devuelve true si ya lo movieron desde otro lado.
+  const _avanzar=async(desde,hacia)=>{
+    const av=await avanzarEtapaLote(loteId,desde,hacia);
+    if(av.error){showErr('Error actualizando etapa: '+av.error.message);return true;}
+    if(av.conflicto){
+      await cargarLotes();
+      showErr('Este lote ya no está en '+ETAPA_NOMBRE[desde]+(av.etapaActual?' — ahora figura en '+(ETAPA_NOMBRE[av.etapaActual]||av.etapaActual):'')+'. Alguien lo avanzó desde otra pestaña o dispositivo. Volvé a abrir el lote para ver cómo quedó.');
+      return true;
+    }
+    return false;
+  };
 
   if(et==='nursery'){
     const fechaFin=document.getElementById('nur-fecha-fin').value;
@@ -3883,11 +4124,10 @@ async function guardarAvanzar(){
     if(bajas<0&&!confirm(`⚠ Las bajas calculadas son negativas (${bajas}): el egreso supera el ingreso. ¿Avanzar igual?`))return;
     const pdNur=parseInt(document.getElementById('nur-pdesc').value)||0;
     const d=HIST_DATA.nursery;
-    if(d?.id){({error:dbErr}=await sb.from('etapa_nursery').update({fecha_fin:fechaFin,cantidad_egreso:egreso,bajas,plantas_descartadas:pdNur,notas}).eq('id',d.id));}
+    if(d?.id){if(await _casEtapa('nursery',d,{fecha_fin:fechaFin,cantidad_egreso:egreso,bajas,plantas_descartadas:pdNur,notas}))return;}
     else{const origenAvanz=LOTE_ACTIVO.origen_pm_id?'plantas_madre':LOTE_ACTIVO.origen_esqueje_id?'esquejes':'semillas';({error:dbErr}=await sb.from('etapa_nursery').insert({lote_id:loteId,fecha_inicio:LOTE_ACTIVO.fechaInicioRaw||null,cantidad_ingreso:LOTE_ACTIVO.cantidadInicial||ingreso||null,origen_material:origenAvanz,fecha_fin:fechaFin,cantidad_egreso:egreso,bajas,plantas_descartadas:pdNur,notas}));}
     if(dbErr)return showErr('Error guardando nursery: '+dbErr.message);
-    ({error:dbErr}=await sb.from('lotes_produccion').update({etapa_actual:'vegetativa'}).eq('id',loteId));
-    if(dbErr)return showErr('Error actualizando etapa: '+dbErr.message);
+    if(await _avanzar('nursery','vegetativa'))return;
     await cargarLotes();rebuildSearchIndex();actualizarMetricasDash();calcularAlertas();
     logActividad('avance_etapa', LOTE_ACTIVO.n+' — avanzó a Vegetativa', loteId, {de:'nursery',a:'vegetativa'}).catch(()=>{});
     formDirty=false;alert('¡Nursery cerrada! El lote avanzó a Vegetativa.');
@@ -3908,11 +4148,10 @@ async function guardarAvanzar(){
     if(bajas<0&&!confirm(`⚠ Las bajas calculadas son negativas (${bajas}). ¿Avanzar igual?`))return;
     const pdVeg=parseInt(document.getElementById('veg-pdesc').value)||0;
     const d=HIST_DATA.vegetativa;
-    if(d?.id){({error:dbErr}=await sb.from('etapa_vegetativa').update({fecha_inicio:fi,cantidad_ingreso:ci,fecha_fin:ff,cantidad_egreso:egreso,bajas,plantas_descartadas:pdVeg,notas}).eq('id',d.id));}
+    if(d?.id){if(await _casEtapa('vegetativa',d,{fecha_inicio:fi,cantidad_ingreso:ci,fecha_fin:ff,cantidad_egreso:egreso,bajas,plantas_descartadas:pdVeg,notas}))return;}
     else{({error:dbErr}=await sb.from('etapa_vegetativa').insert({lote_id:loteId,fecha_inicio:fi,cantidad_ingreso:ci,fecha_fin:ff,cantidad_egreso:egreso,bajas,plantas_descartadas:pdVeg,notas}));}
     if(dbErr)return showErr('Error guardando vegetativa: '+dbErr.message);
-    ({error:dbErr}=await sb.from('lotes_produccion').update({etapa_actual:'floracion'}).eq('id',loteId));
-    if(dbErr)return showErr('Error actualizando etapa: '+dbErr.message);
+    if(await _avanzar('vegetativa','floracion'))return;
     await cargarLotes();rebuildSearchIndex();actualizarMetricasDash();calcularAlertas();
     logActividad('avance_etapa', LOTE_ACTIVO.n+' — avanzó a Floración', loteId, {de:'vegetativa',a:'floracion'}).catch(()=>{});
     formDirty=false;alert('¡Vegetativa cerrada! El lote avanzó a Floración.');
@@ -3933,11 +4172,10 @@ async function guardarAvanzar(){
     if(bajas<0&&!confirm(`⚠ Las bajas calculadas son negativas (${bajas}). ¿Avanzar igual?`))return;
     const pdFlo=parseInt(document.getElementById('flo-pdesc').value)||0;
     const d=HIST_DATA.floracion;
-    if(d?.id){({error:dbErr}=await sb.from('etapa_floracion').update({fecha_inicio:fi,cantidad_ingreso:ci,fecha_fin:ff,cantidad_egreso:egreso,bajas,plantas_descartadas:pdFlo,notas}).eq('id',d.id));}
+    if(d?.id){if(await _casEtapa('floracion',d,{fecha_inicio:fi,cantidad_ingreso:ci,fecha_fin:ff,cantidad_egreso:egreso,bajas,plantas_descartadas:pdFlo,notas}))return;}
     else{({error:dbErr}=await sb.from('etapa_floracion').insert({lote_id:loteId,fecha_inicio:fi,cantidad_ingreso:ci,fecha_fin:ff,cantidad_egreso:egreso,bajas,plantas_descartadas:pdFlo,notas}));}
     if(dbErr)return showErr('Error guardando floración: '+dbErr.message);
-    ({error:dbErr}=await sb.from('lotes_produccion').update({etapa_actual:'cosecha'}).eq('id',loteId));
-    if(dbErr)return showErr('Error actualizando etapa: '+dbErr.message);
+    if(await _avanzar('floracion','cosecha'))return;
     await cargarLotes();rebuildSearchIndex();actualizarMetricasDash();calcularAlertas();
     logActividad('avance_etapa', LOTE_ACTIVO.n+' — avanzó a Cosecha', loteId, {de:'floracion',a:'cosecha'}).catch(()=>{});
     formDirty=false;alert('¡Floración cerrada! El lote avanzó a Cosecha.');
@@ -3954,15 +4192,14 @@ async function guardarAvanzar(){
     if(wF&&!confirm(`⚠ ${wF}\n¿Confirmar igual?`))return;
     const pdCos=parseInt(document.getElementById('cos-pdesc').value)||0;
     const d=HIST_DATA.cosecha;
-    if(d?.id){({error:dbErr}=await sb.from('etapa_cosecha').update({fecha_inicio:fi,fecha_fin:ff,peso_humedo_total:pesoH,plantas_descartadas:pdCos,notas}).eq('id',d.id));}
+    if(d?.id){if(await _casEtapa('cosecha',d,{fecha_inicio:fi,fecha_fin:ff,peso_humedo_total:pesoH,plantas_descartadas:pdCos,notas}))return;}
     else{
       const {data:{session:sChk}}=await sb.auth.getSession();
       if(!sChk){return showErr('Sesión expirada. Recargá la página e iniciá sesión nuevamente.');}
       ({error:dbErr}=await sb.from('etapa_cosecha').insert({lote_id:loteId,fecha_inicio:fi,fecha_fin:ff,peso_humedo_total:pesoH,plantas_descartadas:pdCos,notas}));
     }
     if(dbErr)return showErr('Error guardando cosecha: '+dbErr.message);
-    ({error:dbErr}=await sb.from('lotes_produccion').update({etapa_actual:'curado_secado'}).eq('id',loteId));
-    if(dbErr)return showErr('Error actualizando etapa: '+dbErr.message);
+    if(await _avanzar('cosecha','curado_secado'))return;
     await cargarLotes();rebuildSearchIndex();actualizarMetricasDash();calcularAlertas();
     logActividad('avance_etapa', LOTE_ACTIVO.n+' — avanzó a Curado/Secado', loteId, {de:'cosecha',a:'curado_secado'}).catch(()=>{});
     formDirty=false;alert('Cosecha registrada. El lote avanzó a Curado/Secado.');
@@ -3992,14 +4229,13 @@ async function guardarAvanzar(){
       return showErr('El peso húmedo inicial del curado ('+pesoIni+'g) supera el peso húmedo de cosecha ('+phCos+'g). Verificá los valores ingresados.');
     }
     const d=HIST_DATA.curado_secado;
-    if(d?.id){({error:dbErr}=await sb.from('etapa_curado_secado').update({fecha_inicio:fi,fecha_fin:ff,peso_inicial_humedo:pesoIni,tiene_empaque:tieneEmp,tara_empaque:tieneEmp?tara:null,unidad:'gramos',peso_seco_final:pesoG,notas}).eq('id',d.id));}
+    if(d?.id){if(await _casEtapa('curado_secado',d,{fecha_inicio:fi,fecha_fin:ff,peso_inicial_humedo:pesoIni,tiene_empaque:tieneEmp,tara_empaque:tieneEmp?tara:null,unidad:'gramos',peso_seco_final:pesoG,notas}))return;}
     else{({error:dbErr}=await sb.from('etapa_curado_secado').insert({lote_id:loteId,fecha_inicio:fi,fecha_fin:ff,peso_inicial_humedo:pesoIni,tiene_empaque:tieneEmp,tara_empaque:tieneEmp?tara:null,unidad:'gramos',peso_seco_final:pesoG,notas}));}
     if(dbErr)return showErr('Error guardando curado/secado: '+dbErr.message);
     const pesoNeto=tieneEmp&&tara?Math.max(0,pesoG-tara):pesoG;
     const{data:floresExist}=await sb.from('flores_cosechadas').select('id').eq('lote_id',loteId).maybeSingle();
     if(!floresExist){({error:dbErr}=await sb.from('flores_cosechadas').insert({lote_id:loteId,stock_inicial:pesoNeto,stock_actual:pesoNeto}));if(dbErr)return showErr('Error creando stock de flores: '+dbErr.message);}
-    ({error:dbErr}=await sb.from('lotes_produccion').update({etapa_actual:'flores'}).eq('id',loteId));
-    if(dbErr)return showErr('Error actualizando etapa: '+dbErr.message);
+    if(await _avanzar('curado_secado','flores'))return;
     await cargarLotes();rebuildSearchIndex();actualizarMetricasDash();calcularAlertas();
     logActividad('avance_etapa', LOTE_ACTIVO.n+' — flores cosechadas', loteId, {de:'curado_secado',a:'flores'}).catch(()=>{});
     formDirty=false;alert('Curado/Secado registrado. El lote avanzó a Flores Cosechadas.');
@@ -4026,6 +4262,7 @@ async function cargarEstablecimientosSelect(selectId){
 
 /* ── ESTABLECIMIENTOS ── */
 let ESTABL_EDITANDO=null;
+let ESTABL_TOKEN=null;
 
 async function cargarEstablecimientos(){
   const cont=document.getElementById('establ-list-container');
@@ -4135,6 +4372,7 @@ async function reactivarEstabl(id,nombre){
 
 function abrirFormEstabl(id){
   ESTABL_EDITANDO=id;
+  ESTABL_TOKEN=null;
   const titulo=document.getElementById('establ-form-titulo');
   const errEl=document.getElementById('establ-form-err');
   if(errEl)errEl.style.display='none';
@@ -4147,6 +4385,7 @@ function abrirFormEstabl(id){
   // Edición: cargar datos del establecimiento
   sb.from('establecimientos').select('*').eq('id',id).maybeSingle().then(({data})=>{
     if(!data)return;
+    ESTABL_TOKEN=data.actualizado_en||null;
     if(titulo)titulo.textContent='Editar establecimiento';
     document.getElementById('ef-nombre').value=data.nombre||'';
     document.getElementById('ef-calle').value=data.calle||'';
@@ -4185,7 +4424,14 @@ async function guardarEstabl(){
   try {
     let dbError;
     if(ESTABL_EDITANDO){
-      ({error:dbError}=await sb.from('establecimientos').update(payload).eq('id',ESTABL_EDITANDO));
+      const r=await updateCAS('establecimientos',ESTABL_EDITANDO,payload,ESTABL_TOKEN);
+      if(r.conflicto){
+        ESTABL_EDITANDO=null;ESTABL_TOKEN=null;formDirty=false;
+        await cargarEstablecimientos();sv('establecimientos');
+        avisarConflicto('Este establecimiento');
+        _g.ge=false;return;
+      }
+      dbError=r.error;
     } else {
       ({error:dbError}=await sb.from('establecimientos').insert({...payload,usuario_id:uid}));
     }
@@ -4193,7 +4439,7 @@ async function guardarEstabl(){
 
     formDirty=false;
     alert(ESTABL_EDITANDO?'Establecimiento actualizado.':'Establecimiento registrado exitosamente.');
-    ESTABL_EDITANDO=null;
+    ESTABL_EDITANDO=null;ESTABL_TOKEN=null;
     sv('establecimientos');
   } catch (e) {
     showErr('Error guardando: ' + e.message);
@@ -4425,8 +4671,10 @@ async function cL(){
   }
   if(!UI){
     const c=gC();
-    if(OA==='semillas')await serverWrite({table:'lotes_semillas',operation:'update',userId:uid,record:{stock_actual:Math.max(0,LA.stock-c)},filters:{id:LA.v}});
-    else if(OA==='esquejes')await serverWrite({table:'lotes_esquejes',operation:'update',userId:uid,record:{stock_actual:Math.max(0,LA.stock-c)},filters:{id:LA.v}});
+    if(OA==='semillas'||OA==='esquejes'){
+      const rs=await ajustarStockMaterial(OA,LA.v,-c);
+      if(!rs?.ok)alert('El lote se creó, pero NO se pudo descontar el material de origen.\n\n'+mensajeStock(rs)+'\n\nRevisá el stock de ese lote de material y corregilo a mano.');
+    }
   }
   NUEVO_LOTE_ID=lote.id;
   formDirty=false;
@@ -4520,20 +4768,19 @@ async function eliminarTotalidadLote(){
     if(stock<=0){alert('El stock de este lote ya es 0.');return;}
     const uid=await ensureActiveOngUserContext();
     if(!uid){alert('No se pudo identificar el usuario de la ONG activa.');return;}
-    let bajaId=null;
+    // Vaciar primero: el motor devuelve cuánto había en ese instante, así la baja
+    // queda registrada por lo que realmente se retiró y no por lo que mostraba la
+    // pantalla, que puede haber quedado vieja si alguien movió el stock en el medio.
+    const rv=await vaciarStockMaterial(tipo,loteId);
+    if(!rv?.ok){alert('No se pudo eliminar el stock.\n\n'+mensajeStock(rv));await cargarMaterial();return;}
+    const retirado=rv.retirado;
     try{
-      const{data:bd}=await serverWrite({table:'bajas_material',operation:'insert',userId:uid,record:{usuario_id:uid,lote_id:loteId,lote_tipo:tipo==='pm'?'plantas_madre':tipo,fecha_baja:fecha,cantidad_baja:stock,motivo_baja:'Eliminación total del lote'}});
-      bajaId=bd?.id||null;
-    }catch(e){alert('Error al registrar la baja: '+e.message);return;}
-    try{
-      if(tipo==='semillas')await serverWrite({table:'lotes_semillas',operation:'update',userId:uid,record:{stock_actual:0},filters:{id:loteId}});
-      else if(tipo==='esquejes')await serverWrite({table:'lotes_esquejes',operation:'update',userId:uid,record:{stock_actual:0},filters:{id:loteId}});
-      else if(tipo==='pm')await serverWrite({table:'lotes_plantas_madre',operation:'update',userId:uid,record:{cantidad_actual:0},filters:{id:loteId}});
+      await serverWrite({table:'bajas_material',operation:'insert',userId:uid,record:{usuario_id:uid,lote_id:loteId,lote_tipo:tipo==='pm'?'plantas_madre':tipo,fecha_baja:fecha,cantidad_baja:retirado,motivo_baja:'Eliminación total del lote'}});
     }catch(e){
-      if(bajaId)await sb.from('bajas_material').delete().eq('id',bajaId);
-      alert('Error al actualizar el stock. La baja fue revertida.\n'+e.message);return;
+      await ajustarStockMaterial(tipo,loteId,retirado);
+      alert('Error al registrar la baja. El stock fue restaurado.\n'+e.message);return;
     }
-    alert(`El lote "${nombre}" fue eliminado del stock. Stock registrado en 0.`);
+    alert(`El lote "${nombre}" fue eliminado del stock.\nSe dio de baja ${retirado} ${lote?.u||'unidades'} y el stock quedó en 0.`);
     sel.value='';document.getElementById('bn').style.display='none';document.getElementById('bs').style.display='none';
     await cargarMaterial();rebuildSearchIndex();calcularAlertas();
   }finally{_g.et=false;}
@@ -4554,25 +4801,16 @@ async function guardarBaja(){
     if(!motivo){alert('Ingresá el motivo de la baja.');return;}
     const uid=await ensureActiveOngUserContext();
     if(!uid){alert('No se pudo identificar el usuario de la ONG activa.');return;}
-    let bajaId=null;
+    // Descontar primero, y que la resta la haga el motor: es la operación que
+    // puede fallar legítimamente (stock insuficiente), así que si falla no queda
+    // una baja registrada sin su descuento.
+    const rd=await ajustarStockMaterial(tipo,loteId,-cant);
+    if(!rd?.ok){alert('No se registró la baja.\n\n'+mensajeStock(rd));await cargarMaterial();return;}
     try{
-      const{data:bd}=await serverWrite({table:'bajas_material',operation:'insert',userId:uid,record:{usuario_id:uid,lote_id:loteId,lote_tipo:tipo==='pm'?'plantas_madre':tipo,fecha_baja:fecha,cantidad_baja:cant,motivo_baja:motivo}});
-      bajaId=bd?.id||null;
-    }catch(e){alert('Error al registrar la baja: '+e.message);return;}
-    try{
-      // Leer el stock FRESCO desde la DB (no del cache LM) antes de descontar — evita pisar cambios concurrentes
-      const tblMap={semillas:'lotes_semillas',esquejes:'lotes_esquejes',pm:'lotes_plantas_madre'};
-      const stockCol=tipo==='pm'?'cantidad_actual':'stock_actual';
-      const tbl=tblMap[tipo];
-      if(tbl){
-        const{data:fresh,error:readErr}=await sb.from(tbl).select(stockCol).eq('id',loteId).single();
-        if(readErr)throw readErr;
-        const stockFresh=fresh?.[stockCol]??0;
-        await serverWrite({table:tbl,operation:'update',userId:uid,record:{[stockCol]:Math.max(0,stockFresh-cant)},filters:{id:loteId}});
-      }
+      await serverWrite({table:'bajas_material',operation:'insert',userId:uid,record:{usuario_id:uid,lote_id:loteId,lote_tipo:tipo==='pm'?'plantas_madre':tipo,fecha_baja:fecha,cantidad_baja:cant,motivo_baja:motivo}});
     }catch(e){
-      if(bajaId)await sb.from('bajas_material').delete().eq('id',bajaId);
-      alert('Error al actualizar el stock. La baja fue revertida.\n'+e.message);return;
+      await ajustarStockMaterial(tipo,loteId,cant);
+      alert('Error al registrar la baja. El stock fue restaurado.\n'+e.message);return;
     }
     alert('¡Baja registrada exitosamente!');
     if(cantEl)cantEl.value='';document.getElementById('b-fecha').value='';document.getElementById('b-motivo').value='';sel.value='';
@@ -5018,8 +5256,18 @@ async function crearSublote(){
   if(etaTbl){
     const padreEtapa=HIST_DATA[et];
     if(padreEtapa?.id){
-      await sb.from(etaTbl).update({cantidad_ingreso:nuevaCant}).eq('id',padreEtapa.id);
-      HIST_DATA[et].cantidad_ingreso=nuevaCant;
+      // El sublote ya quedó creado, así que un conflicto acá no se puede abortar:
+      // hay que avisar para que alguien revise a mano cuántas plantas quedaron.
+      const rp=await updateCAS(etaTbl,padreEtapa.id,{cantidad_ingreso:nuevaCant},padreEtapa.actualizado_en);
+      if(rp.conflicto||rp.error){
+        await recargarEtapa(et);
+        alert('El sublote se creó, pero NO se pudo ajustar la cantidad de plantas del lote origen.\n\n'+
+              (rp.conflicto?'Esa etapa fue modificada desde otra pestaña o dispositivo mientras tanto.':rp.error.message)+
+              '\n\nRevisá a mano cuántas plantas quedan en "'+LOTE_ACTIVO.n+'".');
+      } else {
+        HIST_DATA[et].cantidad_ingreso=nuevaCant;
+        HIST_DATA[et].actualizado_en=rp.fila.actualizado_en;
+      }
     }
     const inputEl=document.getElementById(inputId);
     if(inputEl)inputEl.value=nuevaCant;

@@ -646,6 +646,10 @@
     const nombre = perfil?.nombre || email;
     console.log('[LOGIN] rol final:', rol, '| nombre:', nombre);
 
+    // Arrancar el reloj de inactividad de cero: una marca vieja de una sesión
+    // anterior haría que el portal cerrara la sesión apenas entra.
+    try { localStorage.setItem('agrotrace_ultima_actividad', String(Date.now())); } catch (e) {}
+
     sessionStorage.setItem('agrotrace_role', rol);
     sessionStorage.setItem('agrotrace_user', nombre);
     sessionStorage.removeItem('agrotrace_supervisando_ong_id');
@@ -709,6 +713,17 @@
     } finally {
       if (btn) { btn.disabled = false; btn.textContent = 'Enviar enlace'; }
     }
+  }
+
+  // Los portales redirigen acá con ?expirada=1 al cerrar por inactividad:
+  // sin este aviso el usuario vuelve al login sin entender por qué.
+  if (new URLSearchParams(window.location.search).get('expirada') === '1') {
+    const e = document.getElementById('error-login');
+    if (e) {
+      e.textContent = 'Tu sesión se cerró por inactividad. Ingresá de nuevo para continuar.';
+      e.classList.add('show');
+    }
+    history.replaceState(null, '', window.location.pathname);
   }
 </script>
 </body>

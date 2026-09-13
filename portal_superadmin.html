@@ -732,6 +732,141 @@ const SUPABASE_URL  = 'https://jqkyifuyaxxwugrnjfnq.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impxa3lpZnV5YXh4d3Vncm5qZm5xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyMjE1NjgsImV4cCI6MjA5Njc5NzU2OH0.0r2A5wC4hZ6sg0TAC9_pEdvit5PMHj8XB1wsXWdDVww';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
+/* ── CONCURRENCIA OPTIMISTA ──────────────────────────────────────────
+   Ver migration_concurrencia_optimista.sql. El UPDATE viaja con el
+   `actualizado_en` que se leyó al abrir el formulario: si alguien tocó la
+   fila desde otra pestaña o dispositivo, no matchea, vuelven 0 filas y
+   avisamos en vez de pisar el cambio ajeno. Sin token sale sin proteger,
+   igual que antes — así el portal no se rompe si el SQL no corrió todavía.
+   Duplicado en los tres portales porque no hay módulos JS compartidos. */
+async function updateCAS(tabla, id, cambios, token) {
+  let q = sb.from(tabla).update(cambios).eq('id', id);
+  if (token) q = q.eq('actualizado_en', token);
+  else console.warn('[concurrencia] UPDATE sin token en ' + tabla + ' (' + id + ')');
+  const { data, error } = await q.select();
+  if (error) return { error };
+  if (data && data.length) return { fila: data[0] };
+  if (!token) return { error: { message: 'No se encontró el registro.' } };
+  const { data: sigue } = await sb.from(tabla).select('actualizado_en').eq('id', id).maybeSingle();
+  return sigue ? { conflicto: true } : { error: { message: 'El registro ya no existe.' } };
+}
+
+function avisarConflicto(queCosa) {
+  alert('⚠ ' + (queCosa || 'Este registro') + ' fue modificado desde otra pestaña o dispositivo mientras lo editabas.\n\nPara no pisar ese cambio, lo tuyo NO se guardó.\n\nRecargá la pantalla, mirá cómo quedó y volvé a aplicar tu corrección si sigue haciendo falta.');
+}
+
+/* ── CIERRE DE SESIÓN POR INACTIVIDAD ────────────────────────────────
+   A los 30 minutos sin actividad se cierra la sesión, avisando 2 minutos
+   antes: los wizards y formularios largos no autoguardan, así que cortar
+   en seco haría perder lo que se esté cargando.
+
+   La marca de actividad vive en localStorage y no en una variable: la app
+   son cuatro HTML separados que navegan con window.location, así que un
+   timer en memoria se reiniciaría en cada pantalla. Compartirla además
+   hace que trabajar en una pestaña mantenga viva la sesión en las otras.
+
+   Es una medida de higiene, no una barrera de seguridad: el JWT le sigue
+   sirviendo a Supabase hasta que expire solo, haga lo que haga esta
+   interfaz. Cortar del lado del servidor requiere los controles nativos
+   de Supabase (Plan Pro+). Ver docs/AgroTrace_Sesiones_Timeout.html. */
+const INACT_MS       = 30 * 60 * 1000;
+const INACT_AVISO_MS = 2 * 60 * 1000;
+const INACT_KEY      = 'agrotrace_ultima_actividad';
+let _inactTimer = null, _inactCuentaTimer = null;
+let _inactAvisoAbierto = false, _inactUltimoWrite = 0;
+
+function inactMarcarActividad() {
+  if (_inactAvisoAbierto) return;   // con el aviso en pantalla, sólo el botón revive la sesión
+  const ahora = Date.now();
+  if (ahora - _inactUltimoWrite < 10000) return;   // no escribir en cada mousemove
+  _inactUltimoWrite = ahora;
+  try { localStorage.setItem(INACT_KEY, String(ahora)); } catch (e) {}
+}
+
+function inactUltima() {
+  try { return parseInt(localStorage.getItem(INACT_KEY) || '0', 10) || 0; } catch (e) { return 0; }
+}
+
+function inactCerrarAviso() {
+  _inactAvisoAbierto = false;
+  if (_inactCuentaTimer) { clearInterval(_inactCuentaTimer); _inactCuentaTimer = null; }
+  const el = document.getElementById('inact-modal');
+  if (el) el.style.display = 'none';
+}
+
+function inactSeguirConectado() {
+  inactCerrarAviso();
+  _inactUltimoWrite = Date.now();
+  try { localStorage.setItem(INACT_KEY, String(_inactUltimoWrite)); } catch (e) {}
+}
+
+function inactCerrarSesionYa() {
+  inactCerrarAviso();
+  if (_inactTimer) { clearInterval(_inactTimer); _inactTimer = null; }
+  try { localStorage.removeItem(INACT_KEY); } catch (e) {}
+  cerrarSesion();
+}
+
+async function inactVencida() {
+  if (_inactTimer) { clearInterval(_inactTimer); _inactTimer = null; }
+  inactCerrarAviso();
+  try { localStorage.removeItem(INACT_KEY); } catch (e) {}
+  try { await sb.auth.signOut(); } catch (e) {}
+  sessionStorage.clear();   // incluye el contexto de supervisión, que si no queda colgado
+  window.location.href = 'index.html?expirada=1';
+}
+
+function inactMostrarAviso() {
+  const el = document.getElementById('inact-modal');
+  if (!el) return;
+  _inactAvisoAbierto = true;
+  el.style.display = 'flex';
+  const pintar = () => {
+    const restante = Math.max(0, INACT_MS - (Date.now() - inactUltima()));
+    const m = Math.floor(restante / 60000);
+    const s = Math.floor((restante % 60000) / 1000);
+    const c = document.getElementById('inact-cuenta');
+    if (c) c.textContent = m + ':' + String(s).padStart(2, '0');
+  };
+  pintar();
+  _inactCuentaTimer = setInterval(pintar, 1000);
+}
+
+function inactChequear() {
+  const inactivo = Date.now() - inactUltima();
+  if (inactivo >= INACT_MS) { inactVencida(); return; }
+  if (inactivo >= INACT_MS - INACT_AVISO_MS) {
+    if (!_inactAvisoAbierto) inactMostrarAviso();
+  } else if (_inactAvisoAbierto) {
+    inactCerrarAviso();   // hubo actividad en otra pestaña: bajar el aviso acá también
+  }
+}
+
+function inactIniciar() {
+  if (_inactTimer) return;
+  document.body.insertAdjacentHTML('beforeend',
+    '<div id="inact-modal" style="display:none;position:fixed;inset:0;background:rgba(44,31,14,0.55);z-index:9999;align-items:center;justify-content:center;padding:20px;">' +
+      '<div style="background:var(--cream,#F7F4EF);border-radius:10px;max-width:380px;width:100%;padding:26px 28px;box-shadow:0 12px 40px rgba(0,0,0,0.25);">' +
+        '<div style="font-family:\'DM Serif Display\',serif;font-size:1.2rem;color:var(--soil,#2C1F0E);margin-bottom:10px;">Tu sesión está por cerrarse</div>' +
+        '<div style="font-size:0.85rem;color:var(--bark,#4A3520);line-height:1.6;margin-bottom:6px;">No registramos actividad en los últimos minutos. La sesión se va a cerrar en <b id="inact-cuenta">2:00</b>.</div>' +
+        '<div style="font-size:0.78rem;color:var(--sage,#6B7F5E);margin-bottom:18px;">Si dejaste un formulario a medio cargar, seguí conectado y guardalo antes de salir.</div>' +
+        '<div style="display:flex;gap:10px;justify-content:flex-end;">' +
+          '<button onclick="inactCerrarSesionYa()" style="background:none;border:1px solid var(--mist,#C8D9BC);color:var(--bark,#4A3520);padding:9px 16px;border-radius:6px;font-size:0.82rem;cursor:pointer;font-family:inherit;">Cerrar sesión</button>' +
+          '<button onclick="inactSeguirConectado()" style="background:var(--accent,#4E7C3F);border:none;color:#fff;padding:9px 18px;border-radius:6px;font-size:0.82rem;cursor:pointer;font-family:inherit;font-weight:500;">Seguir conectado</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>');
+
+  // Si la pestaña estuvo cerrada o dormida más que el límite, cortar de entrada
+  if (inactUltima() && Date.now() - inactUltima() >= INACT_MS) { inactVencida(); return; }
+
+  _inactUltimoWrite = Date.now();
+  try { localStorage.setItem(INACT_KEY, String(_inactUltimoWrite)); } catch (e) {}
+  ['mousedown', 'keydown', 'scroll', 'touchstart', 'mousemove'].forEach(ev =>
+    document.addEventListener(ev, inactMarcarActividad, { passive: true, capture: true }));
+  _inactTimer = setInterval(inactChequear, 10000);
+}
+
 /* ── SANITIZACIÓN XSS ── */
 function esc(v){if(v==null)return'';return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
 
@@ -751,6 +886,7 @@ async function init() {
     cargarDemo();
     return;
   }
+  inactIniciar();
 
   const nombre = sessionStorage.getItem('agrotrace_user') || session.user.email || 'Superadmin';
   const iniciales = nombre.split(' ').map(p => p[0]).join('').toUpperCase().slice(0,2) || 'SA';
@@ -781,7 +917,7 @@ function cargarDemo() {
 
 /* ── CARGAR RTs ── */
 async function cargarRTs() {
-  const { data, error } = await sb.from('perfiles').select('id, nombre, email, activo, apellido, cuit, titulo_profesional, colegio_profesional, nro_matricula, provincia, ciudad, direccion').eq('rol', 'rt');
+  const { data, error } = await sb.from('perfiles').select('id, nombre, email, activo, apellido, cuit, titulo_profesional, colegio_profesional, nro_matricula, provincia, ciudad, direccion, actualizado_en').eq('rol', 'rt');
   if (error || !data) return;
 
   const rtIds = data.map(r => r.id);
@@ -1675,12 +1811,19 @@ async function guardarDatosRT() {
       direccion:           document.getElementById('drt-direccion').value.trim() || null,
     };
 
-    const { error } = await sb.from('perfiles').update(updates).eq('id', DATOS_RT_ID);
-    if (error) throw error;
+    const rtPrev = ALL_RTS.find(r => r.id === DATOS_RT_ID);
+    const r = await updateCAS('perfiles', DATOS_RT_ID, updates, rtPrev?.actualizado_en);
+    if (r.conflicto) {
+      cerrarModalDatosRT();
+      await cargarRTs();
+      avisarConflicto('La ficha de este Responsable Técnico');
+      return;
+    }
+    if (r.error) throw r.error;
 
     // Actualizar en memoria y valores originales
-    const rt = ALL_RTS.find(r => r.id === DATOS_RT_ID);
-    if (rt) Object.assign(rt, updates);
+    const rt = ALL_RTS.find(r2 => r2.id === DATOS_RT_ID);
+    if (rt) Object.assign(rt, updates, { actualizado_en: r.fila.actualizado_en });
     DRT_VALORES_ORIG = { ...updates, colegio_profesional: updates.colegio_profesional||'', nro_matricula: updates.nro_matricula||'' };
 
     renderRTs('dash-rt-grid', 'dash-rt-count', 4);
