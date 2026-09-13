@@ -1551,12 +1551,6 @@ function seleccionarPerfil(rol, nombre){
   initApp();
 }
 
-function cerrarSesion(){
-  sessionStorage.removeItem('agrotrace_role');
-  sessionStorage.removeItem('agrotrace_user');
-  location.reload();
-}
-
 /* ── INIT ── */
 async function initApp(){
   // Mostrar selector de perfil si no hay sesión activa
