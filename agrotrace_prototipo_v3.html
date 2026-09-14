@@ -627,7 +627,10 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
    cambiar el otro (y la constante RST_PAGINA_ALTO_PX en el JS). */
 #view-reporte-stock .rst-page{page-break-after:always;}
 #view-reporte-stock .rst-page:last-child{page-break-after:auto;}
-#view-reporte-stock .rst-pie{margin-top:16px;text-align:right;font-size:0.68rem;color:var(--sage);}
+/* Oculto en pantalla a propósito: es un dato de la hoja impresa (qué
+   página es), no de la vista — en pantalla no hay "páginas", es una sola
+   lista continua. Se muestra únicamente en @media print, más abajo. */
+#view-reporte-stock .rst-pie{display:none;margin-top:16px;text-align:right;font-size:0.68rem;color:var(--sage);}
 
 /* Reporte de Stock: A4, sin la cromática/chrome de la app (sidebar, topbar).
    Solo se activa mientras esa vista está .active — las demás vistas ya
@@ -644,7 +647,7 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
      cambia al imprimir esa medición deja de servir. */
   #view-reporte-stock *{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
   #view-reporte-stock .rst-page{min-height:269mm;display:flex;flex-direction:column;}
-  #view-reporte-stock .rst-pie{margin-top:auto;padding-top:8px;}
+  #view-reporte-stock .rst-pie{display:block;margin-top:auto;padding-top:8px;}
   @page{size:A4;margin:14mm;}
 }
 </style>
