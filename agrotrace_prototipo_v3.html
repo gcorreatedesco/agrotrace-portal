@@ -618,6 +618,17 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
 #view-reporte-stock .rst-tabla tbody tr:nth-child(even){background:var(--dew);}
 #view-reporte-stock .rst-seccion{background:var(--soil);color:var(--white);font-weight:500;font-size:0.75rem;padding:4px 8px;border-radius:3px;margin-bottom:6px;}
 
+/* Paginado manual: Chrome no soporta "Página X de Y" vía CSS nativo
+   (@page { @bottom-right{content:counter(page)} } lo ignora), así que
+   paginarReporteStock() reparte el contenido en bloques de altura ≈A4 y les
+   agrega un pie propio. page-break-after sí es confiable en Chrome — es lo
+   que separa físicamente las hojas acá. El alto 269mm = 297mm (A4) menos
+   los 14mm+14mm de @page margin de más abajo; si se cambia uno hay que
+   cambiar el otro (y la constante RST_PAGINA_ALTO_PX en el JS). */
+#view-reporte-stock .rst-page{page-break-after:always;}
+#view-reporte-stock .rst-page:last-child{page-break-after:auto;}
+#view-reporte-stock .rst-pie{margin-top:16px;text-align:right;font-size:0.68rem;color:var(--sage);}
+
 /* Reporte de Stock: A4, sin la cromática/chrome de la app (sidebar, topbar).
    Solo se activa mientras esa vista está .active — las demás vistas ya
    están display:none, así que basta con ocultar sidebar/topbar/banners.
@@ -628,8 +639,12 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
   .sidebar,.topbar,.rt-supervision-bar,.no-print{display:none!important;}
   body,.main{margin:0;padding:0;background:#fff;}
   .content{padding:0;}
-  #view-reporte-stock table{font-size:11px;}
+  /* Sin achicar la fuente acá a propósito: paginarReporteStock() mide los
+     bloques en pantalla para decidir los cortes de página, y si el tamaño
+     cambia al imprimir esa medición deja de servir. */
   #view-reporte-stock *{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  #view-reporte-stock .rst-page{min-height:269mm;display:flex;flex-direction:column;}
+  #view-reporte-stock .rst-pie{margin-top:auto;padding-top:8px;}
   @page{size:A4;margin:14mm;}
 }
 </style>
@@ -1302,26 +1317,27 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
   </div>
 
   <div id="rst-contenido">
-    <div style="margin-bottom:18px;">
+    <div id="rst-header" style="margin-bottom:18px;">
       <div style="font-family:'DM Serif Display',serif;font-size:1.3rem;color:var(--soil);">Reporte de Stock — <span id="rst-org-nombre">—</span></div>
       <div style="font-size:0.8rem;color:var(--bark);margin-top:2px;">Generado el <span id="rst-fecha">—</span> · Responsable Técnico: <span id="rst-rt-nombre">—</span></div>
     </div>
 
-    <div class="metrics" style="grid-template-columns:repeat(2,1fr);max-width:520px;">
+    <div class="metrics" id="rst-metrics" style="grid-template-columns:repeat(2,1fr);max-width:520px;">
       <div class="metric"><div class="metric-label">Pacientes declarados (activos)</div><div class="metric-val" id="rst-pacientes">—</div></div>
       <div class="metric"><div class="metric-label">Plantas en cultivo</div><div class="metric-val green" id="rst-plantas">—</div><div id="rst-plantas-nota" style="display:none;font-size:0.65rem;color:var(--amber);margin-top:4px;"></div></div>
     </div>
-    <div class="rst-h1">Lotes activos</div>
+    <div class="rst-h1" id="rst-h1-lotes">Lotes activos</div>
     <div id="rst-lotes-secciones"></div>
 
-    <div class="rst-h1">Stock de material básico</div>
+    <div class="rst-h1" id="rst-h1-material">Stock de material básico</div>
     <div id="rst-material"></div>
 
-    <div class="rst-h1">Flores cosechadas disponibles</div>
+    <div class="rst-h1" id="rst-h1-flores">Flores cosechadas disponibles</div>
     <div id="rst-flores"></div>
 
     <div id="rst-sin-datos" style="display:none;padding:40px;text-align:center;color:var(--sage);font-size:0.85rem;">Generando…</div>
   </div>
+  <div id="rst-paginado"></div>
 </div>
 
 <!-- ESTABLECIMIENTOS -->
@@ -4090,6 +4106,90 @@ function exportarExcelReprocann(){
    "Plantas en cultivo" excluye a propósito Cosecha/Curado/Flores: esas
    etapas ya retiraron las plantas del campo, así que sumarlas ahí
    infla el número que el RT compara contra el límite de REPROCANN. */
+// 297mm (A4) - 14mm - 14mm de @page margin (ver CSS). Si se cambia el
+// margen del @page hay que actualizar esto también.
+const RST_PAGINA_ALTO_PX=(297-14-14)*96/25.4;
+// Colchón para que una medición un poco optimista no termine desbordando
+// la hoja física — mejor una página de más que un pie de página cortado.
+const RST_MARGEN_SEGURIDAD_PX=90;
+
+// Reparte el contenido ya renderizado de #rst-contenido en bloques de ≈A4 y
+// les agrega "Página N de M". Chrome no soporta contadores de página por
+// CSS (@page > @bottom-right { content:counter(page) } no hace nada ahí),
+// así que la única forma confiable es armar las hojas a mano y usar
+// page-break-after, que Chrome sí respeta siempre.
+//
+// No clona nodos (evitaría ids duplicados, rompiendo los getElementById que
+// usa el resto del reporte) — MUEVE los nodos ya existentes. Por eso el
+// primer paso deshace cualquier paginado anterior, dejando todo de nuevo
+// como hijos planos de #rst-contenido antes de volver a repartir.
+function paginarReporteStock(){
+  const cont=document.getElementById('rst-contenido');
+  const pag=document.getElementById('rst-paginado');
+  if(!cont||!pag)return;
+
+  Array.from(pag.querySelectorAll('.rst-page')).forEach(pagina=>{
+    Array.from(pagina.children).forEach(hijo=>{
+      if(hijo.classList.contains('rst-pie'))return;
+      cont.appendChild(hijo);
+    });
+  });
+  pag.innerHTML='';
+
+  // Unidades que no se pueden partir: el header+métricas siempre abren la
+  // página 1; cada título de sección va pegado a su primer bloque hijo, así
+  // nunca queda un "Lotes activos" solo al pie de una hoja.
+  const bloques=[];
+  const header=document.getElementById('rst-header');
+  const metrics=document.getElementById('rst-metrics');
+  if(header)bloques.push([header]);
+  if(metrics)bloques.push([metrics]);
+  function agregarSeccion(h1Id,contenedorId){
+    const h1=document.getElementById(h1Id);
+    const contenedor=document.getElementById(contenedorId);
+    if(!h1||!contenedor)return;
+    const hijos=Array.from(contenedor.children);
+    if(!hijos.length){bloques.push([h1,contenedor]);return;}
+    bloques.push([h1,hijos[0]]);
+    for(let i=1;i<hijos.length;i++)bloques.push([hijos[i]]);
+  }
+  agregarSeccion('rst-h1-lotes','rst-lotes-secciones');
+  agregarSeccion('rst-h1-material','rst-material');
+  agregarSeccion('rst-h1-flores','rst-flores');
+
+  // Alto real ya renderizado (todavía están en flujo normal dentro de
+  // #rst-contenido). getBoundingClientRect() no cuenta el margin propio del
+  // elemento, así que se suma aparte para no subestimar el alto total.
+  const altoConMargen=el=>{
+    const r=el.getBoundingClientRect();
+    const cs=getComputedStyle(el);
+    return r.height+parseFloat(cs.marginTop||0)+parseFloat(cs.marginBottom||0);
+  };
+  const bloquesConAlto=bloques.map(els=>({els,alto:els.reduce((acc,el)=>acc+altoConMargen(el),0)}));
+
+  const paginas=[[]];
+  let altoAcum=0;
+  bloquesConAlto.forEach(b=>{
+    if(altoAcum>0&&altoAcum+b.alto>RST_PAGINA_ALTO_PX-RST_MARGEN_SEGURIDAD_PX){
+      paginas.push([]);
+      altoAcum=0;
+    }
+    paginas[paginas.length-1].push(b);
+    altoAcum+=b.alto;
+  });
+
+  paginas.forEach((bloquesPagina,i)=>{
+    const paginaEl=document.createElement('div');
+    paginaEl.className='rst-page';
+    bloquesPagina.forEach(b=>b.els.forEach(el=>paginaEl.appendChild(el)));
+    const pie=document.createElement('div');
+    pie.className='rst-pie';
+    pie.textContent=`Página ${i+1} de ${paginas.length}`;
+    paginaEl.appendChild(pie);
+    pag.appendChild(paginaEl);
+  });
+}
+
 async function generarReporteStock(){
   const sinDatos=document.getElementById('rst-sin-datos');
   if(sinDatos){sinDatos.style.display='block';sinDatos.textContent='Generando…';}
@@ -4184,6 +4284,7 @@ async function generarReporteStock(){
         <tbody>${floresLotes.map(l=>`<tr><td>${esc(l.n)}</td><td>${esc(l.variedad||'—')}</td><td>${esc(l.cardPeso)}</td><td>${esc(l.establNombre||'—')}</td></tr>`).join('')}</tbody>
       </table>`:'<div style="padding:16px 0;color:var(--sage);font-size:0.8rem;">Sin flores cosechadas disponibles.</div>';
 
+    paginarReporteStock();
     if(sinDatos)sinDatos.style.display='none';
   }catch(e){
     console.error('[reporte-stock]',e);
