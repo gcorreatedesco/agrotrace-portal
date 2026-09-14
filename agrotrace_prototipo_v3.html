@@ -1262,7 +1262,10 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
   <div class="no-print" style="background:var(--white);border:1px solid rgba(0,0,0,0.07);border-radius:10px;padding:24px;margin-bottom:16px;">
     <div style="font-family:'DM Serif Display',serif;font-size:1.1rem;color:var(--soil);margin-bottom:4px;">Reporte de Stock</div>
     <div style="font-size:0.78rem;color:var(--sage);margin-bottom:8px;">Fotografía del estado actual, pensada para la visita del Responsable Técnico</div>
-    <div style="font-style:italic;font-size:0.78rem;color:var(--bark);margin-bottom:16px;">Muestra los lotes activos, el stock de material básico y de flores cosechadas al momento de generarlo, junto con la cantidad de pacientes declarados para contrastarla contra las plantas en cultivo. No es un reporte por período — cada vez que se genera refleja el estado de hoy, no el de una visita anterior.</div>
+    <ul style="font-style:italic;font-size:0.78rem;color:var(--bark);margin:0 0 16px 18px;padding:0;">
+      <li>Se muestran Lotes activos, Stock de Material Básico y Stock de Flores Cosechadas disponibles.</li>
+      <li>Pacientes declarados al momento del reporte.</li>
+    </ul>
     <div style="display:flex;gap:10px;flex-wrap:wrap;">
       <button class="btn btn-primary" onclick="generarReporteStock()">Actualizar</button>
       <button class="btn btn-secondary" onclick="window.print()">Imprimir / PDF</button>
@@ -1279,8 +1282,6 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
       <div class="metric"><div class="metric-label">Pacientes declarados (activos)</div><div class="metric-val" id="rst-pacientes">—</div></div>
       <div class="metric"><div class="metric-label">Plantas en cultivo</div><div class="metric-val green" id="rst-plantas">—</div><div id="rst-plantas-nota" style="display:none;font-size:0.65rem;color:var(--amber);margin-top:4px;"></div></div>
     </div>
-    <div style="font-size:0.72rem;color:var(--sage);margin:-12px 0 20px;">La comparación entre estos dos números es la que corresponde verificar contra el límite habilitado por REPROCANN para esta organización. "Plantas en cultivo" suma Nursery + Vegetativa + Floración — no incluye lotes en Cosecha, Curado/Secado o Flores Cosechadas, porque en esas etapas las plantas ya fueron retiradas del cultivo.</div>
-
     <div style="font-family:'DM Serif Display',serif;font-size:1rem;color:var(--soil);margin:24px 0 10px;">Lotes activos</div>
     <div id="rst-lotes-secciones"></div>
 
