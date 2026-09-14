@@ -2034,9 +2034,15 @@ async function cargarMaterial(){
     filt(sb.from('lotes_esquejes').select('*').order('creado_en')),
     filt(sb.from('lotes_plantas_madre').select('*').order('creado_en')),
   ]);
-  LM.semillas=(semR.data||[]).filter(r=>r.stock_actual>0).map(r=>({v:r.id,l:r.nombre_lote+' — '+r.variedad,stock:r.stock_actual,stockI:r.stock_inicial,u:r.unidad,var:r.variedad}));
-  LM.esquejes=(esqR.data||[]).filter(r=>r.stock_actual>0).map(r=>({v:r.id,l:r.nombre_lote+' — '+r.variedad,stock:r.stock_actual,stockI:r.stock_inicial,u:'esquejes',var:r.variedad}));
-  LM.pm=(pmR.data||[]).filter(r=>r.cantidad_actual>0).map(r=>({v:r.id,l:r.nombre_lote+' — '+r.variedad,stock:r.cantidad_actual,stockI:r.cantidad_inicial,u:'plantas',var:r.variedad}));
+  const establIdsMat=[...new Set([...(semR.data||[]),...(esqR.data||[]),...(pmR.data||[])].map(r=>r.establecimiento_id).filter(Boolean))];
+  let establMapMat={};
+  if(establIdsMat.length){
+    const{data:eDMat}=await sb.from('establecimientos').select('id,nombre').eq('usuario_id',ongUid).in('id',establIdsMat);
+    if(eDMat)establMapMat=Object.fromEntries(eDMat.map(e=>[e.id,e.nombre]));
+  }
+  LM.semillas=(semR.data||[]).filter(r=>r.stock_actual>0).map(r=>({v:r.id,l:r.nombre_lote+' — '+r.variedad,stock:r.stock_actual,stockI:r.stock_inicial,u:r.unidad,var:r.variedad,establNombre:establMapMat[r.establecimiento_id]||null}));
+  LM.esquejes=(esqR.data||[]).filter(r=>r.stock_actual>0).map(r=>({v:r.id,l:r.nombre_lote+' — '+r.variedad,stock:r.stock_actual,stockI:r.stock_inicial,u:'esquejes',var:r.variedad,establNombre:establMapMat[r.establecimiento_id]||null}));
+  LM.pm=(pmR.data||[]).filter(r=>r.cantidad_actual>0).map(r=>({v:r.id,l:r.nombre_lote+' — '+r.variedad,stock:r.cantidad_actual,stockI:r.cantidad_inicial,u:'plantas',var:r.variedad,establNombre:establMapMat[r.establecimiento_id]||null}));
   LM_HIST.semillas=(semR.data||[]).filter(r=>r.stock_actual<=0).map(r=>({v:r.id,l:r.nombre_lote+' — '+r.variedad,stockI:r.stock_inicial,u:r.unidad,var:r.variedad,creado_en:r.creado_en}));
   LM_HIST.esquejes=(esqR.data||[]).filter(r=>r.stock_actual<=0).map(r=>({v:r.id,l:r.nombre_lote+' — '+r.variedad,stockI:r.stock_inicial,u:'esquejes',var:r.variedad,creado_en:r.creado_en}));
   LM_HIST.pm=(pmR.data||[]).filter(r=>r.cantidad_actual<=0).map(r=>({v:r.id,l:r.nombre_lote+' — '+r.variedad,stockI:r.cantidad_inicial,u:'plantas',var:r.variedad,creado_en:r.creado_en}));
@@ -4085,7 +4091,7 @@ async function generarReporteStock(){
     const grupos={};
     LD.forEach(l=>{(grupos[l.etapaRaw]=grupos[l.etapaRaw]||[]).push(l);});
     const secc=document.getElementById('rst-lotes-secciones');
-    const filaLote=l=>`<tr><td style="padding:6px 8px;">${esc(l.n)}</td><td style="padding:6px 8px;">${esc(l.variedad||'—')}</td><td style="padding:6px 8px;">${esc(l.cardCant||l.cardPeso||'—')}</td><td style="padding:6px 8px;">${esc(l.m[0]?.v||'—')}</td></tr>`;
+    const filaLote=l=>`<tr><td style="padding:6px 8px;">${esc(l.n)}</td><td style="padding:6px 8px;">${esc(l.variedad||'—')}</td><td style="padding:6px 8px;">${esc(l.cardCant||l.cardPeso||'—')}</td><td style="padding:6px 8px;">${esc(l.m[0]?.v||'—')}</td><td style="padding:6px 8px;">${esc(l.establNombre||'—')}</td></tr>`;
     if(!LD.length){
       secc.innerHTML='<div style="padding:16px 0;color:var(--sage);font-size:0.8rem;">Sin lotes activos.</div>';
     }else{
@@ -4093,7 +4099,7 @@ async function generarReporteStock(){
         <div style="margin-bottom:18px;">
           <div style="font-weight:500;font-size:0.82rem;color:var(--soil);margin-bottom:6px;">${esc(grupos[et][0].bt)} <span style="color:var(--sage);font-weight:400;">(${grupos[et].length})</span></div>
           <table style="width:100%;border-collapse:collapse;font-size:0.78rem;">
-            <thead><tr style="background:var(--dew);"><th style="text-align:left;padding:6px 8px;">Lote</th><th style="text-align:left;padding:6px 8px;">Variedad</th><th style="text-align:left;padding:6px 8px;">Cantidad</th><th style="text-align:left;padding:6px 8px;">Inicio</th></tr></thead>
+            <thead><tr style="background:var(--dew);"><th style="text-align:left;padding:6px 8px;">Lote</th><th style="text-align:left;padding:6px 8px;">Variedad</th><th style="text-align:left;padding:6px 8px;">Cantidad</th><th style="text-align:left;padding:6px 8px;">Inicio</th><th style="text-align:left;padding:6px 8px;">Establecimiento</th></tr></thead>
             <tbody>${grupos[et].map(filaLote).join('')}</tbody>
           </table>
         </div>`).join('');
@@ -4105,8 +4111,8 @@ async function generarReporteStock(){
       <div style="margin-bottom:14px;">
         <div style="font-weight:500;font-size:0.82rem;color:var(--soil);margin-bottom:6px;">${label}</div>
         <table style="width:100%;border-collapse:collapse;font-size:0.78rem;">
-          <thead><tr style="background:var(--dew);"><th style="text-align:left;padding:6px 8px;">Lote</th><th style="text-align:left;padding:6px 8px;">Stock actual / inicial</th></tr></thead>
-          <tbody>${LM[k].map(r=>`<tr><td style="padding:6px 8px;">${esc(r.l)}</td><td style="padding:6px 8px;">${r.stock} / ${r.stockI} ${esc(r.u)}</td></tr>`).join('')}</tbody>
+          <thead><tr style="background:var(--dew);"><th style="text-align:left;padding:6px 8px;">Lote</th><th style="text-align:left;padding:6px 8px;">Stock actual / inicial</th><th style="text-align:left;padding:6px 8px;">Establecimiento</th></tr></thead>
+          <tbody>${LM[k].map(r=>`<tr><td style="padding:6px 8px;">${esc(r.l)}</td><td style="padding:6px 8px;">${r.stock} / ${r.stockI} ${esc(r.u)}</td><td style="padding:6px 8px;">${esc(r.establNombre||'—')}</td></tr>`).join('')}</tbody>
         </table>
       </div>`).join('');
     matSecc.innerHTML=matHtml||'<div style="padding:16px 0;color:var(--sage);font-size:0.8rem;">Sin stock de material básico.</div>';
@@ -4115,8 +4121,8 @@ async function generarReporteStock(){
     const floresSecc=document.getElementById('rst-flores');
     floresSecc.innerHTML=floresLotes.length?`
       <table style="width:100%;border-collapse:collapse;font-size:0.78rem;">
-        <thead><tr style="background:var(--dew);"><th style="text-align:left;padding:6px 8px;">Lote</th><th style="text-align:left;padding:6px 8px;">Variedad</th><th style="text-align:left;padding:6px 8px;">Disponible</th></tr></thead>
-        <tbody>${floresLotes.map(l=>`<tr><td style="padding:6px 8px;">${esc(l.n)}</td><td style="padding:6px 8px;">${esc(l.variedad||'—')}</td><td style="padding:6px 8px;">${esc(l.cardPeso)}</td></tr>`).join('')}</tbody>
+        <thead><tr style="background:var(--dew);"><th style="text-align:left;padding:6px 8px;">Lote</th><th style="text-align:left;padding:6px 8px;">Variedad</th><th style="text-align:left;padding:6px 8px;">Disponible</th><th style="text-align:left;padding:6px 8px;">Establecimiento</th></tr></thead>
+        <tbody>${floresLotes.map(l=>`<tr><td style="padding:6px 8px;">${esc(l.n)}</td><td style="padding:6px 8px;">${esc(l.variedad||'—')}</td><td style="padding:6px 8px;">${esc(l.cardPeso)}</td><td style="padding:6px 8px;">${esc(l.establNombre||'—')}</td></tr>`).join('')}</tbody>
       </table>`:'<div style="padding:16px 0;color:var(--sage);font-size:0.8rem;">Sin flores cosechadas disponibles.</div>';
 
     if(sinDatos)sinDatos.style.display='none';
