@@ -1277,7 +1277,7 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
 
     <div class="metrics" style="grid-template-columns:repeat(2,1fr);max-width:520px;">
       <div class="metric"><div class="metric-label">Pacientes declarados (activos)</div><div class="metric-val" id="rst-pacientes">—</div></div>
-      <div class="metric"><div class="metric-label">Plantas en cultivo</div><div class="metric-val green" id="rst-plantas">—</div></div>
+      <div class="metric"><div class="metric-label">Plantas en cultivo</div><div class="metric-val green" id="rst-plantas">—</div><div id="rst-plantas-nota" style="display:none;font-size:0.65rem;color:var(--amber);margin-top:4px;"></div></div>
     </div>
     <div style="font-size:0.72rem;color:var(--sage);margin:-12px 0 20px;">La comparación entre estos dos números es la que corresponde verificar contra el límite habilitado por REPROCANN para esta organización. "Plantas en cultivo" suma Nursery + Vegetativa + Floración — no incluye lotes en Cosecha, Curado/Secado o Flores Cosechadas, porque en esas etapas las plantas ya fueron retiradas del cultivo.</div>
 
@@ -4083,15 +4083,39 @@ async function generarReporteStock(){
     document.getElementById('rst-pacientes').textContent=pacActivos??0;
 
     const ETAPAS_EN_CULTIVO=['nursery','vegetativa','floracion'];
-    const plantasCultivo=LD.filter(l=>ETAPAS_EN_CULTIVO.includes(l.etapaRaw))
-      .reduce((acc,l)=>acc+(parseInt(l.cardCant)||0),0);
+    // La cantidad "oficial" de un lote sale de la fila etapa_nursery/vegetativa/
+    // floracion (cardCant), que recién existe cuando alguien abrió ese lote y
+    // guardó su panel de la etapa. Hasta entonces, para nursery/vegetativa/
+    // floración caemos a cantidad_inicial (lo que se supo al crear el lote o al
+    // dividirlo en un sublote) — mejor una cifra marcada como sin confirmar que
+    // un espacio en blanco que subestima cuántas plantas hay en cultivo.
+    function cantidadLote(l){
+      if(l.cardCant)return{texto:l.cardCant,valor:parseInt(l.cardCant)||0,confirmado:true};
+      if(ETAPAS_EN_CULTIVO.includes(l.etapaRaw)&&l.cantidadInicial!=null)
+        return{texto:l.cantidadInicial+' (sin confirmar)',valor:l.cantidadInicial,confirmado:false};
+      if(l.cardPeso)return{texto:l.cardPeso,valor:0,confirmado:true};
+      return{texto:'—',valor:0,confirmado:true};
+    }
+
+    const lotesCultivo=LD.filter(l=>ETAPAS_EN_CULTIVO.includes(l.etapaRaw)).map(l=>({l,c:cantidadLote(l)}));
+    const plantasCultivo=lotesCultivo.reduce((acc,{c})=>acc+c.valor,0);
+    const sinConfirmar=lotesCultivo.filter(({c})=>!c.confirmado).length;
     document.getElementById('rst-plantas').textContent=plantasCultivo;
+    const notaSinConfirmar=document.getElementById('rst-plantas-nota');
+    if(notaSinConfirmar){
+      notaSinConfirmar.style.display=sinConfirmar?'block':'none';
+      notaSinConfirmar.textContent=sinConfirmar?`Incluye ${sinConfirmar} lote${sinConfirmar>1?'s':''} con cantidad sin confirmar (ver detalle abajo)`:'';
+    }
 
     const ORDEN_ETAPAS=['nursery','vegetativa','floracion','cosecha','curado_secado','flores'];
     const grupos={};
     LD.forEach(l=>{(grupos[l.etapaRaw]=grupos[l.etapaRaw]||[]).push(l);});
     const secc=document.getElementById('rst-lotes-secciones');
-    const filaLote=l=>`<tr><td style="padding:6px 8px;">${esc(l.n)}</td><td style="padding:6px 8px;">${esc(l.variedad||'—')}</td><td style="padding:6px 8px;">${esc(l.cardCant||l.cardPeso||'—')}</td><td style="padding:6px 8px;">${esc(l.m[0]?.v||'—')}</td><td style="padding:6px 8px;">${esc(l.establNombre||'—')}</td></tr>`;
+    const filaLote=l=>{
+      const c=cantidadLote(l);
+      const style=c.confirmado?'':' style="color:var(--amber);"';
+      return`<tr><td style="padding:6px 8px;">${esc(l.n)}</td><td style="padding:6px 8px;">${esc(l.variedad||'—')}</td><td style="padding:6px 8px;"${style}>${esc(c.texto)}</td><td style="padding:6px 8px;">${esc(l.m[0]?.v||'—')}</td><td style="padding:6px 8px;">${esc(l.establNombre||'—')}</td></tr>`;
+    };
     if(!LD.length){
       secc.innerHTML='<div style="padding:16px 0;color:var(--sage);font-size:0.8rem;">Sin lotes activos.</div>';
     }else{
