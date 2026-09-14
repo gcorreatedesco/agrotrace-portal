@@ -591,6 +591,25 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
   .file-drop-txt{font-size:0.72rem;}
 }
 
+/* Reporte de Stock: tablas con table-layout:fixed + colgroup para que las
+   columnas del mismo tipo (Lote/Variedad/Cantidad/...) midan lo mismo en
+   todas las tablas apiladas (una por etapa, una por categoría de material),
+   en vez de que cada una se ajuste sola al contenido y queden desalineadas.
+
+   Los tonos son grises explícitos, no las variables de color de la app
+   (--dew, --sage, etc.): el RT lo imprime en blanco y negro, y sin
+   -webkit-print-color-adjust:exact Chrome directamente OMITE los fondos de
+   color al imprimir — ver la regla @media print más abajo. Tres niveles de
+   gris a propósito: la franja de categoría (más oscura) > el encabezado de
+   columnas (medio) > filas alternadas (clareado), para que las categorías
+   se distingan aunque no haya color. */
+#view-reporte-stock .rst-tabla{width:100%;border-collapse:collapse;font-size:0.78rem;table-layout:fixed;}
+#view-reporte-stock .rst-tabla th,#view-reporte-stock .rst-tabla td{padding:6px 8px;text-align:left;overflow-wrap:break-word;}
+#view-reporte-stock .rst-tabla thead tr{background:#d8d8d8;}
+#view-reporte-stock .rst-tabla tbody tr:nth-child(even){background:#f2f2f2;}
+#view-reporte-stock .rst-seccion{background:#bdbdbd;color:#000;font-weight:600;padding:5px 8px;border-radius:3px;margin-bottom:6px;}
+#view-reporte-stock .rst-seccion .rst-seccion-n{font-weight:400;color:#333;}
+
 /* Reporte de Stock: A4, sin color, sin la cromática/chrome de la app.
    Solo se activa mientras esa vista está .active — las demás vistas ya
    están display:none, así que basta con ocultar sidebar/topbar/banners. */
@@ -599,8 +618,7 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
   body,.main{margin:0;padding:0;background:#fff;}
   .content{padding:0;}
   #view-reporte-stock table{font-size:11px;}
-  #view-reporte-stock,#view-reporte-stock *{color:#000!important;}
-  #view-reporte-stock thead tr{background:#eee!important;}
+  #view-reporte-stock,#view-reporte-stock *{color:#000!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
   @page{size:A4;margin:14mm;}
 }
 </style>
@@ -4112,19 +4130,21 @@ async function generarReporteStock(){
     const grupos={};
     LD.forEach(l=>{(grupos[l.etapaRaw]=grupos[l.etapaRaw]||[]).push(l);});
     const secc=document.getElementById('rst-lotes-secciones');
+    const COLGROUP_LOTES='<colgroup><col style="width:28%"><col style="width:20%"><col style="width:18%"><col style="width:14%"><col style="width:20%"></colgroup>';
     const filaLote=l=>{
       const c=cantidadLote(l);
       const style=c.confirmado?'':' style="color:var(--amber);"';
-      return`<tr><td style="padding:6px 8px;">${esc(l.n)}</td><td style="padding:6px 8px;">${esc(l.variedad||'—')}</td><td style="padding:6px 8px;"${style}>${esc(c.texto)}</td><td style="padding:6px 8px;">${esc(l.m[0]?.v||'—')}</td><td style="padding:6px 8px;">${esc(l.establNombre||'—')}</td></tr>`;
+      return`<tr><td>${esc(l.n)}</td><td>${esc(l.variedad||'—')}</td><td${style}>${esc(c.texto)}</td><td>${esc(l.m[0]?.v||'—')}</td><td>${esc(l.establNombre||'—')}</td></tr>`;
     };
     if(!LD.length){
       secc.innerHTML='<div style="padding:16px 0;color:var(--sage);font-size:0.8rem;">Sin lotes activos.</div>';
     }else{
       secc.innerHTML=ORDEN_ETAPAS.filter(et=>grupos[et]?.length).map(et=>`
         <div style="margin-bottom:18px;">
-          <div style="font-weight:500;font-size:0.82rem;color:var(--soil);margin-bottom:6px;">${esc(grupos[et][0].bt)} <span style="color:var(--sage);font-weight:400;">(${grupos[et].length})</span></div>
-          <table style="width:100%;border-collapse:collapse;font-size:0.78rem;">
-            <thead><tr style="background:var(--dew);"><th style="text-align:left;padding:6px 8px;">Lote</th><th style="text-align:left;padding:6px 8px;">Variedad</th><th style="text-align:left;padding:6px 8px;">Cantidad</th><th style="text-align:left;padding:6px 8px;">Inicio</th><th style="text-align:left;padding:6px 8px;">Establecimiento</th></tr></thead>
+          <div class="rst-seccion">${esc(grupos[et][0].bt)} <span class="rst-seccion-n">(${grupos[et].length})</span></div>
+          <table class="rst-tabla">
+            ${COLGROUP_LOTES}
+            <thead><tr><th>Lote</th><th>Variedad</th><th>Cantidad</th><th>Inicio</th><th>Establecimiento</th></tr></thead>
             <tbody>${grupos[et].map(filaLote).join('')}</tbody>
           </table>
         </div>`).join('');
@@ -4132,12 +4152,14 @@ async function generarReporteStock(){
 
     const matSecc=document.getElementById('rst-material');
     const BLOQUES_MAT=[['semillas','Semillas'],['esquejes','Esquejes'],['pm','Plantas Madre']];
+    const COLGROUP_MAT='<colgroup><col style="width:28%"><col style="width:22%"><col style="width:25%"><col style="width:25%"></colgroup>';
     const matHtml=BLOQUES_MAT.filter(([k])=>LM[k]?.length).map(([k,label])=>`
       <div style="margin-bottom:14px;">
-        <div style="font-weight:500;font-size:0.82rem;color:var(--soil);margin-bottom:6px;">${label}</div>
-        <table style="width:100%;border-collapse:collapse;font-size:0.78rem;">
-          <thead><tr style="background:var(--dew);"><th style="text-align:left;padding:6px 8px;">Lote</th><th style="text-align:left;padding:6px 8px;">Variedad</th><th style="text-align:left;padding:6px 8px;">Stock actual / inicial</th><th style="text-align:left;padding:6px 8px;">Establecimiento</th></tr></thead>
-          <tbody>${LM[k].map(r=>`<tr><td style="padding:6px 8px;">${esc(r.l.split(' — ')[0])}</td><td style="padding:6px 8px;">${esc(r.var||'—')}</td><td style="padding:6px 8px;">${r.stock} / ${r.stockI} ${esc(r.u)}</td><td style="padding:6px 8px;">${esc(r.establNombre||'—')}</td></tr>`).join('')}</tbody>
+        <div class="rst-seccion">${label} <span class="rst-seccion-n">(${LM[k].length})</span></div>
+        <table class="rst-tabla">
+          ${COLGROUP_MAT}
+          <thead><tr><th>Lote</th><th>Variedad</th><th>Stock actual / inicial</th><th>Establecimiento</th></tr></thead>
+          <tbody>${LM[k].map(r=>`<tr><td>${esc(r.l.split(' — ')[0])}</td><td>${esc(r.var||'—')}</td><td>${r.stock} / ${r.stockI} ${esc(r.u)}</td><td>${esc(r.establNombre||'—')}</td></tr>`).join('')}</tbody>
         </table>
       </div>`).join('');
     matSecc.innerHTML=matHtml||'<div style="padding:16px 0;color:var(--sage);font-size:0.8rem;">Sin stock de material básico.</div>';
@@ -4145,9 +4167,10 @@ async function generarReporteStock(){
     const floresLotes=LD.filter(l=>l.et==='flores'&&l.cardPeso);
     const floresSecc=document.getElementById('rst-flores');
     floresSecc.innerHTML=floresLotes.length?`
-      <table style="width:100%;border-collapse:collapse;font-size:0.78rem;">
-        <thead><tr style="background:var(--dew);"><th style="text-align:left;padding:6px 8px;">Lote</th><th style="text-align:left;padding:6px 8px;">Variedad</th><th style="text-align:left;padding:6px 8px;">Disponible</th><th style="text-align:left;padding:6px 8px;">Establecimiento</th></tr></thead>
-        <tbody>${floresLotes.map(l=>`<tr><td style="padding:6px 8px;">${esc(l.n)}</td><td style="padding:6px 8px;">${esc(l.variedad||'—')}</td><td style="padding:6px 8px;">${esc(l.cardPeso)}</td><td style="padding:6px 8px;">${esc(l.establNombre||'—')}</td></tr>`).join('')}</tbody>
+      <table class="rst-tabla">
+        ${COLGROUP_MAT}
+        <thead><tr><th>Lote</th><th>Variedad</th><th>Disponible</th><th>Establecimiento</th></tr></thead>
+        <tbody>${floresLotes.map(l=>`<tr><td>${esc(l.n)}</td><td>${esc(l.variedad||'—')}</td><td>${esc(l.cardPeso)}</td><td>${esc(l.establNombre||'—')}</td></tr>`).join('')}</tbody>
       </table>`:'<div style="padding:16px 0;color:var(--sage);font-size:0.8rem;">Sin flores cosechadas disponibles.</div>';
 
     if(sinDatos)sinDatos.style.display='none';
