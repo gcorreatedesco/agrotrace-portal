@@ -4136,8 +4136,8 @@ async function generarReporteStock(){
       <div style="margin-bottom:14px;">
         <div style="font-weight:500;font-size:0.82rem;color:var(--soil);margin-bottom:6px;">${label}</div>
         <table style="width:100%;border-collapse:collapse;font-size:0.78rem;">
-          <thead><tr style="background:var(--dew);"><th style="text-align:left;padding:6px 8px;">Lote</th><th style="text-align:left;padding:6px 8px;">Stock actual / inicial</th><th style="text-align:left;padding:6px 8px;">Establecimiento</th></tr></thead>
-          <tbody>${LM[k].map(r=>`<tr><td style="padding:6px 8px;">${esc(r.l)}</td><td style="padding:6px 8px;">${r.stock} / ${r.stockI} ${esc(r.u)}</td><td style="padding:6px 8px;">${esc(r.establNombre||'—')}</td></tr>`).join('')}</tbody>
+          <thead><tr style="background:var(--dew);"><th style="text-align:left;padding:6px 8px;">Lote</th><th style="text-align:left;padding:6px 8px;">Variedad</th><th style="text-align:left;padding:6px 8px;">Stock actual / inicial</th><th style="text-align:left;padding:6px 8px;">Establecimiento</th></tr></thead>
+          <tbody>${LM[k].map(r=>`<tr><td style="padding:6px 8px;">${esc(r.l.split(' — ')[0])}</td><td style="padding:6px 8px;">${esc(r.var||'—')}</td><td style="padding:6px 8px;">${r.stock} / ${r.stockI} ${esc(r.u)}</td><td style="padding:6px 8px;">${esc(r.establNombre||'—')}</td></tr>`).join('')}</tbody>
         </table>
       </div>`).join('');
     matSecc.innerHTML=matHtml||'<div style="padding:16px 0;color:var(--sage);font-size:0.8rem;">Sin stock de material básico.</div>';
