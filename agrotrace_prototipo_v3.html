@@ -603,12 +603,20 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
    eso Chrome directamente OMITE los fondos de color al imprimir; (2) el
    texto claro sobre fondo --soil se mantiene claro también al imprimir —
    forzarlo a negro (como estaba antes) lo dejaría negro sobre negro. */
+/* Jerarquía de dos niveles, a propósito bien distinta en tratamiento (no
+   solo en tamaño) para que no compitan entre sí: el título de sección
+   (Lotes activos / Stock de material básico / Flores cosechadas) es texto
+   serif con una regla debajo — el mismo lenguaje que ya usa el título del
+   reporte arriba. Las categorías adentro (Nursery, Semillas, ...) son la
+   franja rellena en --soil — más chica y sin serif, para que se lean como
+   un nivel subordinado y no como si pesaran más que la sección. */
+#view-reporte-stock .rst-h1{font-family:'DM Serif Display',serif;font-size:1.05rem;font-weight:400;color:var(--soil);margin:24px 0 10px;padding-bottom:6px;border-bottom:2px solid var(--mist);}
 #view-reporte-stock .rst-tabla{width:100%;border-collapse:collapse;font-size:0.78rem;table-layout:fixed;}
 #view-reporte-stock .rst-tabla th,#view-reporte-stock .rst-tabla td{padding:6px 8px;text-align:left;overflow-wrap:break-word;}
 #view-reporte-stock .rst-tabla thead tr{background:var(--soil);}
 #view-reporte-stock .rst-tabla thead th{color:var(--mist);}
 #view-reporte-stock .rst-tabla tbody tr:nth-child(even){background:var(--dew);}
-#view-reporte-stock .rst-seccion{background:var(--soil);color:var(--white);font-weight:600;padding:5px 8px;border-radius:3px;margin-bottom:6px;}
+#view-reporte-stock .rst-seccion{background:var(--soil);color:var(--white);font-weight:500;font-size:0.75rem;padding:4px 8px;border-radius:3px;margin-bottom:6px;}
 #view-reporte-stock .rst-seccion .rst-seccion-n{font-weight:400;color:var(--mist);}
 
 /* Reporte de Stock: A4, sin la cromática/chrome de la app (sidebar, topbar).
@@ -1304,13 +1312,13 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
       <div class="metric"><div class="metric-label">Pacientes declarados (activos)</div><div class="metric-val" id="rst-pacientes">—</div></div>
       <div class="metric"><div class="metric-label">Plantas en cultivo</div><div class="metric-val green" id="rst-plantas">—</div><div id="rst-plantas-nota" style="display:none;font-size:0.65rem;color:var(--amber);margin-top:4px;"></div></div>
     </div>
-    <div style="font-family:'DM Serif Display',serif;font-size:1rem;color:var(--soil);margin:24px 0 10px;">Lotes activos</div>
+    <div class="rst-h1">Lotes activos</div>
     <div id="rst-lotes-secciones"></div>
 
-    <div style="font-family:'DM Serif Display',serif;font-size:1rem;color:var(--soil);margin:24px 0 10px;">Stock de material básico</div>
+    <div class="rst-h1">Stock de material básico</div>
     <div id="rst-material"></div>
 
-    <div style="font-family:'DM Serif Display',serif;font-size:1rem;color:var(--soil);margin:24px 0 10px;">Flores cosechadas disponibles</div>
+    <div class="rst-h1">Flores cosechadas disponibles</div>
     <div id="rst-flores"></div>
 
     <div id="rst-sin-datos" style="display:none;padding:40px;text-align:center;color:var(--sage);font-size:0.85rem;">Generando…</div>
