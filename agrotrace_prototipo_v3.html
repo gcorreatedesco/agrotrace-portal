@@ -596,29 +596,33 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
    todas las tablas apiladas (una por etapa, una por categoría de material),
    en vez de que cada una se ajuste sola al contenido y queden desalineadas.
 
-   Los tonos son grises explícitos, no las variables de color de la app
-   (--dew, --sage, etc.): el RT lo imprime en blanco y negro, y sin
-   -webkit-print-color-adjust:exact Chrome directamente OMITE los fondos de
-   color al imprimir — ver la regla @media print más abajo. Tres niveles de
-   gris a propósito: la franja de categoría (más oscura) > el encabezado de
-   columnas (medio) > filas alternadas (clareado), para que las categorías
-   se distingan aunque no haya color. */
+   Los encabezados usan la paleta real de la app (--soil oscuro + texto
+   claro), el mismo motivo que ya usa el encabezado de la tabla REPROCANN
+   — no grises genéricos. Para que el contraste se mantenga en blanco y
+   negro: (1) -webkit-print-color-adjust:exact en @media print, porque sin
+   eso Chrome directamente OMITE los fondos de color al imprimir; (2) el
+   texto claro sobre fondo --soil se mantiene claro también al imprimir —
+   forzarlo a negro (como estaba antes) lo dejaría negro sobre negro. */
 #view-reporte-stock .rst-tabla{width:100%;border-collapse:collapse;font-size:0.78rem;table-layout:fixed;}
 #view-reporte-stock .rst-tabla th,#view-reporte-stock .rst-tabla td{padding:6px 8px;text-align:left;overflow-wrap:break-word;}
-#view-reporte-stock .rst-tabla thead tr{background:#d8d8d8;}
-#view-reporte-stock .rst-tabla tbody tr:nth-child(even){background:#f2f2f2;}
-#view-reporte-stock .rst-seccion{background:#bdbdbd;color:#000;font-weight:600;padding:5px 8px;border-radius:3px;margin-bottom:6px;}
-#view-reporte-stock .rst-seccion .rst-seccion-n{font-weight:400;color:#333;}
+#view-reporte-stock .rst-tabla thead tr{background:var(--soil);}
+#view-reporte-stock .rst-tabla thead th{color:var(--mist);}
+#view-reporte-stock .rst-tabla tbody tr:nth-child(even){background:var(--dew);}
+#view-reporte-stock .rst-seccion{background:var(--soil);color:var(--white);font-weight:600;padding:5px 8px;border-radius:3px;margin-bottom:6px;}
+#view-reporte-stock .rst-seccion .rst-seccion-n{font-weight:400;color:var(--mist);}
 
-/* Reporte de Stock: A4, sin color, sin la cromática/chrome de la app.
+/* Reporte de Stock: A4, sin la cromática/chrome de la app (sidebar, topbar).
    Solo se activa mientras esa vista está .active — las demás vistas ya
-   están display:none, así que basta con ocultar sidebar/topbar/banners. */
+   están display:none, así que basta con ocultar sidebar/topbar/banners.
+   No se fuerza el texto a negro acá: el body ya usa --soil (casi negro)
+   por defecto, y los encabezados con fondo --soil necesitan que su texto
+   SIGA claro al imprimir — forzarlo a negro los dejaría ilegibles. */
 @media print{
   .sidebar,.topbar,.rt-supervision-bar,.no-print{display:none!important;}
   body,.main{margin:0;padding:0;background:#fff;}
   .content{padding:0;}
   #view-reporte-stock table{font-size:11px;}
-  #view-reporte-stock,#view-reporte-stock *{color:#000!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  #view-reporte-stock *{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
   @page{size:A4;margin:14mm;}
 }
 </style>
