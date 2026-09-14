@@ -617,7 +617,6 @@ input[readonly],input[disabled],select:disabled{background:var(--cream);color:va
 #view-reporte-stock .rst-tabla thead th{color:var(--mist);}
 #view-reporte-stock .rst-tabla tbody tr:nth-child(even){background:var(--dew);}
 #view-reporte-stock .rst-seccion{background:var(--soil);color:var(--white);font-weight:500;font-size:0.75rem;padding:4px 8px;border-radius:3px;margin-bottom:6px;}
-#view-reporte-stock .rst-seccion .rst-seccion-n{font-weight:400;color:var(--mist);}
 
 /* Reporte de Stock: A4, sin la cromática/chrome de la app (sidebar, topbar).
    Solo se activa mientras esa vista está .active — las demás vistas ya
@@ -4153,7 +4152,7 @@ async function generarReporteStock(){
     }else{
       secc.innerHTML=ORDEN_ETAPAS.filter(et=>grupos[et]?.length).map(et=>`
         <div style="margin-bottom:18px;">
-          <div class="rst-seccion">${esc(grupos[et][0].bt)} <span class="rst-seccion-n">(${grupos[et].length})</span></div>
+          <div class="rst-seccion">${esc(grupos[et][0].bt)}</div>
           <table class="rst-tabla">
             ${COLGROUP_LOTES}
             <thead><tr><th>Lote</th><th>Variedad</th><th>Cantidad</th><th>Inicio</th><th>Establecimiento</th></tr></thead>
@@ -4167,7 +4166,7 @@ async function generarReporteStock(){
     const COLGROUP_MAT='<colgroup><col style="width:28%"><col style="width:22%"><col style="width:25%"><col style="width:25%"></colgroup>';
     const matHtml=BLOQUES_MAT.filter(([k])=>LM[k]?.length).map(([k,label])=>`
       <div style="margin-bottom:14px;">
-        <div class="rst-seccion">${label} <span class="rst-seccion-n">(${LM[k].length})</span></div>
+        <div class="rst-seccion">${label}</div>
         <table class="rst-tabla">
           ${COLGROUP_MAT}
           <thead><tr><th>Lote</th><th>Variedad</th><th>Stock actual / inicial</th><th>Establecimiento</th></tr></thead>
